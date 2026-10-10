@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <UseSharedCompilation>false</UseSharedCompilation>
+    <BuildInParallel>false</BuildInParallel>
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+</Project>

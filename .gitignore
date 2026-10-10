@@ -107,3 +107,16 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Reusable C# frame-sync framework
+**/bin/
+**/obj/
+.build/
+artifacts/
+.DS_Store
+
+# These are authored .NET project files, not Unity-generated files.
+!framework/**/*.csproj
+!framework/*.sln
+!samples/**/*.csproj
+!tools/**/*.csproj
