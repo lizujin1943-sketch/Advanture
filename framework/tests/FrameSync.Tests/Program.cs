@@ -8,7 +8,9 @@ namespace FrameSync.Tests
     {
         private static int Main(string[] args)
         {
-            IEnumerable<(string Name, Action Run)> cases = RunnerTests.Cases().Concat(CheckpointTests.Cases()).Concat(ReplayTests.Cases());
+            IEnumerable<(string Name, Action Run)> cases = RunnerTests.Cases()
+                .Concat(CheckpointTests.Cases()).Concat(ReplayTests.Cases()).Concat(TransportTests.Cases())
+                .Concat(SessionTests.Cases()).Concat(SessionBoundaryTests.Cases()).Concat(SessionFailureTests.Cases());
             if (args.Length > 0) cases = cases.Where(t => t.Name.StartsWith(args[0], StringComparison.Ordinal));
             int passed = 0, failed = 0;
             foreach (var test in cases)

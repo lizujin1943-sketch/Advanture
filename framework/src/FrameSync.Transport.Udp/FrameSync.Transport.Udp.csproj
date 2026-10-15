@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../ReliableUdp.Core/ReliableUdp.Core.csproj" />
+    <ProjectReference Include="../FrameSync.Transport/FrameSync.Transport.csproj" />
+  </ItemGroup>
+</Project>

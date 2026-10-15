@@ -21,3 +21,18 @@ for model in counter grid; do
     expected=$(cat "$out/$model.sha256")
     dotnet "$harness" --replay "$out/$model.fsrp" --expected-hash "$expected" --report "$out/$model-replay.json"
 done
+
+# 阶段 B：真实字节链路、命令行交互，以及两个游戏各 10000 帧的四客户端一致性。
+dotnet build tools/SyncHarness.Tests -c Release --disable-build-servers -m:1 -v:quiet
+dotnet tools/SyncHarness.Tests/bin/Release/net8.0/SyncHarness.Tests.dll
+sync_harness="tools/SyncHarness/bin/Release/net8.0/SyncHarness.dll"
+mkdir -p artifacts/stage-b
+dotnet "$sync_harness" | tee artifacts/stage-b/two-clients.log
+dotnet "$sync_harness" --game counter --clients 4 --frames 10000 | tee artifacts/stage-b/counter-four-clients.log
+dotnet "$sync_harness" --game grid --clients 4 --frames 10000 | tee artifacts/stage-b/grid-four-clients.log
+
+# 阶段 E：独立传输算法的故障网络测试，以及真正独立进程的 UDP 联机。
+dotnet framework/tests/ReliableUdp.Tests/bin/Release/net8.0/ReliableUdp.Tests.dll
+dotnet build tools/UdpHarness.Tests -c Release --disable-build-servers -m:1 -v:quiet
+mkdir -p artifacts/stage-e
+dotnet tools/UdpHarness.Tests/bin/Release/net8.0/UdpHarness.Tests.dll | tee artifacts/stage-e/integration.log
