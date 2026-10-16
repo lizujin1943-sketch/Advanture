@@ -18,4 +18,12 @@
 
 初版范围由第一篇确定；帧同步内部设计与实现约定集中维护在第三篇。可靠 UDP 独立维护自己的传输协议，具体游戏通过接入接口提供玩法。
 
+后续排期更新（2026-10-16）：按用户要求，先暂缓第 2 项 Windows/macOS 跨系统验证，双客户端 Unity 接入现已完成，最新范围见 [联机实现说明](yard-network-implementation.md)。暂缓不代表通过；具体顺序见 [后续实施安排](superpowers/plans/2026-10-16-next-stage-order.md)。
+
 初版完整目标（A～E）：纯 C# 无画面运行、Windows/macOS、单机与 1～4 人、预测回滚、基础存读档、自研 UDP；参与者在开局前加入。随后再接 Unity、途中加入和掉线恢复，之后接 Steam。核心不规定玩法、坐标、实体模型或发行平台。
+
+游戏美术示例：[七号转运站：简单低多边形地图](maps/yard-07-design.md)，模型与预览见 [TacticalMap](../samples/TacticalMap/README.md)。这是独立的游戏资源，不属于帧同步核心。
+
+Unity 双人试玩：[七号转运站](../samples/TacticalGame.Unity/README.md)，现已接入帧同步，可互见移动与转向。先读 [接入实现说明与源码阅读顺序](yard-network-implementation.md)，再看 [验证记录](../samples/TacticalGame.Unity/VERIFICATION.md)。原本地场景保留。
+
+联机排查：[自动诊断日志与不同步快照](session-diagnostics.md)，介绍日志目录、结束状态、回滚与不同步的区别，以及问题帧重放。

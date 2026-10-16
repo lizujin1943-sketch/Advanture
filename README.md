@@ -4,6 +4,10 @@
 
 初次阅读建议先看 [C/D 实现与代码阅读指南](docs/stage-c-d-implementation.md)，了解“逐帧冻结本地输入、预测远端输入、确认与回滚、保存后重新开房”的实际调用。Windows 跨系统验证仍待执行；中途加入和完整重连按计划后置。
 
+## Unity 双人试玩
+
+[七号转运站](samples/TacticalGame.Unity/README.md) 已接入框架：两个独立客户端可互见移动和转向，游戏模拟仍是独立纯 C#。运行 `./scripts/sync-unity-libraries.sh` 后打开 Unity 工程；当前 macOS 构建可通过 `python3 scripts/run-yard-pair.py` 一次启动两端。首次构建方法、各层职责与源文件阅读顺序见 [接入说明](docs/yard-network-implementation.md)。
+
 ## 先体验两个客户端同步
 
 ```bash
@@ -24,7 +28,7 @@ macOS / Linux / Git Bash 一键验收：
 ./scripts/verify.sh
 ```
 
-它会构建核心和工具，执行测试，运行两个模型各 100000 帧，验证多个中间检查点恢复后的状态和事件，最后在两个新进程中读取录制文件并核对最终摘要。还会运行阶段 B 的会话与交互测试，以及两个模型各 10000 帧的四客户端输入同步、完整状态和事件校验。还会运行故障网络与真实 UDP 多进程验收，检查预测回滚、断线停用、保存后结束所有进程再读档，以及两种模型在 1/2/4 客户端下的逐帧一致性。报告包含回滚次数、耗时和内存采样；任何失败都会返回非零退出码。
+它会构建核心和工具，执行测试，运行两个模型各 100000 帧，验证多个中间检查点恢复后的状态和事件，最后在两个新进程中读取录制文件并核对最终摘要。还会运行阶段 B 的会话与交互测试，以及两个模型各 10000 帧的四客户端输入同步、完整状态和事件校验。还会运行故障网络与真实 UDP 多进程验收，检查预测回滚、断线停用、保存后结束所有进程再读档，以及两种模型在 1/2/4 客户端下的逐帧一致性。报告包含回滚次数、耗时和内存采样；还会验证庭院示例的整数规则、恢复重放和真实 UDP 双人房间。任何失败都会返回非零退出码；Unity 的场景测试和双进程画面验收单独运行。
 
 Windows PowerShell、macOS 终端均可逐条执行：
 
@@ -55,6 +59,7 @@ dotnet tools/HeadlessHarness/bin/Release/net8.0/HeadlessHarness.dll --replay art
 | `framework/src/FrameSync.Runtime` | 按帧推进、检查点、编码校验、输入录制和重放 |
 | `framework/src/FrameSync.Transport` | 只收发字节的传输接口、有界内存网络 |
 | `framework/src/FrameSync.Sessions` | 服务器/客户端会话、成员停用、预测回滚、事件通知、输入调度和一致性检查 |
+| `framework/src/FrameSync.Diagnostics` | 可选的会话进度、结束原因和不同步快照文件记录器 |
 | `framework/src/FrameSync.Persistence` | 存档格式、完整性校验、与存储环境无关的保存服务 |
 | `framework/src/FrameSync.Storage.FileSystem` | 同目录临时文件、原子替换、旧档保护与写锁 |
 | `framework/tests/FrameSync.Persistence.Tests` | 存档损坏、超限、写入失败与并发保护测试 |
@@ -64,6 +69,11 @@ dotnet tools/HeadlessHarness/bin/Release/net8.0/HeadlessHarness.dll --replay art
 | `framework/tests/FrameSync.Tests` | 核心行为测试；不引用两个示例 |
 | `samples/CounterHeadless` | 整数操作示例，演示保存随机数的当前进度 |
 | `samples/GridHeadless` | 网格示例，演示多个参与者各自拥有状态 |
+| `samples/TacticalGame.Simulation` | 庭院示例的纯 C# 移动、碰撞、朝向与状态 |
+| `samples/TacticalGame.Network` | 庭院双人房间、输入采样调度和会话生命周期 |
+| `samples/TacticalGame.Unity` | 联机试玩和原本地试玩的 Unity 输入与画面 |
+| `adapters/Unity` | 从源码生成的通用框架程序集导入入口 |
+| `tools/TacticalGame.Tests` | 庭院规则、恢复重放、真实 UDP 房间测试 |
 | `tools/HeadlessHarness` | 控制台验收与文件导出，具体文件操作留在这里 |
 | `tools/HeadlessHarness.Tests` | 示例手算结果、输入验证、命令行与坏文件测试 |
 | `tools/SyncHarness` | 一个服务器与多个客户端的自动/手动同步演示 |
@@ -72,7 +82,7 @@ dotnet tools/HeadlessHarness/bin/Release/net8.0/HeadlessHarness.dll --replay art
 | `tools/UdpHarness.Tests` | 多进程状态一致性、保存重启、成员离开验证 |
 | `tools/PredictionHarness` | 两种模型 × 1/2/4 客户端的故障网络、预测回滚与录制验证 |
 
-核心和两个示例均以 `netstandard2.1` 为目标；工具与测试以 `net8.0` 为目标。框架可单独构建：`dotnet build framework/FrameSync.sln`，不需要 samples、Unity 或游戏工程。
+核心和纯 C# 示例均以 `netstandard2.1` 为目标；工具与测试以 `net8.0` 为目标。框架可单独构建：`dotnet build framework/FrameSync.sln`，不需要 samples、Unity 或游戏工程。
 
 ```mermaid
 flowchart BT
@@ -126,6 +136,8 @@ Checkpoint final = ReplayPlayer.Play(fresh, replay);
 
 检查点与录制格式现在为 **版本 2**，会话消息协议同为版本 2；旧版本明确拒绝。正式 `.fssv` 存档外壳为版本 1，包含完整检查点、存档身份和校验。文件保存先写临时文件，再原子替换；读档重开保留累计帧和玩家身份，生成新的会话身份并提高控制代数。多存档管理、备份策略、旧格式迁移和云存档留待后续。
 
-本次实测环境是 **macOS arm64、.NET SDK 8.0.403**。Windows、Unity/IL2CPP、真实公网和多小时稳定性尚未实测；当前 UDP 面向受控网络。跨系统验证可复制同一录制到 Windows，比较对应帧的摘要。
+本次实测环境是 **macOS arm64、.NET SDK 8.0.403**。Unity 2022.3 的 macOS Mono 双客户端已实测；Windows、IL2CPP、真实跨电脑局域网、公网和多小时稳定性尚未实测；当前 UDP 面向受控网络。跨系统验证可复制同一录制到 Windows，比较对应帧的摘要。
 
 完整目标和后续阶段见 [文档入口](docs/README.md)。
+
+联机测试后可查看 [自动诊断说明](docs/session-diagnostics.md)：普通试玩自动记录确认帧和回滚次数，发生状态分歧时保存可重放证据。

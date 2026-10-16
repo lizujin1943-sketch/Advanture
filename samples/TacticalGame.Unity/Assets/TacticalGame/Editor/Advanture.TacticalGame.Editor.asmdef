@@ -1,0 +1,11 @@
+{
+  "name": "Advanture.TacticalGame.Editor",
+  "rootNamespace": "Advanture.TacticalGame.Editor",
+  "references": [
+    "Advanture.TacticalGame",
+    "Advanture.TacticalGame.NetworkView"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}

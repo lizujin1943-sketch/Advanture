@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><AssemblyName>Advanture.Tactical.Network</AssemblyName></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TacticalGame.Simulation/TacticalGame.Simulation.csproj" />
+    <ProjectReference Include="../../framework/src/FrameSync.Sessions/FrameSync.Sessions.csproj" />
+    <ProjectReference Include="../../framework/src/FrameSync.Transport.Udp/FrameSync.Transport.Udp.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><AssemblyName>Advanture.Tactical.Simulation</AssemblyName></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../framework/src/FrameSync.Abstractions/FrameSync.Abstractions.csproj" /></ItemGroup>
+</Project>

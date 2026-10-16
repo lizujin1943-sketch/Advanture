@@ -1,0 +1,43 @@
+{
+  "result": "passed",
+  "checks": {
+    "Spawn_Team_A": true,
+    "Spawn_Team_B": true,
+    "reachable_north": true,
+    "reachable_middle": true,
+    "reachable_south": true,
+    "spawn_direct_view_blocked": true,
+    "glb_contains_game_markers_only": true,
+    "glb_has_no_external_textures": true
+  },
+  "grid_cell_meters": 0.25,
+  "player_radius_meters": 0.35,
+  "connected_walkable_cells": 10180,
+  "spawn_view_blockers": [
+    "COL_Spawn_A_Screen",
+    "COL_Spawn_B_Screen",
+    "COL_Cover_Center_High"
+  ],
+  "glb_triangles": 10952,
+  "files": {
+    "Blender/yard_07.blend": {
+      "bytes": 266450,
+      "sha256": "2902b12d5e8255ca8580402dc3a3ca67f7c26f33fede8e674da07c6062a652e9"
+    },
+    "Exports/yard_07.glb": {
+      "bytes": 732532,
+      "sha256": "6dd7a4ecba93a55e67ddee5c6e3b8fa1a50de51081fb6669e5a4f046ee584e07"
+    },
+    "Exports/yard_07.fbx": {
+      "bytes": 694444,
+      "sha256": "0cb2248356741050b571fa9b76dd99bc99f3b9adaa651f2ca6ba21ec5a565042"
+    },
+    "Exports/yard_07_collision.fbx": {
+      "bytes": 38204,
+      "sha256": "8d3ab822b0b92d21a3014522b423c0ccdef3c45caa16ef90d59d0ffb989efc04"
+    }
+  },
+  "limitations": [
+    "Static box/grid and export checks only. No engine collision or multiplayer playtest."
+  ]
+}

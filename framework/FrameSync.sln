@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrameSync.Storage.FileSyste
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrameSync.Persistence.Tests", "tests\FrameSync.Persistence.Tests\FrameSync.Persistence.Tests.csproj", "{48A1EA69-96B0-48C5-AC56-4F23FC7BCE6B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrameSync.Diagnostics", "src\FrameSync.Diagnostics\FrameSync.Diagnostics.csproj", "{DE8E99A2-C13F-40E2-9FE5-8D7BA7862297}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,10 @@ Global
 		{48A1EA69-96B0-48C5-AC56-4F23FC7BCE6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{48A1EA69-96B0-48C5-AC56-4F23FC7BCE6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{48A1EA69-96B0-48C5-AC56-4F23FC7BCE6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE8E99A2-C13F-40E2-9FE5-8D7BA7862297}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE8E99A2-C13F-40E2-9FE5-8D7BA7862297}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE8E99A2-C13F-40E2-9FE5-8D7BA7862297}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE8E99A2-C13F-40E2-9FE5-8D7BA7862297}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{4AB4C6F0-88BF-4E6B-9BF6-BB4C0B15D26B} = {3674F62D-107F-4C77-85E7-AE9285E7EEF2}
@@ -95,5 +101,6 @@ Global
 		{7DB0DB91-AD3E-481A-A335-FF92C8E093B0} = {3674F62D-107F-4C77-85E7-AE9285E7EEF2}
 		{A4C69234-31EC-4898-856A-8547EBC185BF} = {3674F62D-107F-4C77-85E7-AE9285E7EEF2}
 		{48A1EA69-96B0-48C5-AC56-4F23FC7BCE6B} = {BF2C6CBF-A45A-4315-9FBF-45205D881FCF}
+		{DE8E99A2-C13F-40E2-9FE5-8D7BA7862297} = {3674F62D-107F-4C77-85E7-AE9285E7EEF2}
 	EndGlobalSection
 EndGlobal

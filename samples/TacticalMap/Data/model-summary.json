@@ -1,0 +1,17 @@
+{
+  "blender_version": "5.2.1 LTS",
+  "visual_mesh_objects": 265,
+  "visual_triangles": 10952,
+  "box_colliders": 17,
+  "playable_meters": [
+    32,
+    24
+  ],
+  "external_textures": 0,
+  "exports": [
+    "yard_07.blend",
+    "yard_07.glb",
+    "yard_07.fbx",
+    "yard_07_collision.fbx"
+  ]
+}

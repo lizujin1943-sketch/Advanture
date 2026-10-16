@@ -1,0 +1,5 @@
+{
+  "name": "Advanture.TacticalGame.NetworkView",
+  "rootNamespace": "Advanture.TacticalGame.NetworkView",
+  "references": ["Unity.InputSystem"]
+}

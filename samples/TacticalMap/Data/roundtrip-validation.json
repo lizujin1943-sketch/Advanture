@@ -1,0 +1,26 @@
+{
+  "glb": {
+    "passed": true,
+    "container_dimensions_meters": [
+      8.0,
+      2.799999952316284,
+      2.6500000953674316
+    ],
+    "objects": 268,
+    "spawn_markers": 2
+  },
+  "fbx": {
+    "passed": true,
+    "container_dimensions_meters": [
+      8.0,
+      2.799999952316284,
+      2.6500000953674316
+    ],
+    "objects": 268,
+    "spawn_markers": 2
+  },
+  "collision_fbx": {
+    "passed": true,
+    "boxes": 17
+  }
+}

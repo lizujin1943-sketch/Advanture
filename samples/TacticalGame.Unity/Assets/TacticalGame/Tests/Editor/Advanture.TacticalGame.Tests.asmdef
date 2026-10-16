@@ -1,0 +1,26 @@
+{
+  "name": "Advanture.TacticalGame.Tests",
+  "references": [
+    "Advanture.TacticalGame",
+    "Advanture.TacticalGame.NetworkView"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll",
+    "Advanture.Tactical.Simulation.dll",
+    "Advanture.Tactical.Network.dll",
+    "FrameSync.Abstractions.dll",
+    "FrameSync.Runtime.dll",
+    "FrameSync.Transport.dll",
+    "FrameSync.Sessions.dll",
+    "FrameSync.Diagnostics.dll",
+    "FrameSync.Transport.Udp.dll",
+    "ReliableUdp.Core.dll"
+  ]
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "关卡设计 · The Level Design Book"
+  short_description: "用于关卡、地图与地编设计评审，覆盖空间白盒、战斗与 CS 类竞技 FPS 的控图、爆破和试玩验证"
+  default_prompt: "使用 $level-design-book，结合当前项目机制与制作阶段，给出可搭建、可试玩验证的关卡设计或地图评审。"
+policy:
+  allow_implicit_invocation: true

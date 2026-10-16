@@ -1,0 +1,7 @@
+{
+  "name": "com.advanture.framesync",
+  "version": "0.1.0",
+  "displayName": "Advanture FrameSync",
+  "description": "Engine-independent frame synchronization assemblies built from the repository source.",
+  "unity": "2022.3"
+}

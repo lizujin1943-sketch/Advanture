@@ -1,0 +1,6 @@
+# Unity Editor connects to this local server; select and verify the project instance.
+[mcp_servers.unityMCP]
+url = "http://127.0.0.1:8080/mcp"
+enabled = true
+startup_timeout_sec = 30
+tool_timeout_sec = 120

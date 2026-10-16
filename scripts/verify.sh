@@ -46,3 +46,6 @@ for recording in "$prediction_out"/*.fsrp; do
     expected=$(cat "${recording%.fsrp}.sha256")
     dotnet "$harness" --replay "$recording" --expected-hash "$expected" --report "${recording%.fsrp}-replay.json"
 done
+
+# 独立试玩接入：纯 C# 移动、碰撞、保存恢复，以及双客户端真实 UDP。无需安装 Unity。
+./scripts/verify-tactical.sh
