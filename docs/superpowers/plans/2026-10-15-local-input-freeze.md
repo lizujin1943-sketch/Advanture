@@ -37,3 +37,14 @@ Review Focus：权威帧优先与本地输入缺口、局部重算中的冻结�
 
 - 审查修复已完成：公开 IsClosing，宿主关闭期间停止采样提交、继续接收最终帧。CloseBeforeFinalStopsSamplingWhileClockAdvances 已观察修复前失败和修复后通过，证据为 close-red.log / close-green.log。
 - 最终完整验收已通过：./scripts/verify.sh 返回 0，100 核心 + 23 存储 + 24 示例/CLI + 6 同步 CLI + 30 UDP + 16 UDP/采样，共 199 项行为测试；3 项网络自检、6 组故障预测与 6 次独立重放、两模型各 10 万帧恢复重放和各四客户端 1 万帧一致性通过。构建 0 警告/0 错误。Windows 未实测。最终证据位于 artifacts/local-input-freeze/full-verification.log、verification.json 和 review.md。任务 1—3 均完成，无遗留审查项。
+
+
+## 2026-10-16：修复预测模块与冻结规则不一致
+
+- 用户确认先完成当前预测模块修复。工作基线为 f240930；开始时工作区干净。ClientSession、宿主和测试已按逐帧冻结接入，但 ClientPrediction 仍保留旧的本地补猜路径，并将远端中性预测标记为 MissingSubstitute。
+- 修复前重新构建并运行预测专项，19 项中 9 项通过、10 项失败；缺少本地输入时仍从第 0 帧执行到了第 4 帧。证据：artifacts/client-prediction-fix-2026-10-16/prediction-red.log。
+- 增加 freeze_future_final_does_not_skip_local_gap：暂扣服务器真实生成的第 1 帧，让第 2 帧先到；没有第 1 帧本地输入时不能预测填补缺口，补到最终帧后应正常连续确认。先观察旧实现失败（预期 0，实际 2），再修复。证据：future-final-red.log。
+- 修复内容：尚无最终帧且本地成员活跃时，必须存在该帧冻结输入才能推进；本地直接读取冻结字节，仅预测远端。远端中性预测暂记 Submitted，最终来源不同仍触发校正。移除 _dirtyLocalTicks、LocalInputAdded 及其比较/清理路径，补齐中文注释。服务器最终帧优先、成员停用、预算和窗口限制继续生效。
+- 预测专项 20 项全部通过，包含已有 19 项与新增乱序用例，证据：artifacts/client-prediction-fix-2026-10-16/prediction-green.log。
+- 完整 scripts/verify.sh 已返回 0：101 核心 + 23 存储 + 24 示例/CLI + 6 同步 CLI + 30 UDP + 16 UDP/采样，共 200 项行为测试通过；另有 3 项网络自检。6 组故障预测及独立重放、两模型各 10 万帧恢复重放、各四客户端 1 万帧一致性均通过，构建 0 警告/0 错误。当前实测为 macOS arm64 / .NET SDK 8.0.403，Windows 待验证。
+- 最终证据保存在 artifacts/client-prediction-fix-2026-10-16/full-verification.log 和 verification.json，后者记录本次验证的源码摘要。已检查最终差异，核心无 Unity 或具体玩法依赖；本轮修复范围完成。

@@ -57,6 +57,28 @@ namespace FrameSync.Tests
                 f.A.TrySubmit(2, new byte[] {7}); f.A.Poll();
                 Assert.Equal(2UL, f.A.PredictedTick); Assert.Equal(7L, f.A.InspectPredictedState());
             });
+            yield return ("prediction.freeze_future_final_does_not_skip_local_gap", () => {
+                var f = new SyncFixture(prediction: new PredictionOptions()); f.Start();
+                // 暂扣服务器真实生成的第 1 帧，让第 2 帧先到；不伪造最终输入或摘要。
+                f.Server.Poll(TimeSpan.FromMilliseconds(100));
+                Assert.True(f.ATransport.TryReceive(out var first));
+                f.Server.Poll(TimeSpan.FromMilliseconds(200));
+
+                // 后续最终帧会提高追赶目标，但不能把第 1 帧尚未采样的本地输入当作中性输入。
+                Assert.Equal(0, f.A.Poll().Count);
+                Assert.Equal(SessionStatus.Running, f.A.Status);
+                Assert.Equal(0UL, f.A.ConfirmedTick); Assert.Equal(0UL, f.A.PredictedTick);
+                Assert.Equal(0, f.A.PendingLocalInputCount);
+
+                // 停止预测不等于停止收包；第 1 帧补到后，无需本地输入也能连续确认两帧。
+                SessionBoundaryTests.Send(f.ServerTransport, 2, MessageKind.Final, first!.Payload.ToArray());
+                var confirmed = f.A.Poll(); f.B.Poll();
+                Assert.Equal(2, confirmed.Count);
+                Assert.Equal(1UL, confirmed[0].Tick); Assert.Equal(2UL, confirmed[1].Tick);
+                f.AssertEqual(2, 0);
+                Assert.Equal(2UL, f.A.PredictedTick); Assert.Equal(2UL, f.A.PresentedTick);
+                Assert.Equal(0UL, f.A.RollbackCount);
+            });
             yield return ("prediction.inactive_local_member_only_requires_input_after_activation", () => {
                 var f = new SyncFixture(initiallyActive: false, prediction: new PredictionOptions()); f.Start();
                 // 非活跃成员没有输入槽，允许预测空成员世界；收到启用事件后恢复并按新成员表重算。
