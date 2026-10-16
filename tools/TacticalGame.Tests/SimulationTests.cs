@@ -20,6 +20,12 @@ internal static class SimulationTests
     internal static TacticalPlayer Player(SimulationRunner<TacticalState> runner)=>runner.InspectState().Players[0];
     internal static IEnumerable<(string Name,Action Run)> Cases()
     {
+        yield return ("weapon.fire_and_reload_bits_survive_input_roundtrip",()=>{
+            // 开火和换弹是输入的一部分；丢掉任一标志都会让各端执行不同操作。
+            var bytes=new byte[9];bytes[8]=24;
+            var decoded=TacticalInput.Decode(bytes);
+            Check.True(bytes.SequenceEqual(decoded.Encode()));
+        });
         yield return ("simulation.walk_sprint_and_diagonal_speed",()=>{
             var r=Runner();for(int i=0;i<30;i++)Step(r,new TacticalInput(0,1000));Check.Equal(4500,Player(r).Z);
             r=Runner();for(int i=0;i<30;i++)Step(r,new TacticalInput(1000,0,sprint:true));Check.Equal(7000,Player(r).X);

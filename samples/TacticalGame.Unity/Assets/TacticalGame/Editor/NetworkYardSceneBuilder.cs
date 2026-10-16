@@ -18,7 +18,7 @@ namespace Advanture.TacticalGame.Editor
             Physics.SyncTransforms();
             var boxes = UnityEngine.Object.FindObjectsOfType<BoxCollider>().OrderBy(c => c.name, StringComparer.Ordinal).ToArray();
             var ground = boxes.Single(c => c.name == "COL_Playable_Ground");
-            Func<Bounds, MapRect> convert = b => new MapRect(Mathf.RoundToInt(b.min.x*1000), Mathf.RoundToInt(b.min.z*1000), Mathf.RoundToInt(b.max.x*1000), Mathf.RoundToInt(b.max.z*1000));
+            Func<Bounds, MapRect> convert = b => new MapRect(Mathf.RoundToInt(b.min.x*1000), Mathf.RoundToInt(b.min.z*1000), Mathf.RoundToInt(b.max.x*1000), Mathf.RoundToInt(b.max.z*1000), Mathf.RoundToInt(b.min.y*1000), Mathf.RoundToInt(b.max.y*1000));
             return new TacticalMap(convert(ground.bounds), new[] { new PlayerSpawn(-4000,-8000,9000), new PlayerSpawn(4000,-8000,27000) },
                 boxes.Where(c => c != ground).Select(c => convert(c.bounds)).ToArray());
         }

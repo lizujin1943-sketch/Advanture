@@ -30,6 +30,7 @@ namespace Advanture.TacticalGame.Tests
             for(int i=0;i<boxes.Length;i++)
             {
                 var b=boxes[i].bounds;var r=map.Obstacles[i];
+                Assert.That(r.MinY,Is.EqualTo(Mathf.RoundToInt(b.min.y*1000)));Assert.That(r.MaxY,Is.EqualTo(Mathf.RoundToInt(b.max.y*1000)));
                 Assert.That(r.MinX,Is.EqualTo(Mathf.RoundToInt(b.min.x*1000)));Assert.That(r.MaxX,Is.EqualTo(Mathf.RoundToInt(b.max.x*1000)));
                 Assert.That(r.MinZ,Is.EqualTo(Mathf.RoundToInt(b.min.z*1000)));Assert.That(r.MaxZ,Is.EqualTo(Mathf.RoundToInt(b.max.z*1000)));
             }

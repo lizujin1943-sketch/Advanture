@@ -11,6 +11,22 @@ internal static class NetworkTests
 {
     internal static IEnumerable<(string Name,Action Run)> Cases()
     {
+        yield return ("network.weapon_duel_survives_prediction_with_three_equal_states",()=>{
+            var map=WeaponTests.Duel();using var host=new TacticalHost(map,0);
+            using var a=new TacticalClient(map,IPAddress.Loopback,host.Port,0);using var b=new TacticalClient(map,IPAddress.Loopback,host.Port,1);
+            for(int ms=0;ms<10000;ms++)
+            {
+                var now=TimeSpan.FromMilliseconds(ms);host.Poll(now);
+                a.Poll(now,t=>new TacticalInput(0,0,0,0,true,fire:t<14,reload:t==20));
+                b.Poll(now,t=>new TacticalInput(0,0,18000,0,true,fire:t>=120 && t<134));
+                Check.True(host.Failure==null,host.Failure??"");Check.True(a.Failure==null,a.Failure??"");Check.True(b.Failure==null,b.Failure??"");
+            }
+            for(int i=0;i<100;i++){var now=TimeSpan.FromMilliseconds(9999);host.Poll(now);a.Poll(now,_=>default);b.Poll(now,_=>default);}
+            var state=host.Session!.InspectState();Check.Equal(1U,state.Players[0].Combat.Deaths);Check.Equal(1U,state.Players[1].Combat.Deaths);
+            Check.Equal(100,state.Players[0].Combat.Health);Check.Equal(100,state.Players[1].Combat.Health);
+            string hash=CheckpointCodec.Hash(host.Session.CaptureCheckpoint());Check.Equal(hash,CheckpointCodec.Hash(a.Session!.CaptureCheckpoint()));
+            Check.Equal(hash,CheckpointCodec.Hash(b.Session!.CaptureCheckpoint()));Check.True(a.Session.RollbackCount>0);Check.True(b.Session.RollbackCount>0);
+        });
         yield return ("network.two_sockets_share_movement_look_and_hash",()=>{
             var map=SimulationTests.OpenMap(); using var host=new TacticalHost(map,0);
             using var a=new TacticalClient(map,IPAddress.Loopback,host.Port,0);

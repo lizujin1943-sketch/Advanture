@@ -7,14 +7,14 @@ namespace Advanture.TacticalGame.NetworkView
     public sealed class NetworkInputSource : MonoBehaviour
     {
         private Vector2 movement;
-        private bool captured, sprint, respawn;
-        private float spawnYaw;
+        private bool captured, sprint, fire, reload, suppressFireUntilRelease;
+
         public float Yaw { get; private set; }
         public float Pitch { get; private set; }
         public bool HasControl => captured && Cursor.lockState == CursorLockMode.Locked && Application.isFocused;
 
         public void InitializeLook(float yaw)
-        { spawnYaw = yaw; Yaw = yaw; Pitch = 0; movement = Vector2.zero; respawn = false; }
+        { Yaw = yaw; Pitch = 0; movement = Vector2.zero; reload = false; fire = false; }
 
         public void CaptureDevice(bool playing, bool allowCapture = true)
         {
@@ -25,7 +25,7 @@ namespace Advanture.TacticalGame.NetworkView
             {
                 movement = Vector2.zero;
                 if (allowCapture && mouse != null && mouse.leftButton.wasPressedThisFrame)
-                { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; captured = true; }
+                { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; captured = true; suppressFireUntilRelease = true; }
                 return; // 锁定当帧忽略鼠标跳变。
             }
             Vector2 look = mouse != null ? mouse.delta.ReadValue() : Vector2.zero;
@@ -34,18 +34,19 @@ namespace Advanture.TacticalGame.NetworkView
             movement = keyboard == null ? Vector2.zero : new Vector2((keyboard.dKey.isPressed ? 1 : 0) - (keyboard.aKey.isPressed ? 1 : 0),
                 (keyboard.wKey.isPressed ? 1 : 0) - (keyboard.sKey.isPressed ? 1 : 0));
             sprint = keyboard != null && (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
-            if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
-            { respawn = true; Yaw = spawnYaw; Pitch = 0; }
+            if (mouse == null || !mouse.leftButton.isPressed) suppressFireUntilRelease = false;
+            fire = mouse != null && mouse.leftButton.isPressed && !suppressFireUntilRelease;
+            if (keyboard != null && keyboard.rKey.wasPressedThisFrame) reload = true;
         }
 
         public TacticalInput Sample(ulong tick)
         {
             if (!HasControl) return default; // 失焦/菜单也显式冻结中性输入，后台会话照常推进。
-            bool reset = respawn; respawn = false;
-            return InputQuantizer.Create(reset ? Vector2.zero : movement, Yaw, Pitch, sprint, reset);
+            bool requestReload = reload; reload = false;
+            return InputQuantizer.Create(movement, Yaw, Pitch, sprint, fire: fire, reload: requestReload);
         }
         public void Release()
-        { captured = false; movement = Vector2.zero; sprint = false; respawn = false; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
+        { captured = false; movement = Vector2.zero; sprint = false; reload = false; fire = false; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
         private void OnApplicationFocus(bool focused) { if (!focused) Release(); }
         private void OnDisable() => Release();
     }

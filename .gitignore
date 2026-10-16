@@ -116,6 +116,7 @@ artifacts/
 .DS_Store
 
 # These are authored .NET project files, not Unity-generated files.
+!/Advanture.sln
 !framework/**/*.csproj
 !framework/*.sln
 !samples/**/*.csproj

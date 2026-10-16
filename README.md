@@ -22,6 +22,8 @@ dotnet run --project tools/SyncHarness -c Release -- --interactive
 
 需要 .NET 8 SDK。工程不使用第三方 NuGet 包，`NuGet.Config` 关闭外部包源。请在本目录执行命令。
 
+在 Cursor / VS Code 中打开仓库根目录时，工作区默认加载 `Advanture.sln`，包含框架、纯 C# 示例和工具，支持从 `TacticalGame.Network` 跳转到 `ReliableUdp.Core` 等框架源码。已打开的窗口可执行 `.NET: Open Solution` 选择根目录的 `Advanture.sln`，或执行 `Developer: Reload Window` 后等待 C# 项目加载完成。`framework/FrameSync.sln` 仍用于框架独立构建；Unity 工程使用 Unity 生成的解决方案。
+
 macOS / Linux / Git Bash 一键验收：
 
 ```bash

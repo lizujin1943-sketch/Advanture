@@ -12,6 +12,7 @@ namespace Advanture.TacticalGame.NetworkView
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         private NetworkYardController room;
         private string report;
+        private bool combatRun, sawDamage, sawDeath, sawRespawn, sawReload;
         private bool enabledRun, closedHost, written, captured, sawMove, sawTurn, sawRenderedMove;
         private float started, finished;
         private Vector3 firstRemote;
@@ -23,6 +24,7 @@ namespace Advanture.TacticalGame.NetworkView
             report = YardLaunchArguments.Value("-yard-report");
             if (string.IsNullOrEmpty(report)) { Debug.LogError("-yard-smoke requires -yard-report"); return; }
             room = GetComponent<NetworkYardController>(); slot = (ushort)(YardLaunchArguments.Value("-yard-role") == "host" ? 0 : 1);
+            combatRun=YardLaunchArguments.Has("-yard-combat");
             room.InputProvider = Sample; enabledRun = true; started = Time.realtimeSinceStartup;
         }
         private TacticalInput Sample(ulong tick)
@@ -30,7 +32,13 @@ namespace Advanture.TacticalGame.NetworkView
             short x = tick <= 20 ? (short)(slot == 0 ? 500 : -500) : (short)0;
             short z = tick > 20 && tick <= 40 ? (short)500 : (short)0;
             ushort yaw = (ushort)((slot == 0 ? 9000 : 27000) + (tick < 90 ? (int)(tick / 15 % 2) * 1500 : 0));
-            return new TacticalInput(x, z, yaw, tick < 90 ? (short)500 : (short)0, true);
+            if(combatRun && tick>=90 && room.Client?.Session?.LocalParticipant!=null)
+            {
+                var players=room.Client.Session.InspectState().Players;var self=players[slot];var other=players[1-slot];
+                yaw=(ushort)((Mathf.RoundToInt(Mathf.Repeat(Mathf.Atan2(other.X-self.X,other.Z-self.Z)*Mathf.Rad2Deg,360)*100))%36000);
+            }
+            bool fire=combatRun && (slot==0?tick>=100 && tick<=112:tick>=220 && tick<=232);
+            return new TacticalInput(x, z, yaw, tick < 90 ? (short)500 : (short)0, true,fire:fire,reload:combatRun && slot==0 && tick==140);
         }
         private void LateUpdate()
         {
@@ -41,6 +49,10 @@ namespace Advanture.TacticalGame.NetworkView
             {
                 foreach (var p in s.InspectState().Players)
                 {
+                    sawDamage |= p.Combat.Health<100;
+                    sawDeath |= !p.Combat.IsAlive;
+                    sawRespawn |= p.Combat.Deaths>0 && p.Combat.IsAlive;
+                    sawReload |= p.Combat.ReloadUntilTick>s.ConfirmedTick;
                     if (p.Slot == slot) continue;
                     int startX = p.Slot == 0 ? -4000 : 4000;
                     sawMove |= Math.Abs(p.X - startX) > 300 || Math.Abs(p.Z + 8000) > 300;
@@ -51,9 +63,9 @@ namespace Advanture.TacticalGame.NetworkView
                     if (!haveRemote) { firstRemote = room.RemoteTransform.position; haveRemote = true; }
                     sawRenderedMove |= Vector3.Distance(firstRemote, room.RemoteTransform.position) > .3f;
                 }
-                if (!captured && s.ConfirmedTick >= 120)
+                if (!captured && s.ConfirmedTick >= (combatRun?340UL:120UL))
                 { Directory.CreateDirectory(Path.GetDirectoryName(report)); ScreenCapture.CaptureScreenshot(report + ".png"); captured = true; }
-                if (!closedHost && room.Host?.Session?.ConfirmedTick >= 180)
+                if (!closedHost && room.Host?.Session?.ConfirmedTick >= (combatRun?360UL:180UL))
                 {
                     // 使用正式的保存并关闭入口，固定最后确认状态；两端会排空剩余最终帧再关闭。
                     room.Host.Session.SaveAndClose(c => WriteCheckpoint(report + ".server.json", c, -1)); closedHost = true;
@@ -76,8 +88,12 @@ namespace Advanture.TacticalGame.NetworkView
             var state = new Advanture.Tactical.Simulation.TacticalGame().Decode(checkpoint.ApplicationState.Span);
             var data = new Report { slot = who, tick = checkpoint.Tick.ToString(), hash = CheckpointCodec.Hash(checkpoint),
                 sawRemoteMovement = sawMove, sawRemoteTurning = sawTurn, sawRenderedMovement = sawRenderedMove,
-                rollbackCount = room.Client?.Session?.RollbackCount.ToString(), players = new PlayerReport[state.Players.Count] };
-            for (int i = 0; i < data.players.Length; i++) { var p = state.Players[i]; data.players[i] = new PlayerReport { slot=p.Slot,x=p.X,z=p.Z,yaw=p.Yaw,pitch=p.Pitch }; }
+                rollbackCount = room.Client?.Session?.RollbackCount.ToString(),
+                sawDamage=sawDamage,sawDeath=sawDeath,sawRespawn=sawRespawn,sawReload=sawReload,
+                sawLocalShots=room.LocalWeapon!=null && room.LocalWeapon.PresentedShots>0,
+                sawRemoteShots=room.RemoteWeapon!=null && room.RemoteWeapon.PresentedShots>0,
+                localWeaponVisible=room.LocalWeapon!=null && room.LocalWeapon.IsVisible, players = new PlayerReport[state.Players.Count] };
+            for (int i = 0; i < data.players.Length; i++) { var p = state.Players[i]; data.players[i] = new PlayerReport { slot=p.Slot,x=p.X,z=p.Z,yaw=p.Yaw,pitch=p.Pitch,health=p.Combat.Health,ammo=p.Combat.Ammo,reserve=p.Combat.Reserve,kills=(int)p.Combat.Kills,deaths=(int)p.Combat.Deaths,shots=(int)p.Combat.ShotSequence }; }
             if (room.RemoteTransform != null)
             {
                 var point = room.ViewCamera.WorldToViewportPoint(room.RemoteTransform.position + Vector3.up);
@@ -90,10 +106,11 @@ namespace Advanture.TacticalGame.NetworkView
         {
             public string error, tick, hash, rollbackCount;
             public int slot;
+            public bool sawDamage,sawDeath,sawRespawn,sawReload,sawLocalShots,sawRemoteShots,localWeaponVisible;
             public bool sawRemoteMovement, sawRemoteTurning, sawRenderedMovement, remoteInView;
             public PlayerReport[] players;
         }
-        [Serializable] private sealed class PlayerReport { public int slot,x,z,yaw,pitch; }
+        [Serializable] private sealed class PlayerReport { public int slot,x,z,yaw,pitch,health,ammo,reserve,kills,deaths,shots; }
 #endif
     }
 }

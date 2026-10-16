@@ -7,61 +7,57 @@ using FrameSync.Abstractions;
 namespace Advanture.Tactical.Simulation;
 
 /// <summary>仓库试玩的游戏接入层。框架只看到四个接口，不认识角色、地图、毫米或角度。</summary>
-public sealed class TacticalGame : IStateCodec<TacticalState>, ISimulationFactory<TacticalState>, IInputValidator
+public sealed partial class TacticalGame : IStateCodec<TacticalState>, ISimulationFactory<TacticalState>, IInputValidator
 {
     public static SimulationModule<TacticalState> CreateModule()
     {
         var game = new TacticalGame();
-        return new SimulationModule<TacticalState>(new CompatibilityManifest("advanture-yard", determinismHash: "integer-mm-sweep-v1"), game, game, game);
+        return new SimulationModule<TacticalState>(new CompatibilityManifest("advanture-yard", rulesVersion: "2", inputFormatVersion: "2", stateFormatVersion: "2", contentHash: "ak47-30-90-25-100ms-2400ms-3000ms-v1", determinismHash: "integer-mm-ray-v2"), game, game, game);
     }
     public IDeterministicSimulation<TacticalState> Create() => new Model();
     public void ValidateCanonical(ReadOnlySpan<byte> bytes) => TacticalInput.Decode(bytes);
 
+    /// <summary>版本 2 固定小端格式；武器计时与最近射击也参与状态哈希。</summary>
     public byte[] Encode(TacticalState state)
     {
         if (state == null) throw new ArgumentNullException(nameof(state));
-        var bytes = new byte[10 + 22 * state.Players.Count];
-        BinaryPrimitives.WriteUInt64LittleEndian(bytes, state.Steps);
-        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(8), (ushort)state.Players.Count);
-        for (int i = 0; i < state.Players.Count; i++)
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write(0x32434154U); writer.Write(state.Steps); writer.Write((ushort)state.Players.Count);
+        foreach (var p in state.Players)
         {
-            var p = state.Players[i]; var b = bytes.AsSpan(10 + i * 22);
-            BinaryPrimitives.WriteUInt16LittleEndian(b, p.Slot);
-            BinaryPrimitives.WriteInt32LittleEndian(b.Slice(2), p.X); BinaryPrimitives.WriteInt32LittleEndian(b.Slice(6), p.Z);
-            BinaryPrimitives.WriteUInt16LittleEndian(b.Slice(10), p.Yaw); BinaryPrimitives.WriteInt16LittleEndian(b.Slice(12), p.Pitch);
-            BinaryPrimitives.WriteInt32LittleEndian(b.Slice(14), p.RemainderX); BinaryPrimitives.WriteInt32LittleEndian(b.Slice(18), p.RemainderZ);
+            writer.Write(p.Slot); writer.Write(p.X); writer.Write(p.Z); writer.Write(p.Yaw); writer.Write(p.Pitch);
+            writer.Write(p.RemainderX); writer.Write(p.RemainderZ); p.Combat.Write(writer);
         }
-        return bytes;
+        return stream.ToArray();
     }
 
     public TacticalState Decode(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.Length < 10) throw new InvalidDataException("状态头部被截断。");
-        int count = BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(8));
-        if (count < 1 || count > 4 || bytes.Length != 10 + count * 22) throw new InvalidDataException("状态长度不合法。");
+        if (bytes.Length < 14) throw new InvalidDataException("状态头部被截断。");
+        using var reader = new BinaryReader(new MemoryStream(bytes.ToArray(), false));
+        if (reader.ReadUInt32() != 0x32434154U) throw new InvalidDataException("游戏状态版本不匹配。");
+        ulong steps = reader.ReadUInt64(); int count = reader.ReadUInt16();
+        if (count < 1 || count > 4 || bytes.Length != 14 + count * (22 + CombatState.ByteCount)) throw new InvalidDataException("状态长度不合法。");
         var players = new TacticalPlayer[count];
-        for (int i = 0; i < count; i++)
-        {
-            var b = bytes.Slice(10 + i * 22);
-            players[i] = new TacticalPlayer(BinaryPrimitives.ReadUInt16LittleEndian(b), BinaryPrimitives.ReadInt32LittleEndian(b.Slice(2)),
-                BinaryPrimitives.ReadInt32LittleEndian(b.Slice(6)), BinaryPrimitives.ReadUInt16LittleEndian(b.Slice(10)), BinaryPrimitives.ReadInt16LittleEndian(b.Slice(12)),
-                BinaryPrimitives.ReadInt32LittleEndian(b.Slice(14)), BinaryPrimitives.ReadInt32LittleEndian(b.Slice(18)));
-        }
-        return new TacticalState(BinaryPrimitives.ReadUInt64LittleEndian(bytes), players);
+        for (int i=0; i<count; i++) players[i] = new TacticalPlayer(reader.ReadUInt16(), reader.ReadInt32(), reader.ReadInt32(),
+            reader.ReadUInt16(), reader.ReadInt16(), reader.ReadInt32(), reader.ReadInt32(), CombatState.Read(reader));
+        return new TacticalState(steps, players);
     }
 
-    private sealed class Model : IDeterministicSimulation<TacticalState>
+    private sealed partial class Model : IDeterministicSimulation<TacticalState>
     {
         private TacticalMap _map = null!;
         private TacticalPlayer[] _players = Array.Empty<TacticalPlayer>();
         private int _denominator;
+        private uint _rate;
         private ulong _steps;
 
         public void Initialize(SimulationInitialization initialization)
         {
             _map = TacticalMap.Decode(initialization.Data.Span);
             if (initialization.Session.TickRate > 1000) throw new InvalidDataException("试玩最多支持 1000 Hz。");
-            _denominator = checked((int)initialization.Session.TickRate * 1000);
+            _rate = initialization.Session.TickRate;
+            _denominator = checked((int)_rate * 1000);
             _players = new TacticalPlayer[initialization.Session.Participants.Count];
             for (int i = 0; i < _players.Length; i++)
             {
@@ -74,23 +70,47 @@ public sealed class TacticalGame : IStateCodec<TacticalState>, ISimulationFactor
 
         public IReadOnlyList<ByteString> Step(FrameContext context, IReadOnlyList<SimulationInput> inputs)
         {
-            foreach (var item in inputs)
+            ulong tick = checked(_steps + 1);
+            var commands = new TacticalInput[_players.Length];
+            var active = new bool[_players.Length];
+            foreach (var input in inputs)
             {
-                int index = Array.FindIndex(_players, p => p.Slot == item.Participant.Slot);
-                var p = _players[index];
-                var input = TacticalInput.Decode(item.Payload.Span);
-                if (input.Respawn) { _players[index] = Spawn(p.Slot); continue; }
+                int i = Array.FindIndex(_players, p => p.Slot == input.Participant.Slot);
+                commands[i] = TacticalInput.Decode(input.Payload.Span); active[i] = true;
+            }
+            var combat = new CombatModel[_players.Length];
+            for (int i=0; i<_players.Length; i++)
+            {
+                var p = _players[i]; var c = combat[i] = new CombatModel(p.Combat);
+                if (!active[i]) continue;
+                if (c.Health == 0)
+                {
+                    if (tick >= c.RespawnAtTick)
+                    {
+                        // 重生补满装备，战绩与射击序号保留，防止画面重复播放旧枪声。
+                        c.Health=100; c.Ammo=30; c.Reserve=90; c.NextFireTick=0; c.ReloadUntilTick=0; c.RespawnAtTick=0;
+                        _players[i] = Spawn(p.Slot); commands[i] = default;
+                    }
+                    continue; // 重生当帧也不消费旧的移动或开火意图。
+                }
+                if (c.ReloadUntilTick > 0 && tick >= c.ReloadUntilTick)
+                { int amount=Math.Min(30-c.Ammo,c.Reserve); c.Ammo+=amount; c.Reserve-=amount; c.ReloadUntilTick=0; }
+                var input = commands[i];
+                if (input.Respawn) { _players[i] = Spawn(p.Slot); continue; } // 保留原控制台位置复位命令，不恢复生命/弹药。
                 int speed = input.Sprint ? 7000 : 4500;
                 long numeratorX = (long)input.MoveX * speed + p.RemainderX;
                 long numeratorZ = (long)input.MoveZ * speed + p.RemainderZ;
-                int dx = (int)(numeratorX / _denominator), dz = (int)(numeratorZ / _denominator);
-                int x = Sweep(p.X, p.Z, dx, true);
-                int z = Sweep(p.Z, x, dz, false);
-                // 被墙截断的速度余数直接丢弃，不把撞墙时积累的距离带到下一帧。
-                _players[index] = new TacticalPlayer(p.Slot, x, z, input.HasLook ? input.Yaw : p.Yaw, input.HasLook ? input.Pitch : p.Pitch,
-                    x == p.X + dx ? (int)(numeratorX % _denominator) : 0, z == p.Z + dz ? (int)(numeratorZ % _denominator) : 0);
+                int dx=(int)(numeratorX/_denominator), dz=(int)(numeratorZ/_denominator);
+                int x=Sweep(p.X,p.Z,dx,true), z=Sweep(p.Z,x,dz,false);
+                _players[i] = new TacticalPlayer(p.Slot,x,z,input.HasLook?input.Yaw:p.Yaw,input.HasLook?input.Pitch:p.Pitch,
+                    x==p.X+dx?(int)(numeratorX%_denominator):0,z==p.Z+dz?(int)(numeratorZ%_denominator):0);
             }
-            _steps = checked(_steps + 1);
+            ResolveCombat(tick, commands, active, combat);
+            for (int i=0; i<_players.Length; i++)
+            {
+                var p=_players[i]; _players[i]=new TacticalPlayer(p.Slot,p.X,p.Z,p.Yaw,p.Pitch,p.RemainderX,p.RemainderZ,combat[i].Capture());
+            }
+            _steps=tick;
             return Array.Empty<ByteString>();
         }
 
@@ -124,6 +144,10 @@ public sealed class TacticalGame : IStateCodec<TacticalState>, ISimulationFactor
                 var p = state.Players[i];
                 if (p.Slot != _players[i].Slot || !_map.CanStand(p.X, p.Z) || Math.Abs((long)p.RemainderX) >= _denominator || Math.Abs((long)p.RemainderZ) >= _denominator)
                     throw new InvalidDataException("恢复状态与地图或帧率不匹配。");
+                var c=p.Combat;
+                if (c.NextFireTick > state.Steps + Duration(100) || c.ReloadUntilTick > state.Steps + Duration(2400) ||
+                    c.RespawnAtTick > state.Steps + Duration(3000) || (c.Health==0 && c.RespawnAtTick<=state.Steps) ||
+                    (c.ReloadUntilTick>0 && c.ReloadUntilTick<=state.Steps)) throw new InvalidDataException("恢复的战斗计时不合法。");
                 copy[i] = p;
             }
             _players = copy; _steps = state.Steps;

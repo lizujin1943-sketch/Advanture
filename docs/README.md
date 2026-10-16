@@ -27,3 +27,5 @@
 Unity 双人试玩：[七号转运站](../samples/TacticalGame.Unity/README.md)，现已接入帧同步，可互见移动与转向。先读 [接入实现说明与源码阅读顺序](yard-network-implementation.md)，再看 [验证记录](../samples/TacticalGame.Unity/VERIFICATION.md)。原本地场景保留。
 
 联机排查：[自动诊断日志与不同步快照](session-diagnostics.md)，介绍日志目录、结束状态、回滚与不同步的区别，以及问题帧重放。
+
+- [AK-47 对战实现](ak47-implementation.md)：独立射击规则、命中与死亡、Unity 持枪表现和双客户端验收。

@@ -8,8 +8,8 @@ namespace Advanture.Tactical.Simulation;
 /// <summary>一个角色的全部可回滚状态。除法余数也必须保存，否则恢复后移动会慢慢偏移。</summary>
 public readonly struct TacticalPlayer
 {
-    public TacticalPlayer(ushort slot, int x, int z, ushort yaw, short pitch, int remainderX = 0, int remainderZ = 0)
-    { Slot = slot; X = x; Z = z; Yaw = yaw; Pitch = pitch; RemainderX = remainderX; RemainderZ = remainderZ; }
+    public TacticalPlayer(ushort slot, int x, int z, ushort yaw, short pitch, int remainderX = 0, int remainderZ = 0, CombatState? combat = null)
+    { Slot = slot; X = x; Z = z; Yaw = yaw; Pitch = pitch; RemainderX = remainderX; RemainderZ = remainderZ; Combat = combat ?? new CombatState(); }
     public ushort Slot { get; }
     public int X { get; }
     public int Z { get; }
@@ -17,6 +17,8 @@ public readonly struct TacticalPlayer
     public short Pitch { get; }
     public int RemainderX { get; }
     public int RemainderZ { get; }
+    /// <summary>生命、弹药、计时与射击记录，和移动状态一起回滚。</summary>
+    public CombatState Combat { get; }
 }
 
 /// <summary>独立、不可变的状态副本；按槽位排序，编码顺序不依赖字典遍历。</summary>
@@ -30,7 +32,7 @@ public sealed class TacticalState
         {
             var p = copy[i];
             if (p.Slot > 3 || (i > 0 && copy[i - 1].Slot >= p.Slot) || Math.Abs((long)p.X) > 10000000 || Math.Abs((long)p.Z) > 10000000 ||
-                p.Yaw >= 36000 || p.Pitch < -8500 || p.Pitch > 8500 || Math.Abs((long)p.RemainderX) >= 1000000 || Math.Abs((long)p.RemainderZ) >= 1000000)
+                p.Combat == null || p.Combat.LastShotTick > steps || p.Yaw >= 36000 || p.Pitch < -8500 || p.Pitch > 8500 || Math.Abs((long)p.RemainderX) >= 1000000 || Math.Abs((long)p.RemainderZ) >= 1000000)
                 throw new InvalidDataException("角色状态不合法。");
         }
         Steps = steps;

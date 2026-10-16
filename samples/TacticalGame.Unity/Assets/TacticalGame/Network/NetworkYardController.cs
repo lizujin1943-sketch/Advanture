@@ -19,6 +19,11 @@ namespace Advanture.TacticalGame.NetworkView
         private NetworkInputSource input;
         private NetworkRoomOverlay overlay;
         private NetworkAvatar remote;
+        private Ak47View localWeapon;
+        private bool localWasAlive=true;
+        public TacticalPlayer? LocalPlayer { get; private set; }
+        public Ak47View LocalWeapon => localWeapon;
+        public Ak47View RemoteWeapon => remote != null ? remote.Weapon : null;
         private ushort localSlot;
         private bool cameraPlaced;
         private string error;
@@ -82,14 +87,22 @@ namespace Advanture.TacticalGame.NetworkView
                 TacticalState confirmed = session.InspectState(), predicted = session.InspectPredictedState();
                 foreach (var p in confirmed.Players)
                 {
-                    if (p.Slot == localSlot) continue;
+                    if (p.Slot == localSlot)
+                    {
+                        LocalPlayer=p;
+                        if(localWeapon==null)localWeapon=Ak47View.Create(viewCamera.transform,true);
+                        localWeapon.Present(p.Combat,session.ConfirmedTick,Time.unscaledDeltaTime);
+                        if(!localWasAlive && p.Combat.IsAlive){cameraPlaced=false;input.InitializeLook(p.Yaw/100f);}
+                        localWasAlive=p.Combat.IsAlive;
+                        continue;
+                    }
                     if (remote == null) remote = NetworkAvatar.Create(p.Slot);
-                    remote.Present(p, viewCamera, Time.unscaledDeltaTime);
+                    remote.Present(p, viewCamera, Time.unscaledDeltaTime, session.ConfirmedTick);
                 }
                 foreach (var p in predicted.Players)
                 {
                     if (p.Slot != localSlot) continue;
-                    Vector3 target = new Vector3(p.X / 1000f, 1.65f, p.Z / 1000f);
+                    Vector3 target = new Vector3(p.X / 1000f, p.Combat.IsAlive?1.65f:.65f, p.Z / 1000f);
                     viewCamera.transform.position = cameraPlaced ? Vector3.Lerp(viewCamera.transform.position, target, 1 - Mathf.Exp(-25 * Time.unscaledDeltaTime)) : target;
                     // 鼠标视角立即响应；共享角色朝向由已冻结输入推进，远端展示确认结果。
                     viewCamera.transform.rotation = input.HasControl ? Quaternion.Euler(input.Pitch, input.Yaw, 0) : Quaternion.Euler(p.Pitch / 100f, p.Yaw / 100f, 0);
@@ -148,6 +161,7 @@ namespace Advanture.TacticalGame.NetworkView
             // 在 Dispose 和清空引用前采集最新帧；OnApplicationQuit 后的 OnDestroy 不会覆盖首次结束状态。
             ObserveDiagnostics(); diagnostics?.End(state, reason); CheckDiagnosticError(); diagnostics?.Dispose();
             Client?.Dispose(); Host?.Dispose(); Client = null; Host = null; error = null;
+            LocalPlayer=null;localWasAlive=true;if(localWeapon!=null)Destroy(localWeapon.gameObject);localWeapon=null;
             if (input != null) input.Release(); if (remote != null) Destroy(remote.gameObject); remote = null;
         }
         private void OnDestroy() => EndRoom("SceneDestroyed");

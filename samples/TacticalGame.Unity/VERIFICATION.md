@@ -4,7 +4,21 @@
 
 本记录对应 `Yard07Network.unity`。此前本地试玩的 13 项测试及 ClientPrediction 旧逻辑失败记录保留在 [历史记录](VERIFICATION-SINGLEPLAYER.md)，不代表当前结果。
 
-## 自动验收结果
+## 最新：AK-47 对战验收
+
+本节对应加入 AK-47 后的当前构建。后续章节保留早期移动与自动诊断版本的历史证据；当前 **R 是换弹**，死亡后自动重生。
+
+- 完整框架验收通过；庭院纯 C# / 战斗 / UDP 为 **23 / 23**，Unity 为 **22 / 22**。
+- 最终 Unity 测试作业 `e70e8cc20a4c472f88386c7e7dee3957`；macOS 构建 `build-7ae3d1b73e` 成功，0 错误、0 警告，210.76 MB。
+- `python3 scripts/run-yard-pair.py --combat` 通过：双方各开 5 枪，互相击杀一次后重生，同时验证换弹、本地和远端持枪射击表现、移动与转向。
+- 第 360 帧三端完整状态摘要均为 `d804a1b133bc4e9f93b61b869c846945ecb2ae1061e20db850498e169f2f624d`，3 份诊断摘要均无状态分歧并正常结束。
+- 两张独立程序截图均已查看，第一人称 AK-47、远端持枪、生命、弹药与战绩正常显示。枪声实际听感未人工验收。
+- [完整测试日志](../../artifacts/tactical-network/ak47-framework-verify.log)、[Unity 测试与构建报告](../../artifacts/tactical-network/ak47-unity-verification.json)、[对战报告](../../artifacts/tactical-network/smoke-20261016-181012-b67fbdb0/result.json)。
+- [AK-47 实现说明](../../docs/ak47-implementation.md)。本次没有修改通用框架源码，武器全部位于游戏示例中。
+
+## 早期移动与诊断版本（历史）
+
+### 自动验收结果
 
 | 验收 | 结果 |
 | --- | --- |

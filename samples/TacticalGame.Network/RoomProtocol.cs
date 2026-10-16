@@ -13,7 +13,7 @@ namespace Advanture.Tactical.Network;
 /// <summary>试玩自己的开房协议，占用通道 2；不修改框架的输入、确认帧和快照协议。</summary>
 internal static class RoomProtocol
 {
-    internal const byte Join = 1, Welcome = 2, Ack = 3, Reject = 4, Version = 1;
+    internal const byte Join = 1, Welcome = 2, Ack = 3, Reject = 4, Version = 2;
     internal const uint Rate = 30;
     internal static readonly RuntimeLimits Limits = new RuntimeLimits(maxParticipants: 2, maxInputBytes: TacticalInput.ByteCount, maxCheckpointBytes: 65536);
     internal static readonly ByteString Neutral = new ByteString(default(TacticalInput).Encode());

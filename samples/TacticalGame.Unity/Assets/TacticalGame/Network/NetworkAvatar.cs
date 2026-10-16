@@ -7,7 +7,8 @@ namespace Advanture.TacticalGame.NetworkView
     {
         private Transform head;
         private Material material, dark;
-        private bool placed;
+        private bool placed, wasAlive=true;
+        public Ak47View Weapon { get; private set; }
         public static NetworkAvatar Create(ushort slot)
         {
             var root = new GameObject(slot == 0 ? "Player_A_Blue" : "Player_B_Orange");
@@ -21,6 +22,7 @@ namespace Advanture.TacticalGame.NetworkView
             view.Part(PrimitiveType.Cube, "ForwardMarker", view.head, new Vector3(0,-.11f,.42f), new Vector3(.09f,.08f,.4f), view.dark);
             var label = new GameObject("Label").AddComponent<TextMesh>(); label.transform.SetParent(root.transform, false);
             label.transform.localPosition = new Vector3(0,2.15f,0); label.text = slot == 0 ? "A" : "B"; label.fontSize = 64; label.characterSize = .08f; label.anchor = TextAnchor.MiddleCenter;
+            view.Weapon=Ak47View.Create(view.head,false);
             return view;
         }
         private void Part(PrimitiveType type, string name, Transform parent, Vector3 position, Vector3 scale, Material color)
@@ -30,14 +32,17 @@ namespace Advanture.TacticalGame.NetworkView
             // 显示模型绝不参与世界计算，也不能用 Unity 碰撞反过来修正网络位置。
             var collider = part.GetComponent<Collider>(); collider.enabled = false; Destroy(collider);
         }
-        public void Present(TacticalPlayer player, Camera camera, float delta)
+        public void Present(TacticalPlayer player, Camera camera, float delta, ulong confirmedTick)
         {
             var target = new Vector3(player.X / 1000f, 0, player.Z / 1000f);
+            if(!wasAlive && player.Combat.IsAlive)placed=false;
+            wasAlive=player.Combat.IsAlive;
             float blend = placed ? 1 - Mathf.Exp(-22 * delta) : 1;
             transform.position = Vector3.Lerp(transform.position, target, blend);
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(0, player.Yaw / 100f, 0), blend);
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(0, player.Yaw / 100f, player.Combat.IsAlive?0:85), blend);
             head.localRotation = Quaternion.Euler(player.Pitch / 100f, 0, 0);
             transform.Find("Label").rotation = camera.transform.rotation;
+            Weapon.Present(player.Combat,confirmedTick,delta);
             placed = true;
         }
         private void OnDestroy() { if (material != null) Destroy(material); if (dark != null) Destroy(dark); }

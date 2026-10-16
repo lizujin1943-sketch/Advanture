@@ -20,12 +20,12 @@ python3 scripts/run-yard-pair.py
 | 移动 | WASD |
 | 加速 | Shift |
 | 转向、抬头低头 | 鼠标 |
-| 回到出生点 | R |
+| AK-47 连射 / 换弹 | 左键 / R |
 | 释放控制 / 恢复控制 | Esc / 点击画面 |
 | 离开本局 | Esc 后点击“离开房间” |
 | 显示同步诊断 | F3 |
 
-地图使用二维平面规则，没有跳跃、坡面、射击或玩家互撞。此房间示例固定两人、面向可信本机或局域网；尚未接 Steam、中途加入或游戏存档菜单。
+地图使用二维平面规则，已支持 AK-47 射击、扣血、死亡与重生，没有跳跃、坡面或玩家互撞。此房间示例固定两人、面向可信本机或局域网；尚未接 Steam、中途加入或游戏存档菜单。
 
 ## 在 Unity 中打开
 
@@ -61,7 +61,7 @@ python3 scripts/run-yard-pair.py
 
 纯 C# 试玩测试：`./scripts/verify-tactical.sh`。完整框架与示例验收：`./scripts/verify.sh`。这些测试不依赖 Unity。
 
-Unity 菜单 **Window → General → Test Runner → EditMode → Run All** 运行 17 项测试，包括原本地运动/场景测试及新的量化输入、地图导出和联机场景检查。
+Unity 菜单 **Window → General → Test Runner → EditMode → Run All** 运行 22 项测试，包括运动、场景、输入、地图高度、诊断与武器表现去重检查。
 
 构建 Development Build 后运行：
 
@@ -85,3 +85,11 @@ python3 scripts/run-yard-pair.py --smoke
 
 参考：[MCP for Unity 官方说明](https://github.com/CoplayDev/unity-mcp)、[Codex MCP 配置](https://developers.openai.com/codex/mcp/)。
 
+
+## AK-47 对战
+
+默认装备 AK-47。左键连射，R 换弹；30 发弹匣、90 发备弹、100 点生命、每次命中 25 点伤害。死亡后 3 秒自动重生。射线命中与高低障碍遮挡由独立游戏逻辑计算，两端显示持枪、枪声、闪光、生命、弹药和战绩。
+
+运行 `python3 scripts/run-yard-pair.py --combat` 自动验证双方开火、换弹、击杀与重生，并比较服务器和两端的最终状态。游戏/地图格式已升级，双方需要新构建，旧试玩快照不自动迁移。
+
+实现与阅读顺序见 [AK-47 实现说明](../../docs/ak47-implementation.md)。
