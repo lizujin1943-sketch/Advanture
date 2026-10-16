@@ -13,6 +13,9 @@ namespace FrameSync.Runtime
         private Queue<InputFrame> _history = null!;
         // 下标对应 Session.Participants；一次实际提交会把该参与者的连续缺失次数清零。
         private ulong[] _missingCounts = null!;
+        // 当前成员状态与历史窗口之前的状态必须一起保存，否则历史截断后无法校验控制权。
+        private MembershipState _membership = null!;
+        private MembershipState _historyStartMembership = null!;
 
         /// <summary>捕获当前帧结束后的完整检查点，不向磁盘写文件。</summary>
         /// <returns>与运行中可变数据分离的检查点；Tick 为 0 时表示初始状态。</returns>
@@ -27,7 +30,7 @@ namespace FrameSync.Runtime
             try
             {
                 var checkpoint = new Checkpoint(_module.Manifest, Session, Limits, Tick,
-                    _history.ToArray(), _missingCounts, CaptureApplication(), _initialization.Data);
+                    _history.ToArray(), _missingCounts, CaptureApplication(), _initialization.Data, _membership, _historyStartMembership);
                 // 容量限制覆盖全部框架字段和校验摘要，不能只检查游戏状态字节。
                 _ = CheckpointCodec.Encode(checkpoint);
                 return checkpoint;
@@ -40,7 +43,7 @@ namespace FrameSync.Runtime
         /// <remarks>
         /// 允许用于故障实例；成功后清除故障标记。恢复失败时保留当前实例，
         /// 前提是游戏工厂和状态方法遵守实例隔离、无外部副作用的接入约定。
-        /// 此处恢复的是同一个会话；读档后建立新会话属于后续存档层的职责。
+        /// 此处恢复的是同一个会话；读档重开先由 CheckpointRestart 生成新会话的初始检查点。
         /// </remarks>
         public void Restore(Checkpoint checkpoint)
         {
@@ -54,7 +57,9 @@ namespace FrameSync.Runtime
                     !CheckpointCodec.SameSession(Session, checkpoint.Session) ||
                     !CheckpointCodec.SameLimits(Limits, checkpoint.Limits))
                     throw new ArgumentException("Checkpoint is incompatible with this module or session.");
-                foreach (var frame in checkpoint.InputHistory) ValidateFrame(frame, frame.Tick);
+                var membership = checkpoint.HistoryStartMembership;
+                foreach (var frame in checkpoint.InputHistory) membership = ValidateFrame(frame, frame.Tick, membership);
+                if (!membership.SameAs(checkpoint.Membership)) throw new ArgumentException("Membership history mismatch.");
                 _ = CheckpointCodec.Encode(checkpoint); // 验证整个检查点的字节预算。
                 // 2. 解码后重新编码必须完全一致，拒绝同一状态存在多种字节表达。
                 var state = _module.Codec.Decode(checkpoint.ApplicationState.Span);
@@ -76,6 +81,7 @@ namespace FrameSync.Runtime
                 foreach (var frame in checkpoint.InputHistory) history.Enqueue(frame);
                 var counts = checkpoint.MissingInputCounts.ToArray();
                 _simulation = candidate; _history = history; _missingCounts = counts; _initialization = initialization;
+                _membership = checkpoint.Membership; _historyStartMembership = checkpoint.HistoryStartMembership;
                 Tick = checkpoint.Tick; IsFaulted = false;
             }
             finally { _busy = false; }

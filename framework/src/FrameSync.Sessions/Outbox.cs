@@ -16,6 +16,17 @@ namespace FrameSync.Sessions
             if (!CanAdd(1, bytes.Length)) throw new System.InvalidOperationException("Outbox capacity must be reserved first.");
             _queue.Enqueue(new Pending(destination, kind, bytes)); _bytes += bytes.Length;
         }
+        // 已断开的连接不能堵住共享发送队列；仅丢弃该连接尚未交给传输层的消息。
+        public void RemoveDestination(ulong destination)
+        {
+            int count = _queue.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var item = _queue.Dequeue();
+                if (item.Destination == destination) _bytes -= item.Bytes.Length;
+                else _queue.Enqueue(item);
+            }
+        }
         public void Flush(ITransport transport, ref int budget)
         {
             while (budget > 0 && _queue.Count > 0)

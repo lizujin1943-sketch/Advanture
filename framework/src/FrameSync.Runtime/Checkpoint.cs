@@ -21,9 +21,11 @@ namespace FrameSync.Runtime
         /// <param name="state">游戏完整状态的编码字节。</param>
         /// <param name="initializationData">新建实例后恢复状态所需的初始化参数。</param>
         internal Checkpoint(CompatibilityManifest manifest, SessionDescriptor session, RuntimeLimits limits,
-            ulong tick, IReadOnlyList<InputFrame> history, IReadOnlyList<ulong> missingCounts, byte[] state, ByteString initializationData)
+            ulong tick, IReadOnlyList<InputFrame> history, IReadOnlyList<ulong> missingCounts, byte[] state, ByteString initializationData,
+            MembershipState membership, MembershipState historyStartMembership)
         {
             Manifest = manifest; Session = session; Limits = limits; Tick = tick;
+            Membership = membership; HistoryStartMembership = historyStartMembership;
             // InputFrame 自身不可变，只需复制列表；数组和计数也不能借用运行中的可写容器。
             InputHistory = new ReadOnlyCollection<InputFrame>(new List<InputFrame>(history));
             MissingInputCounts = new ReadOnlyCollection<ulong>(new List<ulong>(missingCounts));
@@ -32,6 +34,10 @@ namespace FrameSync.Runtime
         }
         /// <summary>生成检查点的游戏及规则版本信息。</summary>
         public CompatibilityManifest Manifest { get; }
+        /// <summary>当前帧结束时的成员控制权和启用状态。</summary>
+        public MembershipState Membership { get; }
+        /// <summary>近期历史第一帧之前的成员状态，供校验与重放历史使用。</summary>
+        public MembershipState HistoryStartMembership { get; }
         /// <summary>恢复时必须匹配的会话、时间基准和参与者名单。</summary>
         public SessionDescriptor Session { get; }
         /// <summary>捕获时采用的运行容量限制。</summary>

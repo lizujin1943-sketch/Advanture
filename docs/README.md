@@ -2,7 +2,9 @@
 
 这套框架供你自己的不同游戏重复使用，使用它的游戏可以商业发行。框架按内部公共代码库维护，不按出售或对外提供开发工具包的产品设计。
 
-当前已实现阶段 A：独立模拟、检查点保存恢复、输入录制重放与两个控制台示例。运行入口见 [项目 README](../README.md)，实际接口与验证结果见 [阶段 A 实现说明](stage-a-implementation.md)。阶段 B 首个服务器/客户端内存通信闭环也已实现，包含中文注释、测试、交互演示和代码阅读顺序，见 [阶段 B 实现说明](stage-b-implementation.md)。阶段 E 的基础可靠 UDP 与真实多进程联机已接入，见 [阶段 E 实现说明](stage-e-implementation.md)。按当前顺序先做 E，C/D 暂缓；B 的其余成员管理能力仍待实施。建议按需要阅读：
+当前 A～E 的初版代码链路已接通：独立模拟、输入同步、预测回滚、存档重开、自研 UDP，并补齐固定名单的成员事件和停用。最新实际接口和阅读顺序见 [C/D 实现说明](stage-c-d-implementation.md)，文件存储细节见 [D 存储说明](stage-d-storage.md)。运行入口见 [项目 README](../README.md)，故障网络验证见 [PredictionHarness](../tools/PredictionHarness/README.md)。
+
+[A 实现说明](stage-a-implementation.md)、[B 实现说明](stage-b-implementation.md)、[E 实现说明](stage-e-implementation.md) 保留各阶段历史与分层原理；以 C/D 说明中的当前接口和边界为准。Windows 跨系统验收仍待实测，不能把本次 macOS 通过视为整个发布验证已完成。方案文档建议按下表阅读：
 
 | 顺序 | 文档 | 主要回答 |
 | --- | --- | --- |

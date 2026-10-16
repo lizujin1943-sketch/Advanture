@@ -4,5 +4,6 @@
     <ProjectReference Include="../../framework/src/FrameSync.Sessions/FrameSync.Sessions.csproj" />
     <ProjectReference Include="../../framework/src/FrameSync.Transport.Udp/FrameSync.Transport.Udp.csproj" />
     <ProjectReference Include="../../samples/CounterHeadless/CounterHeadless.csproj" />
+    <ProjectReference Include="../../framework/src/FrameSync.Storage.FileSystem/FrameSync.Storage.FileSystem.csproj" />
   </ItemGroup>
 </Project>

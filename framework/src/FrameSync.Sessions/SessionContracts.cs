@@ -9,12 +9,14 @@ namespace FrameSync.Sessions
         Preparing,
         /// <summary>客户端已恢复初态，等待服务器开局。</summary>
         Ready,
-        /// <summary>可提交输入，并执行服务器确认的帧。</summary>
+        /// <summary>执行服务器确认的帧；客户端仅在 IsClosing 为 false 时还可提交输入。</summary>
         Running,
         /// <summary>已停止计算；服务器仍需 Poll 排空关闭消息。</summary>
         Closed,
         /// <summary>发生无法继续的错误；通过 Failure 读取原因。</summary>
-        Failed
+        Failed,
+        /// <summary>服务器已冻结确认状态等待保存成功；保存失败后可重试，不继续计算。</summary>
+        Saving
     }
 
     /// <summary>宿主预先验证的连接与控制位置绑定；传输连接编号与游戏玩家身份分开。</summary>

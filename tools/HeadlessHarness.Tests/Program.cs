@@ -24,6 +24,7 @@ namespace FrameSync.HarnessTests
 
         private static IEnumerable<(string Name, Action Run)> Cases()
         {
+            foreach (var test in CounterBatchTests.Cases()) yield return test;
             yield return ("counter.hand_calculated_add_and_random_sequence", () => {
                 var r = new SimulationRunner<CounterState>(CounterGame.CreateModule(), Session);
                 r.Advance(Frame(1, CounterGame.Input(0, 37)));

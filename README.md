@@ -1,8 +1,8 @@
 # 可复用帧同步框架
 
-供自己的不同游戏共用的纯 C# 框架。当前已完成阶段 A，并实现 **阶段 B 的首个通信闭环：一个服务器和 1～4 个客户端通过内存字节消息同步输入、分别执行并核对完整状态**。已进一步接入 **阶段 E：自研可靠 UDP 与独立服务器/客户端进程**。C（预测回滚）和 D（正式存档）按当前决定暂缓。
+供自己的不同游戏共用的纯 C# 框架。初版核心现已接通 **确定性模拟、1～4 人输入同步、客户端预测回滚、基础存读档和自研可靠 UDP**。游戏规则、输入格式和状态由接入方提供；框架独立于 Unity、Steam 和具体玩法。
 
-模拟、会话与可靠传输算法没有 Unity、Steam 或具体玩法依赖；Socket 仅存在于独立接入工程。两个示例分别提供自己的规则、输入格式和状态，框架不需要随示例切换而修改。
+初次阅读建议先看 [C/D 实现与代码阅读指南](docs/stage-c-d-implementation.md)，了解“逐帧冻结本地输入、预测远端输入、确认与回滚、保存后重新开房”的实际调用。Windows 跨系统验证仍待执行；中途加入和完整重连按计划后置。
 
 ## 先体验两个客户端同步
 
@@ -24,7 +24,7 @@ macOS / Linux / Git Bash 一键验收：
 ./scripts/verify.sh
 ```
 
-它会构建核心和工具，执行测试，运行两个模型各 100000 帧，验证多个中间检查点恢复后的状态和事件，最后在两个新进程中读取录制文件并核对最终摘要。还会运行阶段 B 的会话与交互测试，以及两个模型各 10000 帧的四客户端输入同步、完整状态和事件校验。还会运行阶段 E 的故障网络测试和真实 UDP 多进程自动/交互输入验收。任何失败都会返回非零退出码。
+它会构建核心和工具，执行测试，运行两个模型各 100000 帧，验证多个中间检查点恢复后的状态和事件，最后在两个新进程中读取录制文件并核对最终摘要。还会运行阶段 B 的会话与交互测试，以及两个模型各 10000 帧的四客户端输入同步、完整状态和事件校验。还会运行故障网络与真实 UDP 多进程验收，检查预测回滚、断线停用、保存后结束所有进程再读档，以及两种模型在 1/2/4 客户端下的逐帧一致性。报告包含回滚次数、耗时和内存采样；任何失败都会返回非零退出码。
 
 Windows PowerShell、macOS 终端均可逐条执行：
 
@@ -54,7 +54,10 @@ dotnet tools/HeadlessHarness/bin/Release/net8.0/HeadlessHarness.dll --replay art
 | `framework/src/FrameSync.Abstractions` | 游戏要实现的接口、不可变输入、参与者与帧信息 |
 | `framework/src/FrameSync.Runtime` | 按帧推进、检查点、编码校验、输入录制和重放 |
 | `framework/src/FrameSync.Transport` | 只收发字节的传输接口、有界内存网络 |
-| `framework/src/FrameSync.Sessions` | 服务器/客户端会话、分块开局、确认输入广播、进度反馈与一致性检查 |
+| `framework/src/FrameSync.Sessions` | 服务器/客户端会话、成员停用、预测回滚、事件通知、输入调度和一致性检查 |
+| `framework/src/FrameSync.Persistence` | 存档格式、完整性校验、与存储环境无关的保存服务 |
+| `framework/src/FrameSync.Storage.FileSystem` | 同目录临时文件、原子替换、旧档保护与写锁 |
+| `framework/tests/FrameSync.Persistence.Tests` | 存档损坏、超限、写入失败与并发保护测试 |
 | `framework/src/ReliableUdp.Core` | 独立可靠 UDP：连接、确认重发、分片、流控、拥塞退让，无框架/游戏依赖 |
 | `framework/src/FrameSync.Transport.Udp` | 非阻塞 Socket 和 ITransport 适配器 |
 | `framework/tests/ReliableUdp.Tests` | 仅依赖 UDP 核心的故障与边界测试 |
@@ -65,8 +68,9 @@ dotnet tools/HeadlessHarness/bin/Release/net8.0/HeadlessHarness.dll --replay art
 | `tools/HeadlessHarness.Tests` | 示例手算结果、输入验证、命令行与坏文件测试 |
 | `tools/SyncHarness` | 一个服务器与多个客户端的自动/手动同步演示 |
 | `tools/SyncHarness.Tests` | 同步演示的命令行、交互输入与人数验证 |
-| `tools/UdpHarness` | 独立服务器与客户端进程，支持真实 UDP 自动/交互输入 |
-| `tools/UdpHarness.Tests` | 启动多进程并核对完整状态和输入记录 |
+| `tools/UdpHarness` | 独立服务器与客户端进程，支持预测、自动/交互输入、保存和读档重开 |
+| `tools/UdpHarness.Tests` | 多进程状态一致性、保存重启、成员离开验证 |
+| `tools/PredictionHarness` | 两种模型 × 1/2/4 客户端的故障网络、预测回滚与录制验证 |
 
 核心和两个示例均以 `netstandard2.1` 为目标；工具与测试以 `net8.0` 为目标。框架可单独构建：`dotnet build framework/FrameSync.sln`，不需要 samples、Unity 或游戏工程。
 
@@ -75,6 +79,8 @@ flowchart BT
     Sessions[FrameSync.Sessions] --> Runtime[FrameSync.Runtime]
     Sessions --> Transport[FrameSync.Transport]
     Runtime --> Contracts[FrameSync.Abstractions]
+    Persistence[FrameSync.Persistence] --> Runtime
+    FileSystem[FrameSync.Storage.FileSystem] --> Persistence
     SyncHarness[同步控制台] --> Sessions
     Counter[Counter 示例] --> Contracts
     Grid[Grid 示例] --> Contracts
@@ -116,10 +122,10 @@ Checkpoint final = ReplayPlayer.Play(fresh, replay);
 
 ## 当前边界
 
-阶段 A 的调用者直接提供一整帧输入，帧率只是固定逻辑时间信息，没有网络收集、等待超时或真实时间调度。阶段 B 已在它外面增加独立的服务器和客户端运行流程，采用宿主传入的单调时间收集输入和确认帧。当前名单固定，可选择可靠有序内存传输或自研可靠 UDP。暂未实现预测回滚和途中加入。
+服务器仍以最终确认输入为准：逾期输入会被拒绝，客户端回滚不能把它补到另一帧。预测是客户端可选功能；原来只执行确认帧的调用保持有效。运行中的成员可以停用，固定身份名单和控制代数进入检查点，但完整中途加入、重新认证和断线恢复仍待实现。
 
-现在可以生成和恢复检查点字节，以及导出用于验证的 `.fscp` / `.fsrp` 文件。正式玩家存档所需的原子替换、备份、旧版本迁移、重新开房身份处理留到阶段 D。文件格式暂定版本 1；后续升级必须显式处理版本兼容。
+检查点与录制格式现在为 **版本 2**，会话消息协议同为版本 2；旧版本明确拒绝。正式 `.fssv` 存档外壳为版本 1，包含完整检查点、存档身份和校验。文件保存先写临时文件，再原子替换；读档重开保留累计帧和玩家身份，生成新的会话身份并提高控制代数。多存档管理、备份策略、旧格式迁移和云存档留待后续。
 
-本次实测环境是 **macOS arm64、.NET SDK 8.0.403**。已通过两个模型各 10 万帧及跨进程重放；另已通过本机真实 UDP 多进程一致性验证；Windows 和 Unity 尚未运行验证。Windows 验证时可用同一录制运行并比较 `report.json` 中所有对应帧的 `PeriodicHashes`。
+本次实测环境是 **macOS arm64、.NET SDK 8.0.403**。Windows、Unity/IL2CPP、真实公网和多小时稳定性尚未实测；当前 UDP 面向受控网络。跨系统验证可复制同一录制到 Windows，比较对应帧的摘要。
 
 完整目标和后续阶段见 [文档入口](docs/README.md)。

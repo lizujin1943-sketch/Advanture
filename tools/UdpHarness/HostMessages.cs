@@ -11,7 +11,7 @@ namespace FrameSync.Tools.UdpHarness
     // 仅演示宿主的开局/验收协议。框架不认识演示名称、角色、结果报告或文件路径。
     internal static class HostMessages
     {
-        internal const byte Join=1,Welcome=2,WelcomeAck=3,Result=4,FinishAck=5,Stop=6;
+        internal const byte Join=1,Welcome=2,WelcomeAck=3,Result=4,FinishAck=5,Stop=6,JoinRejected=7;
         internal static byte[] JoinMessage(ushort slot)
         {var b=new byte[3];b[0]=Join;BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(1),slot);return b;}
         internal static byte[] WelcomeMessage(Guid session,int clients,int frames,int rate,bool manual)

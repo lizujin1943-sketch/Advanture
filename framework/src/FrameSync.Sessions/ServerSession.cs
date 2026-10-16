@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using FrameSync.Abstractions;
 using FrameSync.Runtime;
 using FrameSync.Transport;
@@ -40,16 +41,17 @@ namespace FrameSync.Sessions
         /// <param name="limits">模拟和检查点容量限制。</param>
         /// <param name="initialization">分发给全部模拟实例的游戏初始化参数。</param>
         /// <param name="options">通信容量、单次工作量和准备超时配置。</param>
+        /// <param name="initialCheckpoint">可选的读档开局状态，必须已经转换为本会话的第零帧。</param>
         public ServerSession(SimulationModule<TState> module, SessionDescriptor session, ITransport transport,
             IReadOnlyList<PeerBinding> peers, Func<Participant, ByteString> neutralInput,
-            RuntimeLimits? limits = null, ByteString? initialization = null, SessionOptions? options = null)
+            RuntimeLimits? limits = null, ByteString? initialization = null, SessionOptions? options = null, Checkpoint? initialCheckpoint = null)
         {
             _module = module ?? throw new ArgumentNullException(nameof(module));
             if (session == null) throw new ArgumentNullException(nameof(session));
             if (peers == null || peers.Count != session.Participants.Count) throw new ArgumentException("Bindings must cover the roster.");
             if (neutralInput == null) throw new ArgumentNullException(nameof(neutralInput));
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
-            _options = options ?? new SessionOptions(); var runtimeLimits = limits ?? new RuntimeLimits();
+            _options = options ?? new SessionOptions(); var runtimeLimits = limits ?? initialCheckpoint?.Limits ?? new RuntimeLimits();
             _options.Validate(transport, runtimeLimits, session.Participants.Count);
             _peers = new Peer[peers.Count]; _neutral = new RecordedInput[peers.Count];
             var slots = new HashSet<ushort>();
@@ -70,7 +72,12 @@ namespace FrameSync.Sessions
                 _module.InputValidator.ValidateCanonical(bytes.Span);
                 _neutral[i] = new RecordedInput(participant.Slot, participant.Generation, bytes.Span, InputOrigin.MissingSubstitute);
             }
-            _runner = new SimulationRunner<TState>(module, session, runtimeLimits, initialization);
+            _runner = new SimulationRunner<TState>(module, session, runtimeLimits, initialization ?? initialCheckpoint?.InitializationData);
+            if (initialCheckpoint != null)
+            {
+                if (initialCheckpoint.Tick != 0) throw new ArgumentException("Restart checkpoint must be a new session at tick zero.");
+                _runner.Restore(initialCheckpoint);
+            }
             _confirmed = _runner.CaptureCheckpoint(); _initialBytes = CheckpointCodec.Encode(_confirmed);
             foreach (var peer in _peers) peer.SnapshotLength = _initialBytes.Length;
             _initialHash = CheckpointCodec.Hash(_confirmed); _outbox = new Outbox(_options);
@@ -90,6 +97,22 @@ namespace FrameSync.Sessions
         public string? LastRejection { get; private set; }
         /// <summary>内容完全相同、被去重的有效输入消息数量。</summary>
         public ulong DuplicateInputs { get; private set; }
+        /// <summary>最近一次保存失败原因；失败后保持 Saving，允许宿主修复存储并重试。</summary>
+        public string? LastSaveFailure { get; private set; }
+
+        /// <summary>冻结最后确认状态，调用宿主存储函数，只有保存成功才关闭房间。</summary>
+        /// <remarks>同步调用；函数不得重入会话。抛出保存异常后保持原确认点，后续 Poll 仍可收发但不推进。</remarks>
+        public void SaveAndClose(Action<Checkpoint> save)
+        {
+            EnsureNotBusy();
+            if (save == null) throw new ArgumentNullException(nameof(save));
+            if (Status != SessionStatus.Running && Status != SessionStatus.Saving)
+                throw new InvalidOperationException("Save-and-close requires a running or paused-for-save session.");
+            Status = SessionStatus.Saving; _busy = true;
+            try { save(_confirmed); LastSaveFailure = null; Status = SessionStatus.Closed; }
+            catch (Exception error) { LastSaveFailure = error.Message; throw; }
+            finally { _busy = false; }
+        }
 
         /// <summary>驱动一次收发与计算；返回本次成功确认帧的事件，宿主在返回后处理副作用。</summary>
         /// <param name="now">宿主的单调经过时间；不能倒退。输入以服务器处理它时的 now 判断是否迟到。</param>
@@ -143,6 +166,18 @@ namespace FrameSync.Sessions
             return new ReadOnlyCollection<FrameResult>(results);
         }
 
+        /// <summary>由宿主确认连接断开后调用；下一确认帧写入停用事件，不直接修改游戏。</summary>
+        /// <remarks>初版只支持开局固定名单。准备期断线导致开局失败；运行期其余成员继续。</remarks>
+        public void Deactivate(ulong connectionId)
+        {
+            EnsureNotBusy();
+            if (!_connections.TryGetValue(connectionId, out var peer)) throw new ArgumentException("Unknown connection.");
+            if (!peer.Connected) return;
+            peer.Connected = false; _outbox.RemoveDestination(connectionId);
+            foreach (var pending in _pending.Values) pending.Remove(peer.Participant.Slot);
+            if (Status == SessionStatus.Preparing) Fail("A participant disconnected before start.");
+        }
+
         /// <summary>停止接受和计算新帧；后续继续 Poll，把已确认帧及关闭消息送完。</summary>
         public void Close()
         { EnsureNotBusy(); if (Status != SessionStatus.Failed && Status != SessionStatus.Closed) Status = SessionStatus.Closed; }
@@ -154,7 +189,7 @@ namespace FrameSync.Sessions
         private void Receive(TransportMessage message, long now)
         {
             if (!_connections.TryGetValue(message.ConnectionId, out var peer)) { Reject("Unknown connection."); return; }
-            if (Status == SessionStatus.Failed || Status == SessionStatus.Closed) return;
+            if (Status == SessionStatus.Failed || Status == SessionStatus.Closed || !peer.Connected) return;
             try
             {
                 if (message.Payload.Length > _options.MaxRealtimeBytes) throw new InvalidDataException("Client message too large.");
@@ -179,7 +214,8 @@ namespace FrameSync.Sessions
                 if (kind != MessageKind.Input) { Reject("Unexpected client message."); return; }
                 var input = Wire.ReadInput(ref reader, _runner.Limits.MaxInputBytes, out ulong tick); reader.End();
                 if (Status != SessionStatus.Running) { Reject("Session has not started."); return; }
-                if (input.Slot != peer.Participant.Slot || input.Generation != peer.Participant.Generation) { Reject("Input does not belong to this connection."); return; }
+                var member = _confirmed.Membership.Find(peer.Participant.Slot);
+                if (input.Slot != member.Slot || input.Generation != member.Generation || (!member.IsActive && ConfirmedTick != 0)) { Reject("Input does not belong to this connection."); return; }
                 if (tick <= ConfirmedTick || tick - ConfirmedTick > (ulong)_options.MaxFutureFrames) { Reject("Input outside the accepted frame window."); return; }
                 // 等于截止时间也算迟到；不依赖客户端声称的时间，不转移到下一帧。
                 if (now >= Deadline(tick)) { Reject("Input deadline has passed."); return; }
@@ -217,14 +253,29 @@ namespace FrameSync.Sessions
         {
             // 执行进度反馈提供流量控制：不让任何客户端的待执行帧超出其声明窗口。
             // 传输已接收消息不等于游戏已执行，因此这里不能用 TrySend 的成功替代进度。
-            foreach (var peer in _peers) if (tick - peer.ExecutedTick > (ulong)peer.ReceiveWindow) return false;
-            _pending.TryGetValue(tick, out var submitted); var inputs = new RecordedInput[_neutral.Length];
-            for (int i = 0; i < inputs.Length; i++)
-                inputs[i] = submitted != null && submitted.TryGetValue(_neutral[i].Slot, out var input) ? input : _neutral[i];
-            var frame = new InputFrame(_runner.Session.SessionId, _runner.Session.Epoch, tick, inputs);
+            foreach (var peer in _peers) if (peer.Connected && tick - peer.ExecutedTick > (ulong)peer.ReceiveWindow) return false;
+            var events = new List<MemberEvent>(); ulong sequence = _confirmed.Membership.LastSequence;
+            foreach (var p in _confirmed.Membership.Participants)
+            {
+                var peer = _peers.First(x => x.Participant.Slot == p.Slot);
+                if (p.IsActive && !peer.Connected)
+                    events.Add(new MemberEvent(checked(++sequence), MemberEventKind.Deactivate, p.Slot, p.Generation));
+                else if (!p.IsActive && peer.Connected && ConfirmedTick == 0)
+                    events.Add(new MemberEvent(checked(++sequence), MemberEventKind.Activate, p.Slot, p.Generation));
+            }
+            var membership = _confirmed.Membership.Apply(events);
+            _pending.TryGetValue(tick, out var submitted); var inputs = new List<RecordedInput>();
+            for (int i = 0; i < _neutral.Length; i++)
+            {
+                var p = membership.Participants[i]; if (!p.IsActive) continue;
+                inputs.Add(submitted != null && submitted.TryGetValue(p.Slot, out var input) ? input :
+                    new RecordedInput(p.Slot, p.Generation, _neutral[i].Payload.Span, InputOrigin.MissingSubstitute));
+            }
+            var frame = new InputFrame(_runner.Session.SessionId, _runner.Session.Epoch, tick, inputs, events);
             // 先验证编码和广播容量，再推进模拟。摘要固定 32 字节，可以提前准确预算。
             int messageSize = Wire.Final(frame, new string('0', 64), _options.MaxRealtimeBytes).Length;
-            if (!_outbox.CanAdd(_peers.Length, checked(messageSize * _peers.Length))) return false;
+            int connected = _peers.Count(p => p.Connected);
+            if (!_outbox.CanAdd(connected, checked(messageSize * connected))) return false;
             FrameResult result = _runner.Advance(frame);
             Checkpoint checkpoint = _runner.CaptureCheckpoint();
             byte[] bytes = Wire.Final(frame, CheckpointCodec.Hash(checkpoint), _options.MaxRealtimeBytes);
@@ -243,14 +294,14 @@ namespace FrameSync.Sessions
             return checked(_startedAt + checked((long)offset));
         }
         private void Broadcast(MessageKind kind, byte[] bytes)
-        { foreach (var peer in _peers) _outbox.Add(peer.ConnectionId, kind, bytes); }
+        { foreach (var peer in _peers) if (peer.Connected) _outbox.Add(peer.ConnectionId, kind, bytes); }
         private void QueueTerminal()
         {
             if (Status != SessionStatus.Closed && Status != SessionStatus.Failed) return;
             MessageKind kind = Status == SessionStatus.Closed ? MessageKind.Close : MessageKind.Fault;
             foreach (var peer in _peers)
             {
-                if (peer.TerminalQueued) continue;
+                if (peer.TerminalQueued || !peer.Connected) continue;
                 byte[] bytes = Wire.Terminal(kind, _runner.Session.SessionId, _runner.Session.Epoch, ConfirmedTick);
                 if (!_outbox.CanAdd(1, bytes.Length)) break;
                 _outbox.Add(peer.ConnectionId, kind, bytes); peer.TerminalQueued = true;
@@ -267,6 +318,7 @@ namespace FrameSync.Sessions
             public int Offset, SnapshotLength, ReceiveWindow;
             public ulong ExecutedTick;
             public bool Ready, TerminalQueued;
+            public bool Connected = true;
         }
     }
 }

@@ -20,9 +20,9 @@ namespace FrameSync.Sessions
     /// <summary>阶段 B 的显式二进制格式：版本、会话与运行编号在每个消息头内。</summary>
     internal static class Wire
     {
-        internal const int HeaderBytes = 31, ChunkOverhead = 45, FinalOverhead = 73;
+        internal const int HeaderBytes = 31, ChunkOverhead = 45, FinalOverhead = 75;
         private const uint Magic = 0x31425346; // "FSB1"
-        private const ushort Version = 1;
+        private const ushort Version = 2;
         internal static byte Channel(MessageKind kind) => kind == MessageKind.Snapshot ? (byte)3 :
             (kind == MessageKind.Input || kind == MessageKind.Final ? (byte)0 : (byte)1);
 
@@ -63,15 +63,21 @@ namespace FrameSync.Sessions
         internal static byte[] Final(InputFrame frame, string hash, int maxBytes)
         {
             var w = Begin(MessageKind.Final, frame.SessionId, frame.Epoch, maxBytes);
-            w.U64(frame.Tick); w.U16((ushort)frame.Inputs.Count);
+            w.U64(frame.Tick); w.U16((ushort)frame.MemberEvents.Count);
+            foreach (var e in frame.MemberEvents) { w.U64(e.Sequence); w.U8((byte)e.Kind); w.U16(e.Slot); w.U64(e.Generation); }
+            w.U16((ushort)frame.Inputs.Count);
             foreach (var input in frame.Inputs)
             { w.U16(input.Slot); w.U64(input.Generation); w.U8((byte)input.Origin); w.Blob(input.Payload.Span); }
             WriteHash(w, hash); return w.Finish();
         }
         internal static FinalFrame ReadFinal(ref PacketReader r, Guid id, ulong epoch, RuntimeLimits limits)
         {
-            ulong tick = r.U64(); int count = r.U16();
-            if (count < 1 || count > Math.Min(4, limits.MaxParticipants)) throw new InvalidDataException("Invalid frame participant count.");
+            ulong tick = r.U64(); int eventCount = r.U16();
+            if (eventCount > Math.Min(4, limits.MaxParticipants)) throw new InvalidDataException("Too many member events.");
+            var events = new MemberEvent[eventCount];
+            for (int i = 0; i < events.Length; i++) events[i] = new MemberEvent(r.U64(), (MemberEventKind)r.U8(), r.U16(), r.U64());
+            int count = r.U16();
+            if (count > Math.Min(4, limits.MaxParticipants)) throw new InvalidDataException("Invalid frame participant count.");
             var inputs = new List<RecordedInput>(count); int previous = -1;
             for (int i = 0; i < count; i++)
             {
@@ -79,7 +85,7 @@ namespace FrameSync.Sessions
                 if (slot <= previous || origin > (byte)InputOrigin.MissingSubstitute) throw new InvalidDataException("Noncanonical input order or source.");
                 previous = slot; inputs.Add(new RecordedInput(slot, generation, r.Blob(limits.MaxInputBytes), (InputOrigin)origin));
             }
-            return new FinalFrame(new InputFrame(id, epoch, tick, inputs), ReadHash(ref r));
+            return new FinalFrame(new InputFrame(id, epoch, tick, inputs, events), ReadHash(ref r));
         }
         internal static string ReadHash(ref PacketReader r)
         {

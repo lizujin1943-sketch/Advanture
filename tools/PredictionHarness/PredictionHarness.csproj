@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../framework/src/FrameSync.Sessions/FrameSync.Sessions.csproj" />
+    <ProjectReference Include="../../framework/src/FrameSync.Transport.Udp/FrameSync.Transport.Udp.csproj" />
+    <ProjectReference Include="../../samples/CounterHeadless/CounterHeadless.csproj" />
+    <ProjectReference Include="../../samples/GridHeadless/GridHeadless.csproj" />
+  </ItemGroup>
+</Project>

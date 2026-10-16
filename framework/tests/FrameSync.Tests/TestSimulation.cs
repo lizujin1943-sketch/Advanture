@@ -19,6 +19,7 @@ namespace FrameSync.Tests
         public bool ThrowOnStep { get; set; }
         public bool ThrowOnRestore { get; set; }
         public Action? OnStep { get; set; }
+        public Action<FrameContext>? OnFrame { get; set; }
         public Action<SimulationInitialization>? OnInitialize { get; set; }
         public int EventCount { get; set; } = 1;
         public SimulationModule<TestState> Module(string version = "1") =>
@@ -55,6 +56,7 @@ namespace FrameSync.Tests
                 foreach (var input in inputs) _state.Value = checked(_state.Value * 10 + input.Payload.Span[0]);
                 _state.LastTick = context.Tick; _state.LastPersistentTick = context.PersistentTick;
                 _state.TickRate = context.TickRate;
+                _owner.OnFrame?.Invoke(context);
                 _owner.OnStep?.Invoke();
                 if (_owner.ThrowOnStep) throw new InvalidOperationException("Intentional game fault.");
                 var events = new ByteString[_owner.EventCount];

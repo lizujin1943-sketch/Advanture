@@ -53,7 +53,8 @@ namespace FrameSync.Abstractions
         /// <param name="epoch">会话中的运行编号，必须大于零。</param>
         /// <param name="tick">将要执行的逻辑帧号，必须大于零。</param>
         /// <param name="inputs">各参与者的输入；原始列表顺序不影响最终执行顺序。</param>
-        public InputFrame(Guid sessionId, ulong epoch, ulong tick, IReadOnlyList<RecordedInput> inputs)
+        public InputFrame(Guid sessionId, ulong epoch, ulong tick, IReadOnlyList<RecordedInput> inputs,
+            IReadOnlyList<MemberEvent>? memberEvents = null)
         {
             if (sessionId == Guid.Empty) throw new ArgumentException("Missing session identity.");
             if (epoch == 0 || tick == 0) throw new ArgumentOutOfRangeException(nameof(tick));
@@ -67,6 +68,15 @@ namespace FrameSync.Abstractions
                 if (copy[i - 1].Slot == copy[i].Slot) throw new ArgumentException("Duplicate slot.");
             SessionId = sessionId; Epoch = epoch; Tick = tick;
             Inputs = new ReadOnlyCollection<RecordedInput>(copy);
+            var changes = new List<MemberEvent>(memberEvents ?? Array.Empty<MemberEvent>());
+            var slots = new HashSet<ushort>(); ulong previous = 0;
+            foreach (var change in changes)
+            {
+                if (change == null || !slots.Add(change.Slot) || (previous != 0 && change.Sequence != checked(previous + 1)))
+                    throw new ArgumentException("Invalid or repeated member event.");
+                previous = change.Sequence;
+            }
+            MemberEvents = new ReadOnlyCollection<MemberEvent>(changes);
         }
         /// <summary>输入所属的会话身份。</summary>
         public Guid SessionId { get; }
@@ -76,6 +86,8 @@ namespace FrameSync.Abstractions
         public ulong Tick { get; }
         /// <summary>按 Slot 升序排列的只读输入列表。</summary>
         public IReadOnlyList<RecordedInput> Inputs { get; }
+        /// <summary>本帧计算前应用的成员操作，按事件序号排列。</summary>
+        public IReadOnlyList<MemberEvent> MemberEvents { get; }
     }
 
     /// <summary>交给游戏计算的输入：参与者身份和内容，不包含框架的来源标记。</summary>
@@ -100,8 +112,13 @@ namespace FrameSync.Abstractions
         /// <param name="tick">本次运行将执行的帧号。</param>
         /// <param name="persistentTick">累计帧号，等于会话 BaseTick 加 tick。</param>
         /// <param name="tickRate">每秒逻辑帧数。</param>
-        public FrameContext(ulong tick, ulong persistentTick, uint tickRate)
-        { Tick = tick; PersistentTick = persistentTick; TickRate = tickRate; }
+        public FrameContext(ulong tick, ulong persistentTick, uint tickRate, IReadOnlyList<MemberEvent>? memberEvents = null)
+        {
+            Tick = tick; PersistentTick = persistentTick; TickRate = tickRate;
+            MemberEvents = new ReadOnlyCollection<MemberEvent>(new List<MemberEvent>(memberEvents ?? Array.Empty<MemberEvent>()));
+        }
+        /// <summary>本帧生效的成员变化；游戏可据此创建、保留或停止角色控制。</summary>
+        public IReadOnlyList<MemberEvent> MemberEvents { get; }
         /// <summary>本次运行正在执行的帧号。</summary>
         public ulong Tick { get; }
         /// <summary>包含之前运行时间的累计帧号。</summary>

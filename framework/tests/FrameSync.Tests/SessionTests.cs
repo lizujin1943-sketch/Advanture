@@ -84,6 +84,7 @@ namespace FrameSync.Tests
         public bool ThrowOnStep { get; set; }
         public bool ThrowOnCaptureOfFive { get; set; }
         public long Bias { get; set; }
+        public bool EventFromValue { get; set; }
         public SimulationModule<long> Module() => new SimulationModule<long>(new CompatibilityManifest("sync-test"), this, this, this);
         public IDeterministicSimulation<long> Create() => new Model(this);
         public byte[] Encode(long state) { if (ThrowOnCaptureOfFive && state == 5) throw new InvalidOperationException("Intentional codec failure."); var b = new byte[8]; BinaryPrimitives.WriteInt64LittleEndian(b, state); return b; }
@@ -100,7 +101,7 @@ namespace FrameSync.Tests
                 foreach (var input in inputs) _value += input.Payload.Span[0];
                 _value += _owner.Bias;
                 if (_owner.ThrowOnStep) throw new InvalidOperationException("Intentional Step failure after mutation.");
-                return new[] { new ByteString(new byte[] { 42 }) };
+                return new[] { new ByteString(new byte[] { _owner.EventFromValue ? (byte)_value : (byte)42 }) };
             }
             public long Capture() => _value;
             public void Restore(long state) { _value = state; }
@@ -113,15 +114,17 @@ namespace FrameSync.Tests
         public readonly ServerSession<long> Server;
         public readonly ClientSession<long> A, B;
         public TimeSpan Now;
-        public SyncFixture(long initial = 0, SessionOptions? options = null, InMemoryNetwork? network = null, SessionOptions? clientOptions = null, SyncTestGame? serverGame = null, SyncTestGame? clientBGame = null)
+        public SyncFixture(long initial = 0, SessionOptions? options = null, InMemoryNetwork? network = null, SessionOptions? clientOptions = null, SyncTestGame? serverGame = null, SyncTestGame? clientBGame = null, bool initiallyActive = true, PredictionOptions? prediction = null, SyncTestGame? clientAGame = null)
         {
             Network = network ?? new InMemoryNetwork(); ServerTransport = Network.CreateEndpoint(1);
             ATransport = Network.CreateEndpoint(2); BTransport = Network.CreateEndpoint(3);
-            var game = serverGame ?? new SyncTestGame(); var session = new SessionDescriptor(Fixture.SessionId, 1, 10, Fixture.Members);
+            var game = serverGame ?? new SyncTestGame(); var members = Array.ConvertAll(Fixture.Members, p => new Participant(p.Slot, p.ParticipantId, p.Generation, initiallyActive));
+            var session = new SessionDescriptor(Fixture.SessionId, 1, 10, members);
             Server = new ServerSession<long>(game.Module(), session, ServerTransport,
                 new[] { new PeerBinding(2, 0), new PeerBinding(3, 1) }, _ => new ByteString(new byte[] { 0 }),
                 initialization: new ByteString(game.Encode(initial)), options: options);
-            A = new ClientSession<long>(new SyncTestGame().Module(), session.SessionId, session.Epoch, ATransport, 1, options: clientOptions ?? options);
+            A = new ClientSession<long>((clientAGame ?? new SyncTestGame()).Module(), session.SessionId, session.Epoch, ATransport, 1, options: clientOptions ?? options, prediction: prediction,
+                neutralInput: prediction == null ? null : _ => new ByteString(new byte[] { 0 }));
             B = new ClientSession<long>((clientBGame ?? new SyncTestGame()).Module(), session.SessionId, session.Epoch, BTransport, 1, options: clientOptions ?? options);
         }
         public void Start()

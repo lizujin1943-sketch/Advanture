@@ -46,6 +46,7 @@ namespace FrameSync.Runtime
             _simulation.Initialize(_initialization);
             _history = new System.Collections.Generic.Queue<InputFrame>(Limits.HistoryFrames);
             _missingCounts = new ulong[session.Participants.Count];
+            _membership = new MembershipState(session.Participants); _historyStartMembership = _membership;
         }
 
         /// <summary>本运行器固定使用的会话配置。</summary>
@@ -73,21 +74,26 @@ namespace FrameSync.Runtime
             {
                 // 1. 在调用游戏前检查完整帧，并先算好可能溢出的框架计数。
                 // checked 让帧号和计数到达极限时失败，避免整数回绕成旧帧号。
-                ValidateFrame(frame, checked(Tick + 1));
+                var membership = ValidateFrame(frame, checked(Tick + 1), _membership);
                 ulong persistentTick = checked(Session.BaseTick + frame.Tick);
                 var missingCounts = new ulong[_missingCounts.Length];
-                for (int i = 0; i < missingCounts.Length; i++)
-                    missingCounts[i] = frame.Inputs[i].Origin == InputOrigin.MissingSubstitute
-                        ? checked(_missingCounts[i] + 1) : 0;
-                // 2. InputFrame 和参与者名单已按 Slot 排序，验证后可按相同下标配对。
-                // 游戏只看到身份和内容，不因输入是补齐还是提交而改变规则。
+                for (int i = 0; i < membership.Participants.Count; i++)
+                {
+                    var p = membership.Participants[i];
+                    if (!p.IsActive) continue;
+                    var input = System.Linq.Enumerable.First(frame.Inputs, x => x.Slot == p.Slot);
+                    bool reset = System.Linq.Enumerable.Any(frame.MemberEvents, e => e.Slot == p.Slot);
+                    missingCounts[i] = input.Origin == InputOrigin.MissingSubstitute
+                        ? checked((reset ? 0 : _missingCounts[i]) + 1) : 0;
+                }
+                // 在本帧成员事件应用后配对输入；停用位置不再有输入。
                 var inputs = new SimulationInput[frame.Inputs.Count];
                 for (int i = 0; i < inputs.Length; i++)
-                    inputs[i] = new SimulationInput(Session.Participants[i], frame.Inputs[i].Payload);
+                    inputs[i] = new SimulationInput(membership.Find(frame.Inputs[i].Slot), frame.Inputs[i].Payload);
                 try
                 {
                     // 3. 唯一推进游戏规则的入口；游戏应只修改自身状态并返回事件数据。
-                    var output = _simulation.Step(new FrameContext(frame.Tick, persistentTick, Session.TickRate),
+                    var output = _simulation.Step(new FrameContext(frame.Tick, persistentTick, Session.TickRate, frame.MemberEvents),
                         new ReadOnlyCollection<SimulationInput>(inputs));
                     if (output == null || output.Count > Limits.MaxEventsPerFrame)
                         throw new InvalidOperationException("Game event count exceeds the configured limit.");
@@ -98,14 +104,15 @@ namespace FrameSync.Runtime
                         if (payload == null || payload.Length > Limits.MaxEventBytes)
                             throw new InvalidOperationException("Invalid or oversized game event.");
                         // 相同会话、运行和输入重算时，帧号与事件序号保持一致。
-                        // 此处只建立事件身份；事件去重和预测确认尚未实现。
+                        // 此处只建立事件身份；预测事件替换与确认去重由会话层负责。
                         events[i] = new SimulationEvent(Session.SessionId, Session.Epoch, frame.Tick, i,
                             new ByteString(payload.Span));
                     }
                     // 4. 游戏计算和事件检查成功后才提交框架状态。
                     // 近期历史达到上限时淘汰最旧帧，长录制由 ReplayRecorder 单独维护。
-                    if (_history.Count == Limits.HistoryFrames) _history.Dequeue();
-                    _history.Enqueue(frame); _missingCounts = missingCounts;
+                    if (_history.Count == Limits.HistoryFrames)
+                        _historyStartMembership = _historyStartMembership.Apply(_history.Dequeue().MemberEvents);
+                    _history.Enqueue(frame); _missingCounts = missingCounts; _membership = membership;
                     Tick = frame.Tick;
                     return new FrameResult(Tick, new ReadOnlyCollection<SimulationEvent>(events));
                 }
@@ -148,23 +155,15 @@ namespace FrameSync.Runtime
         /// <summary>在触碰游戏状态前核对帧身份、参与者、控制权、大小和格式。</summary>
         /// <param name="frame">待验证输入。</param>
         /// <param name="expectedTick">调用者期待的帧号；推进时为下一帧，恢复历史时使用该历史帧号。</param>
-        private void ValidateFrame(InputFrame frame, ulong expectedTick)
+        private MembershipState ValidateFrame(InputFrame frame, ulong expectedTick, MembershipState previous)
         {
             if (frame == null) throw new ArgumentNullException(nameof(frame));
             if (frame.SessionId != Session.SessionId || frame.Epoch != Session.Epoch || frame.Tick != expectedTick)
                 throw new ArgumentException("Frame belongs to a different session/epoch or is not consecutive.");
-            if (frame.Inputs.Count != Session.Participants.Count)
-                throw new ArgumentException("A frame must contain one input per active participant.");
-            for (int i = 0; i < frame.Inputs.Count; i++)
-            {
-                var input = frame.Inputs[i];
-                var participant = Session.Participants[i];
-                if (input.Slot != participant.Slot || input.Generation != participant.Generation)
-                    throw new ArgumentException("Input slot or control generation is invalid.");
-                if (input.Payload.Length > Limits.MaxInputBytes)
-                    throw new ArgumentException("Input exceeds the configured byte limit.");
-                _module.InputValidator.ValidateCanonical(input.Payload.Span);
-            }
+            var next = previous.Apply(frame.MemberEvents);
+            next.ValidateInputs(frame.Inputs, Limits.MaxInputBytes);
+            foreach (var input in frame.Inputs) _module.InputValidator.ValidateCanonical(input.Payload.Span);
+            return next;
         }
     }
 }

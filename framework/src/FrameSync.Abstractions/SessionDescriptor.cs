@@ -13,11 +13,11 @@ namespace FrameSync.Abstractions
         /// <param name="slot">输入排序使用的位置编号；同一会话内唯一，不要求连续。</param>
         /// <param name="participantId">参与者的稳定身份，不能为 Guid.Empty。</param>
         /// <param name="generation">位置的控制权版本，从 1 开始，用于识别过期输入。</param>
-        public Participant(ushort slot, Guid participantId, ulong generation = 1)
+        public Participant(ushort slot, Guid participantId, ulong generation = 1, bool isActive = true)
         {
             if (participantId == Guid.Empty) throw new ArgumentException("Participant identity must be nonempty.");
             if (generation == 0) throw new ArgumentOutOfRangeException(nameof(generation));
-            Slot = slot; ParticipantId = participantId; Generation = generation;
+            Slot = slot; ParticipantId = participantId; Generation = generation; IsActive = isActive;
         }
         /// <summary>本次运行中的输入位置；框架按此值从小到大处理输入。</summary>
         public ushort Slot { get; }
@@ -25,6 +25,8 @@ namespace FrameSync.Abstractions
         public Guid ParticipantId { get; }
         /// <summary>控制权版本；输入必须携带相同版本。阶段 A 不负责切换控制者。</summary>
         public ulong Generation { get; }
+        /// <summary>该位置是否参与本帧输入；变化由成员事件驱动。</summary>
+        public bool IsActive { get; }
     }
 
     /// <summary>描述一次模拟运行的固定配置：身份、时间基准和参与者名单。</summary>

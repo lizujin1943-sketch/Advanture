@@ -165,7 +165,11 @@ namespace FrameSync.Runtime
         /// <param name="frame">已经按 Slot 排序的输入帧。</param>
         public static void Write(CanonicalWriter writer, InputFrame frame)
         {
-            writer.U64(frame.Tick); writer.U16((ushort)frame.Inputs.Count);
+            writer.U64(frame.Tick);
+            writer.U16((ushort)frame.MemberEvents.Count);
+            foreach (var e in frame.MemberEvents)
+            { writer.U64(e.Sequence); writer.U8((byte)e.Kind); writer.U16(e.Slot); writer.U64(e.Generation); }
+            writer.U16((ushort)frame.Inputs.Count);
             foreach (var input in frame.Inputs)
             {
                 writer.U16(input.Slot); writer.U64(input.Generation);
@@ -179,19 +183,24 @@ namespace FrameSync.Runtime
         /// <returns>结构合法的输入帧；游戏内容格式仍由游戏模块检查。</returns>
         public static InputFrame Read(ref CanonicalReader reader, SessionDescriptor session, RuntimeLimits limits)
         {
-            ulong tick = reader.U64(); int count = reader.U16();
-            if (count != session.Participants.Count || count > limits.MaxParticipants)
+            ulong tick = reader.U64(); int eventCount = reader.U16();
+            if (eventCount > session.Participants.Count) throw new InvalidDataException("Too many member events.");
+            var events = new MemberEvent[eventCount];
+            for (int i = 0; i < events.Length; i++)
+                events[i] = new MemberEvent(reader.U64(), (MemberEventKind)reader.U8(), reader.U16(), reader.U64());
+            int count = reader.U16();
+            if (count > session.Participants.Count || count > limits.MaxParticipants)
                 throw new InvalidDataException("Invalid frame participant count.");
             var inputs = new RecordedInput[count];
             for (int i = 0; i < count; i++)
             {
                 ushort slot = reader.U16(); ulong generation = reader.U64(); byte origin = reader.U8();
                 // 必须检查文件中的原始顺序，不能依赖 InputFrame 构造时排序来修正坏编码。
-                if (slot != session.Participants[i].Slot || generation != session.Participants[i].Generation || origin > 1)
+                if ((i > 0 && slot <= inputs[i - 1].Slot) || origin > 1)
                     throw new InvalidDataException("Noncanonical input order, control generation, or source.");
                 inputs[i] = new RecordedInput(slot, generation, reader.Blob(limits.MaxInputBytes), (InputOrigin)origin);
             }
-            return new InputFrame(session.SessionId, session.Epoch, tick, inputs);
+            return new InputFrame(session.SessionId, session.Epoch, tick, inputs, events);
         }
         /// <summary>计算一帧输入在当前格式中的精确字节数，不实际分配编码缓冲区。</summary>
         /// <param name="frame">待估算输入帧。</param>
@@ -199,7 +208,7 @@ namespace FrameSync.Runtime
         public static long EncodedSize(InputFrame frame)
         {
             // 帧头：Tick 8 + 人数 2；每条记录头：Slot 2 + Generation 8 + Origin 1 + 长度 4。
-            long bytes = 10;
+            long bytes = 12L + frame.MemberEvents.Count * 19L;
             foreach (var input in frame.Inputs) bytes = checked(bytes + 15 + input.Payload.Length);
             return bytes;
         }

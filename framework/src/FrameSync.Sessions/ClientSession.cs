@@ -8,9 +8,9 @@ using FrameSync.Transport;
 
 namespace FrameSync.Sessions
 {
-    /// <summary>只执行服务器确认帧的客户端；先恢复初态，再按连续帧号执行并核对完整检查点。</summary>
+    /// <summary>帧同步客户端；默认只执行确认帧，可选择启用有界预测和完整状态回滚。</summary>
     /// <typeparam name="TState">游戏定义的状态类型。</typeparam>
-    /// <remarks>阶段 B 不做预测；提交输入本身不会改变本地世界。所有方法必须串行调用。</remarks>
+    /// <remarks>所有方法必须串行调用。输入提交只冻结字节；推进、预测与重算均由 Poll 驱动。</remarks>
     public sealed class ClientSession<TState>
     {
         private readonly SimulationModule<TState> _module;
@@ -20,6 +20,7 @@ namespace FrameSync.Sessions
         private readonly RuntimeLimits _receiveLimits;
         private readonly SessionOptions _options;
         private readonly Outbox _outbox;
+        // 成功提交后不可改写的本地帧输入；显式中性输入也占一项，确认后释放。
         private readonly Dictionary<ulong, ByteString> _localInputs = new Dictionary<ulong, ByteString>();
         private readonly Dictionary<ulong, BufferedFrame> _frames = new Dictionary<ulong, BufferedFrame>();
         private readonly Dictionary<ulong, ByteString> _recent = new Dictionary<ulong, ByteString>();
@@ -34,6 +35,11 @@ namespace FrameSync.Sessions
         private ulong? _closeAt;
         private ulong _lastProgressQueued;
         private bool _busy;
+        private readonly PredictionOptions? _predictionOptions;
+        private readonly Func<Participant, ByteString>? _neutralInput;
+        private ClientPrediction<TState>? _prediction;
+        private ulong _predictionTarget;
+        private DesyncReport? _desync;
 
         /// <summary>创建等待初始检查点的客户端，尚未创建游戏实例。</summary>
         /// <param name="module">与服务器兼容的游戏模块。</param>
@@ -43,8 +49,11 @@ namespace FrameSync.Sessions
         /// <param name="serverConnectionId">宿主已经验证的服务器连接编号。</param>
         /// <param name="receiveLimits">允许接收的检查点/游戏输入容量上限。</param>
         /// <param name="options">消息缓存和单次工作量限制。</param>
+        /// <param name="prediction">可选预测窗口与检查点预算；省略时只执行确认帧。</param>
+        /// <param name="neutralInput">用于预测远端玩家的游戏中性输入；不会替宿主补齐本地未采样帧。</param>
         public ClientSession(SimulationModule<TState> module, Guid sessionId, ulong epoch, ITransport transport,
-            ulong serverConnectionId, RuntimeLimits? receiveLimits = null, SessionOptions? options = null)
+            ulong serverConnectionId, RuntimeLimits? receiveLimits = null, SessionOptions? options = null,
+            PredictionOptions? prediction = null, Func<Participant, ByteString>? neutralInput = null)
         {
             _module = module ?? throw new ArgumentNullException(nameof(module));
             if (sessionId == Guid.Empty) throw new ArgumentException("Missing session identity.");
@@ -53,14 +62,41 @@ namespace FrameSync.Sessions
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _receiveLimits = receiveLimits ?? new RuntimeLimits(); _options = options ?? new SessionOptions();
             _options.Validate(transport, _receiveLimits, 1); _outbox = new Outbox(_options);
+            _predictionOptions = prediction; _neutralInput = neutralInput;
+            if (prediction != null)
+            {
+                if (neutralInput == null) throw new ArgumentNullException(nameof(neutralInput));
+                prediction.Validate(_receiveLimits, _options);
+            }
         }
 
         /// <summary>当前生命周期；Ready 仍须等待服务器 Start。</summary>
         public SessionStatus Status { get; private set; } = SessionStatus.Preparing;
+        /// <summary>已收到服务器关闭通知；此时停止提交输入，继续 Poll 直到剩余最终帧完成确认。</summary>
+        /// <remarks>Close 与 Final 分属不同通道，关闭通知可能先到；等待最后一帧时 Status 仍可为 Running。</remarks>
+        public bool IsClosing => _closeAt.HasValue;
         /// <summary>已经执行且与服务器完整状态摘要一致的最后一帧。</summary>
         public ulong ConfirmedTick => _confirmed?.Tick ?? 0;
         /// <summary>服务器分配给此连接的参与者；初态恢复前为空。</summary>
-        public Participant? LocalParticipant => _participant;
+        public Participant? LocalParticipant => _participant == null ? null : _confirmed!.Membership.Find(_participant.Slot);
+        /// <summary>当前计算到的预测帧；重算过程中可能临时倒退。</summary>
+        public ulong PredictedTick => _prediction?.PredictedTick ?? ConfirmedTick;
+        /// <summary>展示快照的帧号；分批重算完成前保持上一份完整结果。</summary>
+        public ulong PresentedTick => _prediction?.Published.Tick ?? ConfirmedTick;
+        /// <summary>是否正在分多次 Poll 重算；此时仍能收发消息和提交新输入。</summary>
+        public bool IsReplaying => _prediction?.IsReplaying ?? false;
+        /// <summary>实际发生的回滚次数。</summary>
+        public ulong RollbackCount => _prediction?.RollbackCount ?? 0;
+        /// <summary>最近一次回滚恢复的状态帧号，例如第 100 帧有差异时为 99。</summary>
+        public ulong LastRestoreTick => _prediction?.LastRestoreTick ?? 0;
+        /// <summary>状态摘要不一致时保留的首个问题帧和重放起点。</summary>
+        public DesyncReport? Desync => _prediction?.Desync ?? _desync;
+        /// <summary>尚未执行确认的最终帧数量。</summary>
+        public int BufferedFinalFrameCount => _frames.Count;
+        /// <summary>尚未释放的本地输入数量。</summary>
+        public int PendingLocalInputCount => _localInputs.Count;
+        /// <summary>本次 Poll 的预测、撤销和确认通知；每次调用替换，不建立无界事件队列。</summary>
+        public IReadOnlyList<PredictionEvent> LastPredictionEvents { get; private set; } = Array.Empty<PredictionEvent>();
         /// <summary>最近执行成功的完整确认输入帧，可用于诊断其他玩家的输入。</summary>
         public InputFrame? LastFrame { get; private set; }
         /// <summary>协议、模拟或一致性检查失败的原因。</summary>
@@ -71,8 +107,13 @@ namespace FrameSync.Sessions
         /// <summary>为明确帧号冻结并排队输入；true 只表示已进入本地队列，不表示服务器接受。</summary>
         /// <param name="tick">目标帧，必须大于最后确认帧且位于未来窗口内。</param>
         /// <param name="input">游戏的标准输入字节；本方法持有副本。</param>
-        /// <returns>队列容量不足时返回 false，调用方可保留原输入稍后重试。</returns>
-        /// <remarks>同一帧重复提交相同内容会去重；修改已经提交的内容会抛异常，不悄悄覆盖。</remarks>
+        /// <returns>队列容量不足时返回 false，此帧尚未冻结，调用方应保留帧号和原输入稍后重试。</returns>
+        /// <remarks>
+        /// 仅在 Running 且 IsClosing 为 false 时采样提交；关闭中仍须继续 Poll 排空最终帧。
+        /// 预测前先逐帧调用本方法，包括没有操作的帧也提交游戏定义的中性输入。
+        /// true 表示输入已冻结；同帧同内容重试会去重，改写会抛异常。后来采到的操作分配到尚未冻结的未来帧。
+        /// 如果重试前该帧已确认，应丢弃过期输入，不能偷偷换帧重发；最终结果以服务器为准。
+        /// </remarks>
         public bool TrySubmit(ulong tick, ReadOnlySpan<byte> input)
         {
             EnsureNotBusy();
@@ -90,7 +131,9 @@ namespace FrameSync.Sessions
                     if (!existing.Span.SequenceEqual(input)) throw new InvalidOperationException("Already submitted different input for this tick.");
                     return true;
                 }
-                var value = new RecordedInput(_participant.Slot, _participant.Generation, input);
+                var member = LocalParticipant!;
+                if (!member.IsActive && ConfirmedTick != 0) throw new InvalidOperationException("Local member is inactive.");
+                var value = new RecordedInput(member.Slot, member.Generation, input);
                 byte[] bytes = Wire.Input(_sessionId, _epoch, tick, value, _options.MaxRealtimeBytes);
                 if (!_outbox.CanAdd(1, bytes.Length)) return false;
                 _outbox.Add(_serverConnectionId, MessageKind.Input, bytes); _localInputs.Add(tick, value.Payload); return true;
@@ -100,9 +143,22 @@ namespace FrameSync.Sessions
 
         /// <summary>驱动有限次数的收发和连续帧执行，返回本次确认帧事件。</summary>
         /// <returns>只有完成状态核对的帧才出现在结果中；宿主应在方法返回后处理事件。</returns>
-        public IReadOnlyList<FrameResult> Poll()
+        public IReadOnlyList<FrameResult> Poll() => PollCore();
+
+        /// <summary>请求预测到目标逻辑帧；遇到未冻结的活跃本地输入就停止，另外受预测窗口和单次预算限制。</summary>
+        /// <remarks>框架不读取系统时间。目标应由宿主固定帧时钟提供；可远大于窗口，届时只暂停预测。</remarks>
+        public IReadOnlyList<FrameResult> Poll(ulong predictionTarget)
+        {
+            EnsureNotBusy();
+            if (_predictionOptions == null) throw new InvalidOperationException("Prediction is not enabled.");
+            _predictionTarget = Math.Max(_predictionTarget, predictionTarget);
+            return PollCore();
+        }
+        private IReadOnlyList<FrameResult> PollCore()
         {
             EnsureNotBusy(); var results = new List<FrameResult>();
+            var predictionEvents = new List<PredictionEvent>();
+            LastPredictionEvents = predictionEvents.AsReadOnly();
             if (Status == SessionStatus.Failed || Status == SessionStatus.Closed) return results.AsReadOnly();
             _busy = true;
             try
@@ -118,22 +174,30 @@ namespace FrameSync.Sessions
                 }
                 if (Status == SessionStatus.Running)
                 {
-                    for (int i = 0; i < _options.MaxFramesPerPoll && _frames.TryGetValue(checked(ConfirmedTick + 1), out var next); i++)
+                    if (_prediction != null)
+                    {
+                        _prediction.Poll(_predictionTarget, _closeAt, _frames, _localInputs, _options.MaxFramesPerPoll,
+                            (checkpoint, frame, result) => { CommitConfirmation(checkpoint, frame); results.Add(result); }, predictionEvents);
+                    }
+                    else for (int i = 0; i < _options.MaxFramesPerPoll && _frames.TryGetValue(checked(ConfirmedTick + 1), out var next); i++)
                     {
                         if (_closeAt.HasValue && next.Record.Frame.Tick > _closeAt.Value) throw new InvalidDataException("Frame exceeds closing tick.");
                         FrameResult result = _runner!.Advance(next.Record.Frame);
                         Checkpoint checkpoint = _runner.CaptureCheckpoint();
-                        if (CheckpointCodec.Hash(checkpoint) != next.Record.Hash)
+                        string actualHash = CheckpointCodec.Hash(checkpoint);
+                        if (actualHash != next.Record.Hash)
+                        {
+                            _desync = new DesyncReport(_confirmed!, next.Record.Frame, checkpoint, next.Record.Hash, actualHash);
                             throw new InvalidDataException("State hash mismatch at tick " + checkpoint.Tick + ".");
+                        }
                         // 计算和摘要检查均成功后，才能把帧暴露为已确认并交付事件。
-                        _confirmed = checkpoint; LastFrame = next.Record.Frame;
-                        _frames.Remove(checkpoint.Tick); _localInputs.Remove(checkpoint.Tick);
-                        _recent.Add(checkpoint.Tick, next.Bytes); _recentOrder.Enqueue(checkpoint.Tick);
-                        if (_recentOrder.Count > _options.MaxFutureFrames) _recent.Remove(_recentOrder.Dequeue());
+                        CommitConfirmation(checkpoint, next.Record.Frame);
                         results.Add(result);
                     }
                     if (_closeAt == ConfirmedTick) Status = SessionStatus.Closed;
                 }
+                if (Status == SessionStatus.Closed && _prediction != null)
+                    _prediction.DiscardTail(predictionEvents);
                 // 只反馈真正执行且摘要一致的进度；每次 Poll 合并为一条，不逐帧堆积 ACK。
                 if (ConfirmedTick > _lastProgressQueued)
                 {
@@ -153,6 +217,24 @@ namespace FrameSync.Sessions
         { EnsureNotBusy(); return _confirmed ?? throw new InvalidOperationException("Initial state has not been restored."); }
         /// <summary>返回确认状态的独立副本，不暴露尚未核对或已出错的模拟状态。</summary>
         public TState InspectState() { return _module.Codec.Decode(CaptureCheckpoint().ApplicationState.Span); }
+
+        /// <summary>返回可显示的预测状态副本；部分重算不会暴露尚未追赶完成的状态。</summary>
+        public TState InspectPredictedState()
+        {
+            EnsureNotBusy();
+            var checkpoint = _prediction?.Published ?? CaptureCheckpoint();
+            return _module.Codec.Decode(checkpoint.ApplicationState.Span);
+        }
+
+        // 两种执行模式共用确认出口，保证历史去重、输入释放和事件交付规则一致。
+        private void CommitConfirmation(Checkpoint checkpoint, InputFrame frame)
+        {
+            var buffered = _frames[checkpoint.Tick];
+            _confirmed = checkpoint; LastFrame = frame;
+            _frames.Remove(checkpoint.Tick); _localInputs.Remove(checkpoint.Tick);
+            _recent.Add(checkpoint.Tick, buffered.Bytes); _recentOrder.Enqueue(checkpoint.Tick);
+            if (_recentOrder.Count > _options.MaxFutureFrames) _recent.Remove(_recentOrder.Dequeue());
+        }
 
         private void Receive(TransportMessage message)
         {
@@ -222,7 +304,13 @@ namespace FrameSync.Sessions
             _initialHash = CheckpointCodec.Hash(checkpoint);
             byte[] ready = Wire.Ready(_sessionId, _epoch, _initialHash, _options.MaxFutureFrames);
             if (!_outbox.CanAdd(1, ready.Length)) throw new InvalidOperationException("No room for Ready message.");
-            _runner = runner; _confirmed = checkpoint; _snapshot = null; Status = SessionStatus.Ready;
+            _runner = runner; _confirmed = checkpoint; _snapshot = null;
+            if (_predictionOptions != null)
+            {
+                _predictionOptions.Validate(checkpoint.Limits, _options);
+                _prediction = new ClientPrediction<TState>(runner, checkpoint, _predictionOptions, _assignedSlot, _neutralInput!, _module.InputValidator);
+            }
+            Status = SessionStatus.Ready;
             _outbox.Add(_serverConnectionId, MessageKind.Ready, ready);
         }
 
@@ -240,11 +328,5 @@ namespace FrameSync.Sessions
             _frames.Add(tick, new BufferedFrame(record, new ByteString(bytes)));
         }
         private void EnsureNotBusy() { if (_busy) throw new InvalidOperationException("Reentrant session calls are not allowed."); }
-        private sealed class BufferedFrame
-        {
-            public BufferedFrame(FinalFrame record, ByteString bytes) { Record = record; Bytes = bytes; }
-            public FinalFrame Record { get; }
-            public ByteString Bytes { get; }
-        }
     }
 }

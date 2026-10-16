@@ -58,7 +58,7 @@ namespace FrameSync.Sessions
             if (!transport.Supports(DeliveryMode.ReliableOrdered) || transport.ChannelCount < 4 ||
                 transport.MaxMessageBytes < Math.Max(MaxRealtimeBytes, checked(SnapshotChunkBytes + Wire.ChunkOverhead)))
                 throw new ArgumentException("Transport capabilities do not meet this session's requirements.");
-            int frameSize = checked(Wire.FinalOverhead + participants * (15 + limits.MaxInputBytes));
+            int frameSize = checked(Wire.FinalOverhead + participants * (19 + 15 + limits.MaxInputBytes));
             if (frameSize > MaxRealtimeBytes) throw new ArgumentException("A complete frame would exceed the realtime message budget.");
             if (MaxOutboxMessages < participants || MaxOutboxBytes < checked(participants * frameSize))
                 throw new ArgumentException("Outbox must hold at least one complete broadcast.");

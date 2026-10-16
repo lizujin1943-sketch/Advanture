@@ -60,6 +60,7 @@ namespace FrameSync.Runtime
         private readonly List<InputFrame> _frames = new List<InputFrame>();
         // 按实际文件布局累计大小，不需要每追加一帧就重新编码整段录制。
         private long _encodedBytes;
+        private MembershipState _membership;
 
         /// <summary>从完整检查点开始一段新录制，并预先核对起点所需容量。</summary>
         /// <param name="initial">录制起点；可以是初始状态，也可以是中途检查点。</param>
@@ -68,6 +69,7 @@ namespace FrameSync.Runtime
         {
             _initial = initial ?? throw new ArgumentNullException(nameof(initial));
             _limits = limits ?? new ReplayLimits();
+            _membership = initial.Membership;
             // 6 = 标识 4 + 版本 2；两个 4 分别是起点字节长度和输入帧数量。
             // 初始检查点已经有自己的校验摘要，录制外层还需要一个独立摘要。
             _encodedBytes = 6L + 4 + CheckpointCodec.Encode(initial).Length + 4 + DataEnvelope.DigestLength;
@@ -88,19 +90,15 @@ namespace FrameSync.Runtime
             // 起点可能是中间帧，不能把每份录制都假设成从帧 1 开始。
             ulong expected = checked(_initial.Tick + (ulong)_frames.Count + 1);
             var session = _initial.Session; var limits = _initial.Limits;
-            if (frame.SessionId != session.SessionId || frame.Epoch != session.Epoch || frame.Tick != expected ||
-                frame.Inputs.Count != session.Participants.Count)
+            if (frame.SessionId != session.SessionId || frame.Epoch != session.Epoch || frame.Tick != expected)
                 throw new ArgumentException("Recording requires consecutive frames from its initial session.");
-            for (int i = 0; i < frame.Inputs.Count; i++)
-                if (frame.Inputs[i].Slot != session.Participants[i].Slot ||
-                    frame.Inputs[i].Generation != session.Participants[i].Generation ||
-                    frame.Inputs[i].Payload.Length > limits.MaxInputBytes)
-                    throw new ArgumentException("Input is incompatible with the recorded roster or byte limit.");
+            var membership = _membership.Apply(frame.MemberEvents);
+            membership.ValidateInputs(frame.Inputs, limits.MaxInputBytes);
             _ = checked(session.BaseTick + frame.Tick);
             // 先计算完整录制的预计大小，再修改列表，拒绝无声截断或淘汰历史。
             long nextBytes = checked(_encodedBytes + InputFormat.EncodedSize(frame));
             if (nextBytes > _limits.MaxBytes) throw new InvalidOperationException("Recording byte limit reached.");
-            _frames.Add(frame); _encodedBytes = nextBytes;
+            _frames.Add(frame); _encodedBytes = nextBytes; _membership = membership;
         }
 
         /// <summary>生成当前录制的只读副本；录制器之后仍可在限制内继续追加。</summary>

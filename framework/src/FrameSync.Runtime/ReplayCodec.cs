@@ -14,7 +14,7 @@ namespace FrameSync.Runtime
         // 按小端写入后的四个字节是 ASCII 标识 FSRP，用于区分输入录制与检查点。
         private const uint Magic = 0x50525346; // FSRP
 
-        /// <summary>将录制写成版本 1 的稳定字节格式，并在末尾附加校验摘要。</summary>
+        /// <summary>将录制写成版本 2 的稳定字节格式，并在末尾附加校验摘要。</summary>
         /// <param name="recording">由录制器或解码器生成的完整录制。</param>
         /// <returns>可以交给文件层保存的独立字节数组。</returns>
         public static byte[] Encode(ReplayRecording recording)
@@ -22,7 +22,7 @@ namespace FrameSync.Runtime
             if (recording == null) throw new ArgumentNullException(nameof(recording));
             // 写入正文之前为末尾摘要预留空间，让限制覆盖整个文件。
             using var w = new CanonicalWriter(recording.Limits.MaxBytes - DataEnvelope.DigestLength);
-            w.U32(Magic); w.U16(1);
+            w.U32(Magic); w.U16(2);
             w.Blob(CheckpointCodec.Encode(recording.Initial));
             w.U32((uint)recording.Frames.Count);
             foreach (var frame in recording.Frames) InputFormat.Write(w, frame);
@@ -43,12 +43,12 @@ namespace FrameSync.Runtime
             var r = new CanonicalReader(DataEnvelope.Open(bytes, cap.MaxBytes));
             try
             {
-                if (r.U32() != Magic || r.U16() != 1) throw new InvalidDataException("Unsupported recording format.");
+                if (r.U32() != Magic || r.U16() != 2) throw new InvalidDataException("Unsupported recording format.");
                 var initial = CheckpointCodec.Decode(r.Blob(stateCap.MaxCheckpointBytes), stateCap);
                 int count = r.Count(cap.MaxFrames);
-                // 即使输入内容为空，每帧仍有 10 字节帧头，每人仍有 15 字节记录头。
+                // 即使没有有效成员，每帧仍有 12 字节头；成员事件和输入记录另外计入。
                 // 用剩余字节数检查声明帧数，尽早拒绝声称包含大量帧的短文件。
-                long minimumFrameBytes = 10L + initial.Session.Participants.Count * 15L;
+                long minimumFrameBytes = 12; // 全部停用时允许零输入，仍有帧号和两个计数字段。
                 if (count > r.Remaining / minimumFrameBytes)
                     throw new InvalidDataException("Frame count cannot fit in the remaining data.");
                 // 复用正常录制时的检查，保证加载也遵守相同的帧连续性和容量规则。

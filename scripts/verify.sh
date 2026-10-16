@@ -10,6 +10,7 @@ export DOTNET_GENERATE_ASPNET_CERTIFICATE=false
 # The core solution intentionally does not contain sample or engine projects.
 dotnet build framework/FrameSync.sln -c Release --disable-build-servers -m:1 -v:quiet
 dotnet framework/tests/FrameSync.Tests/bin/Release/net8.0/FrameSync.Tests.dll
+dotnet framework/tests/FrameSync.Persistence.Tests/bin/Release/net8.0/FrameSync.Persistence.Tests.dll
 dotnet build tools/HeadlessHarness.Tests -c Release --disable-build-servers -m:1 -v:quiet
 dotnet tools/HeadlessHarness.Tests/bin/Release/net8.0/HeadlessHarness.Tests.dll
 
@@ -36,3 +37,12 @@ dotnet framework/tests/ReliableUdp.Tests/bin/Release/net8.0/ReliableUdp.Tests.dl
 dotnet build tools/UdpHarness.Tests -c Release --disable-build-servers -m:1 -v:quiet
 mkdir -p artifacts/stage-e
 dotnet tools/UdpHarness.Tests/bin/Release/net8.0/UdpHarness.Tests.dll | tee artifacts/stage-e/integration.log
+
+# 阶段 C/D 集成：真实可靠 UDP 算法配合可重复故障网络，验证两种玩法的预测与确认。
+dotnet build tools/PredictionHarness -c Release --disable-build-servers -m:1 -v:quiet
+prediction_out="artifacts/initial-core/prediction"
+dotnet tools/PredictionHarness/bin/Release/net8.0/PredictionHarness.dll --output "$prediction_out"
+for recording in "$prediction_out"/*.fsrp; do
+    expected=$(cat "${recording%.fsrp}.sha256")
+    dotnet "$harness" --replay "$recording" --expected-hash "$expected" --report "${recording%.fsrp}-replay.json"
+done

@@ -9,7 +9,7 @@ namespace FrameSync.Runtime
     /// <remarks>
     /// 多字节整数统一小端，Guid 使用 .NET 的固定字节排列；字段和集合顺序都明确规定。
     /// 此类只处理框架结构，游戏状态仍是原样保存的字节，恢复时再由游戏编码器解释。
-    /// 当前格式为版本 1，改变字段布局时必须显式处理格式版本兼容。
+    /// 当前格式为版本 2，改变字段布局时必须显式处理格式版本兼容。
     /// </remarks>
     public static class CheckpointCodec
     {
@@ -25,7 +25,7 @@ namespace FrameSync.Runtime
             using var w = new CanonicalWriter(checkpoint.Limits.MaxCheckpointBytes - DataEnvelope.DigestLength);
             // 字段分组：格式头 → 游戏兼容信息 → 会话和帧号 → 容量 → 成员 → 历史 → 游戏数据。
             // Decode 必须按完全相同的顺序读取，不能依赖对象内存布局或平台默认序列化。
-            w.U32(Magic); w.U16(1);
+            w.U32(Magic); w.U16(2);
             var m = checkpoint.Manifest;
             w.Text(m.ApplicationId); w.Text(m.RulesVersion); w.Text(m.InputFormatVersion);
             w.Text(m.StateFormatVersion); w.Text(m.ContentHash); w.Text(m.DeterminismHash);
@@ -33,7 +33,9 @@ namespace FrameSync.Runtime
             w.Guid(s.SessionId); w.U64(s.Epoch); w.U32(s.TickRate); w.U64(s.BaseTick); w.U64(checkpoint.Tick);
             WriteLimits(w, checkpoint.Limits);
             w.U16((ushort)s.Participants.Count);
-            foreach (var p in s.Participants) { w.U16(p.Slot); w.Guid(p.ParticipantId); w.U64(p.Generation); }
+            foreach (var p in s.Participants) { w.U16(p.Slot); w.Guid(p.ParticipantId); w.U64(p.Generation); w.U8(p.IsActive ? (byte)1 : (byte)0); }
+            WriteMembership(w, checkpoint.Membership);
+            WriteMembership(w, checkpoint.HistoryStartMembership);
             // 缺失次数与成员表同序，输入历史也按帧号递增，恢复后框架上下文才会一致。
             foreach (ulong count in checkpoint.MissingInputCounts) w.U64(count);
             w.U32((uint)checkpoint.InputHistory.Count);
@@ -56,7 +58,7 @@ namespace FrameSync.Runtime
             var r = new CanonicalReader(DataEnvelope.Open(bytes, cap.MaxCheckpointBytes));
             try
             {
-                if (r.U32() != Magic || r.U16() != 1) throw new InvalidDataException("Unsupported checkpoint format.");
+                if (r.U32() != Magic || r.U16() != 2) throw new InvalidDataException("Unsupported checkpoint format.");
                 var manifest = new CompatibilityManifest(r.Text(), r.Text(), r.Text(), r.Text(), r.Text(), r.Text());
                 var sessionId = r.Guid(); ulong epoch = r.U64(); uint tickRate = r.U32();
                 ulong baseTick = r.U64(); ulong tick = r.U64();
@@ -74,11 +76,15 @@ namespace FrameSync.Runtime
                 var participants = new Participant[memberCount];
                 for (int i = 0; i < memberCount; i++)
                 {
-                    participants[i] = new Participant(r.U16(), r.Guid(), r.U64());
+                    participants[i] = new Participant(r.U16(), r.Guid(), r.U64(), ReadActive(ref r));
                     if (i > 0 && participants[i].Slot <= participants[i - 1].Slot)
                         throw new InvalidDataException("Participants are not in canonical order.");
                 }
                 var session = new SessionDescriptor(sessionId, epoch, tickRate, participants, baseTick);
+                var membership = ReadMembership(ref r, session);
+                var historyStart = ReadMembership(ref r, session);
+                if (tick <= (ulong)stored.HistoryFrames && !historyStart.SameAs(new MembershipState(session.Participants)))
+                    throw new InvalidDataException("Initial membership does not match the history base.");
                 var missing = new ulong[memberCount];
                 for (int i = 0; i < memberCount; i++)
                 {
@@ -91,18 +97,22 @@ namespace FrameSync.Runtime
                 if ((ulong)historyCount != Math.Min(tick, (ulong)stored.HistoryFrames))
                     throw new InvalidDataException("Incomplete input history.");
                 var history = new InputFrame[historyCount];
+                var historicalMembership = historyStart;
                 for (int i = 0; i < historyCount; i++)
                 {
                     history[i] = InputFormat.Read(ref r, session, stored);
+                    historicalMembership = historicalMembership.Apply(history[i].MemberEvents);
+                    historicalMembership.ValidateInputs(history[i].Inputs, stored.MaxInputBytes);
                     if (history[i].Tick != tick - (ulong)historyCount + 1 + (ulong)i)
                         throw new InvalidDataException("Nonconsecutive history.");
                 }
                 // 5. 缺失计数必须与保存的输入来源相符；随后读取游戏数据并拒绝尾随字节。
-                ValidateMissing(missing, history);
+                if (!historicalMembership.SameAs(membership)) throw new InvalidDataException("Membership disagrees with history.");
+                ValidateMissing(missing, history, membership);
                 var initialization = new ByteString(r.Blob(stored.MaxCheckpointBytes));
                 byte[] state = r.Blob(stored.MaxCheckpointBytes).ToArray();
                 r.Finish();
-                return new Checkpoint(manifest, session, stored, tick, history, missing, state, initialization);
+                return new Checkpoint(manifest, session, stored, tick, history, missing, state, initialization, membership, historyStart);
             }
             // 将构造器参数检查和算术溢出统一转换成坏检查点数据，保留原始异常便于诊断。
             catch (ArgumentException e) { throw new InvalidDataException("Invalid checkpoint fields.", e); }
@@ -125,23 +135,50 @@ namespace FrameSync.Runtime
         /// <summary>利用最近输入的连续补齐后缀，检查各参与者的缺失计数是否可能成立。</summary>
         /// <param name="missing">截至当前帧的连续缺失次数。</param>
         /// <param name="history">已验证连续性的近期输入，旧帧在前。</param>
-        private static void ValidateMissing(ulong[] missing, InputFrame[] history)
+        private static void ValidateMissing(ulong[] missing, InputFrame[] history, MembershipState membership)
         {
-            // slotIndex 是排序后名单的下标，不是 Slot 的实际值，位置编号可以不连续。
-            for (int slotIndex = 0; slotIndex < missing.Length; slotIndex++)
+            for (int index = 0; index < missing.Length; index++)
             {
-                ulong suffix = 0;
-                for (int i = history.Length - 1; i >= 0; i--)
+                var member = membership.Participants[index];
+                ulong suffix = 0; bool resetSeen = !member.IsActive;
+                if (member.IsActive)
                 {
-                    if (history[i].Inputs[slotIndex].Origin == InputOrigin.Submitted) break;
-                    suffix++;
+                    for (int i = history.Length - 1; i >= 0; i--)
+                    {
+                        var input = history[i].Inputs.FirstOrDefault(x => x.Slot == member.Slot);
+                        if (input == null || input.Origin == InputOrigin.Submitted) { resetSeen = true; break; }
+                        suffix++;
+                        if (history[i].MemberEvents.Any(e => e.Slot == member.Slot)) { resetSeen = true; break; }
+                    }
                 }
-                // 窗口内出现过实际提交：连续缺失次数必须恰好等于后缀长度。
-                // 整个窗口都是补齐：缺失可能从更早就开始，只能要求计数至少等于窗口长度。
-                // 当历史为空时，这里只检查下界；Decode 已通过 missing <= tick 限制初始值为零。
-                if (suffix < (ulong)history.Length ? missing[slotIndex] != suffix : missing[slotIndex] < suffix)
-                    throw new InvalidDataException("Missing-input counter disagrees with history.");
+                if (resetSeen ? missing[index] != suffix : missing[index] < suffix)
+                    throw new InvalidDataException("Missing-input counter disagrees with membership/history.");
             }
+        }
+
+        /// <summary>成员动态状态只保存版本与启用位；稳定身份仍来自固定会话名单。</summary>
+        private static void WriteMembership(CanonicalWriter w, MembershipState state)
+        {
+            w.U64(state.LastSequence);
+            foreach (var p in state.Participants) { w.U64(p.Generation); w.U8(p.IsActive ? (byte)1 : (byte)0); }
+        }
+        private static MembershipState ReadMembership(ref CanonicalReader r, SessionDescriptor session)
+        {
+            ulong sequence = r.U64(); var members = new Participant[session.Participants.Count];
+            for (int i = 0; i < members.Length; i++)
+            {
+                var original = session.Participants[i]; ulong generation = r.U64(); bool active = ReadActive(ref r);
+                if (generation < original.Generation || generation - original.Generation > sequence)
+                    throw new InvalidDataException("Invalid membership generation.");
+                members[i] = new Participant(original.Slot, original.ParticipantId, generation, active);
+            }
+            return new MembershipState(members, sequence);
+        }
+        private static bool ReadActive(ref CanonicalReader r)
+        {
+            byte value = r.U8();
+            if (value > 1) throw new InvalidDataException("Invalid membership flag.");
+            return value == 1;
         }
 
         /// <summary>按固定顺序写入六项运行限制，与 ReadLimits 一一对应。</summary>
@@ -179,6 +216,6 @@ namespace FrameSync.Runtime
             a.SessionId == b.SessionId && a.Epoch == b.Epoch && a.TickRate == b.TickRate &&
             a.BaseTick == b.BaseTick && a.Participants.Count == b.Participants.Count &&
             a.Participants.Zip(b.Participants, (x, y) =>
-                x.Slot == y.Slot && x.ParticipantId == y.ParticipantId && x.Generation == y.Generation).All(x => x);
+                x.Slot == y.Slot && x.ParticipantId == y.ParticipantId && x.Generation == y.Generation && x.IsActive == y.IsActive).All(x => x);
     }
 }
