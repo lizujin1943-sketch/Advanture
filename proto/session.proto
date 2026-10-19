@@ -1,0 +1,92 @@
+syntax = "proto3";
+package framesync.protocol.v3;
+option csharp_namespace = "FrameSync.Protocol.Protobuf";
+
+// 帧同步会话协议；游戏输入、检查点和存档保持原有编码。
+// 已发布的字段编号不可换含义，删除后必须 reserved。
+message SessionPacket {
+  uint32 protocol_version = 1; // 协议版本，当前为 3。
+  bytes session_id = 2; // 会话标识：16 字节，采用 Guid.ToByteArray 顺序。
+  uint64 epoch = 3; // 运行编号，读档重开时递增，隔离旧消息。
+  reserved 4 to 9;
+  oneof body { // 消息正文，选择一个分支。
+    SnapshotMessage snapshot = 10; // 服务器下发的初始状态分块。
+    ReadyMessage ready = 11; // 客户端已恢复初始状态的就绪通知。
+    StartMessage start = 12; // 服务器发出的开始通知。
+    PlayerInputMessage input = 13; // 客户端提交的已冻结输入。
+    FinalFrameMessage final = 14; // 服务器广播的最终帧。
+    TerminalMessage close = 15; // 服务器通知正常结束。
+    TerminalMessage fault = 16; // 服务器通知会话失败。
+    TerminalMessage progress = 17; // 客户端报告已执行且校验通过的确认帧。
+  }
+}
+
+// 初始检查点的一个分块。
+message SnapshotMessage {
+  uint32 slot = 1; // 接收客户端的玩家位置编号，范围 0～65535。
+  uint32 total_length = 2; // 完整检查点的总字节数。
+  uint32 offset = 3; // 当前分块的起始字节偏移，从 0 开始。
+  bytes data = 4; // 当前分块的原始检查点数据。
+}
+
+// 客户端恢复初始状态后发送。
+message ReadyMessage {
+  bytes initial_hash = 1; // 初始检查点的 SHA-256 摘要，32 字节。
+  uint32 receive_window = 2; // 可缓存的未来最终帧数，范围 1～1024。
+}
+
+// 服务器确认所有客户端就绪后发送。
+message StartMessage {
+  bytes initial_hash = 1; // 共同初始检查点的 SHA-256 摘要，32 字节。
+}
+
+// 单个玩家的单帧输入；无操作时也提交中性输入。
+message PlayerInputMessage {
+  uint64 tick = 1; // 输入的目标逻辑帧号，大于 0。
+  uint32 slot = 2; // 输入所属的玩家位置，须与连接绑定位置一致。
+  uint64 generation = 3; // 控制权版本，须与当前成员一致。
+  bytes payload = 4; // 游戏定义的原始输入字节。
+}
+
+// 最终帧中输入的来源。
+enum InputSource {
+  SUBMITTED = 0; // 玩家提交的输入，包括主动提交的中性输入。
+  MISSING_SUBSTITUTE = 1; // 输入超时缺失，由服务器补入中性输入。
+}
+
+// 最终帧中一个玩家的确定输入。
+message InputRecord {
+  uint32 slot = 1; // 输入所属的启用玩家位置。
+  uint64 generation = 2; // 本帧输入对应的控制权版本。
+  InputSource origin = 3; // 玩家提交或服务器补入。
+  bytes payload = 4; // 本帧最终采用的原始输入字节。
+}
+
+// 在指定逻辑帧上修改成员状态。
+enum MemberChangeKind {
+  MEMBER_CHANGE_UNSPECIFIED = 0; // 未指定，不可作为有效操作。
+  ACTIVATE = 1; // 启用已有位置，控制权版本不变。
+  DEACTIVATE = 2; // 停用位置，控制权版本不变。
+  REBIND = 3; // 重新绑定并启用，控制权版本加 1。
+}
+
+// 成员变化先于本帧输入执行。
+message MemberChange {
+  uint64 sequence = 1; // 跨帧连续的成员事件序号，大于 0。
+  MemberChangeKind kind = 2; // 启用、停用或重新绑定。
+  uint32 slot = 3; // 被操作的玩家位置编号。
+  uint64 generation = 4; // 操作完成后的控制权版本。
+}
+
+// 服务器确定的最终帧，用于确认预测并在必要时回滚。
+message FinalFrameMessage {
+  uint64 tick = 1; // 最终帧的逻辑帧号，大于 0。
+  repeated InputRecord inputs = 2; // 本帧启用位置的输入，按 slot 严格递增。
+  repeated MemberChange member_events = 3; // 本帧成员变化，序号连续且位置不重复。
+  bytes state_hash = 4; // 执行后完整检查点的 SHA-256 摘要，32 字节。
+}
+
+// 正常结束、失败及执行进度共用的正文。
+message TerminalMessage {
+  uint64 tick = 1; // 最后确认帧号，0 表示初始状态。
+}

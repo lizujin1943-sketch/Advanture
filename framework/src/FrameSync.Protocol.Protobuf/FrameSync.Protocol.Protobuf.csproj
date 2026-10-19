@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.36.2" />
+    <!-- 仅在构建时生成 C#；不引入 gRPC，也不改变可靠 UDP 传输。 -->
+    <PackageReference Include="Grpc.Tools" Version="2.84.0" PrivateAssets="all" />
+    <!-- 从统一协议目录生成通用会话类型，不引入试玩房间协议。 -->
+    <Protobuf Include="../../../proto/session.proto" ProtoRoot="../../../proto" Link="proto/session.proto" GrpcServices="None" />
+  </ItemGroup>
+</Project>

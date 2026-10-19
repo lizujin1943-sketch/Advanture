@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><AssemblyName>Advanture.Tactical.Network</AssemblyName></PropertyGroup>
+  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><AssemblyName>Advanture.Tactical.Network</AssemblyName><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies></PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Grpc.Tools" Version="2.84.0" PrivateAssets="all" />
+    <!-- 房间协议集中存放，但仍只由试玩网络模块编译。 -->
+    <Protobuf Include="../../proto/room.proto" ProtoRoot="../../proto" Link="proto/room.proto" GrpcServices="None" />
     <ProjectReference Include="../TacticalGame.Simulation/TacticalGame.Simulation.csproj" />
     <ProjectReference Include="../../framework/src/FrameSync.Sessions/FrameSync.Sessions.csproj" />
     <ProjectReference Include="../../framework/src/FrameSync.Transport.Udp/FrameSync.Transport.Udp.csproj" />

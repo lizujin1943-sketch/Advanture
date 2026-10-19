@@ -1,0 +1,45 @@
+syntax = "proto3";
+package advanture.tactical.room.v3;
+option csharp_namespace = "Advanture.Tactical.Network.Protocol";
+
+// 试玩房间协议，独立于帧同步核心。
+// 已发布的字段编号不可换含义，删除后必须 reserved。
+message RoomPacket {
+  uint32 protocol_version = 1; // 房间协议版本，当前为 3。
+  reserved 2 to 9;
+  oneof body { // 消息正文，选择一个分支。
+    JoinRoom join = 10; // 客户端申请加入房间。
+    WelcomeRoom welcome = 11; // 房主接受申请并返回房间信息。
+    RoomAck ack = 12; // 客户端确认 welcome，区别于帧同步 Ready。
+    RoomReject reject = 13; // 房主拒绝请求并说明原因。
+  }
+}
+
+// 客户端的加入申请。
+message JoinRoom {
+  uint32 slot = 1; // 申请的玩家位置，当前双人试玩为 0 或 1。
+  bytes map_hash = 2; // 客户端地图编码的 SHA-256 摘要，32 字节。
+}
+
+// 房主接受加入后返回的信息。
+message WelcomeRoom {
+  uint32 slot = 1; // 房主确认的玩家位置，须与申请一致。
+  bytes session_id = 2; // 会话标识：16 字节，采用 Guid.ToByteArray 顺序。
+  bytes map_hash = 3; // 房主地图编码的 SHA-256 摘要，32 字节。
+}
+
+// 确认已验证 welcome 并创建本地会话，无需附加字段。
+message RoomAck {}
+
+// 房间请求被拒绝的原因。
+enum RejectReason {
+  REJECT_UNSPECIFIED = 0; // 未指定，不可作为有效原因。
+  INCOMPATIBLE = 1; // 协议版本或地图不一致。
+  UNAVAILABLE = 2; // 房间已开始，或玩家位置不可用。
+  INVALID_REQUEST = 3; // 请求格式、字段或发送阶段非法。
+}
+
+// 房主的拒绝回复。
+message RoomReject {
+  RejectReason reason = 1; // 拒绝原因，须为有效的非零枚举值。
+}

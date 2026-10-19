@@ -1,5 +1,7 @@
 # 阶段 B：服务器与客户端的首个可运行闭环
 
+2026-10-19 协议更新：`Wire` 已迁移为 Protobuf，版本为 3；下文阶段 B 的流程继续有效，当前消息定义和容量规则见 [Protobuf 实现说明](protobuf-protocol.md)。
+
 > 2026-10-15 更新：本文保留阶段 B 首个通信闭环的说明和当时测试数量。当前已补齐确定性成员事件、停用、预测回滚和保存重开；最新接口与限制见 [C/D 实现说明](stage-c-d-implementation.md)。
 
 本次完成的是阶段 B 的第一部分：一个服务器和 1～4 个客户端各自计算，通过字节消息收集和广播输入。默认演示两个客户端，A 输入 +5，B 收到同一帧输入并执行，三端结果都是 5；再由 B 输入 +3，三端结果都是 8。
@@ -66,7 +68,7 @@ flowchart BT
 | `framework/src/FrameSync.Sessions/SessionOptions.cs` | 帧窗口、工作量、消息大小、队列和准备超时限制 | 6 |
 | `framework/src/FrameSync.Sessions/ServerSession.cs` | 开局分发、输入校验、截止组帧、参考计算、广播与关闭 | 7 |
 | `framework/src/FrameSync.Sessions/ClientSession.cs` | 初态恢复、冻结本地输入、按确认帧执行、核对状态、反馈进度 | 8 |
-| `framework/src/FrameSync.Sessions/Wire.cs` | 明确版本的二进制格式、长度检查、完整输入帧编码 | 9 |
+| `framework/src/FrameSync.Sessions/Wire.cs` | Protobuf 与领域对象转换、字段校验、语义去重和完整帧容量预算 | 9 |
 | `framework/src/FrameSync.Sessions/Outbox.cs` | 有界待发队列，传输暂时不能接收时保留原消息重试 | 10 |
 | `framework/tests/FrameSync.Tests/Session*.cs` | 正常流程、时间与身份边界、慢客户端、错误与一致性测试 | 随对应模块阅读 |
 

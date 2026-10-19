@@ -4,9 +4,23 @@
 
 本记录对应 `Yard07Network.unity`。此前本地试玩的 13 项测试及 ClientPrediction 旧逻辑失败记录保留在 [历史记录](VERIFICATION-SINGLEPLAYER.md)，不代表当前结果。
 
-## 最新：AK-47 对战验收
+## 最新：Protobuf 协议迁移验收（2026-10-19）
 
-本节对应加入 AK-47 后的当前构建。后续章节保留早期移动与自动诊断版本的历史证据；当前 **R 是换弹**，死亡后自动重生。
+房间和帧同步消息采用 Protobuf v3，输入、检查点、存档、录制及可靠 UDP 的原格式保留。当前构建需要所有联机端一起更新。
+
+- 完整 `./scripts/verify.sh` 通过，共 **262 项控制台测试**：核心 131、存储 23、示例/命令行 24、同步工具 6、可靠 UDP 30、UDP 集成 16、庭院示例 32；新增协议测试共 31 项。
+- Unity EditMode **22 / 22**，作业 `cd5af70c25dd459e90b83029bf4f2bad`。
+- macOS Mono 构建 `build-0468fd6fb4` 成功，**0 错误、0 警告**，211.34 MB；确认打包了新的协议和 Protobuf 运行库。
+- `python3 scripts/run-yard-pair.py --combat` 通过：两个独立 Unity 客户端验证移动、转向、持枪、射击、扣血、死亡、换弹和重生。服务器、A、B 在第 **360 帧**的完整状态摘要相同：`b60663980e2482647f97c7aae7ff0381583ff654aa9028d022abf8cc331a3556`。
+- 三份正式诊断摘要均 `desyncDetected=false`、`finished=true`、`endState=SessionClosed`，最终检查点均存在。
+- 两个模型各 100000 帧的检查点和录制，与迁移前文件逐字节相同；新构建读取旧录制，最终摘要一致。四客户端各 10000 帧及故障网络预测回滚亦通过。
+- 本次是同一台 macOS 上的真实 UDP 回环验证；Windows、IL2CPP、跨电脑和公网仍未验收。
+
+证据：[完整验收日志](../../artifacts/protobuf/verify.log)、[Unity 测试](../../artifacts/protobuf/unity-tests.json)、[Unity 构建](../../artifacts/protobuf/unity-build.json)、[双客户端报告](../../artifacts/tactical-network/smoke-20261019-113959-edb762e3/result.json)。阅读代码见 [Protobuf 实现说明](../../docs/protobuf-protocol.md)。
+
+## AK-47 对战验收（历史）
+
+本节保留加入 AK-47 时的构建记录。后续章节保留早期移动与自动诊断版本的历史证据；当前 **R 是换弹**，死亡后自动重生。
 
 - 完整框架验收通过；庭院纯 C# / 战斗 / UDP 为 **23 / 23**，Unity 为 **22 / 22**。
 - 最终 Unity 测试作业 `e70e8cc20a4c472f88386c7e7dee3957`；macOS 构建 `build-7ae3d1b73e` 成功，0 错误、0 警告，210.76 MB。

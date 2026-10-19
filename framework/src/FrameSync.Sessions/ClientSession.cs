@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using FrameSync.Abstractions;
 using FrameSync.Runtime;
+using FrameSync.Protocol.Protobuf;
 using FrameSync.Transport;
 
 namespace FrameSync.Sessions
@@ -23,7 +24,7 @@ namespace FrameSync.Sessions
         // 成功提交后不可改写的本地帧输入；显式中性输入也占一项，确认后释放。
         private readonly Dictionary<ulong, ByteString> _localInputs = new Dictionary<ulong, ByteString>();
         private readonly Dictionary<ulong, BufferedFrame> _frames = new Dictionary<ulong, BufferedFrame>();
-        private readonly Dictionary<ulong, ByteString> _recent = new Dictionary<ulong, ByteString>();
+        private readonly Dictionary<ulong, FinalFrame> _recent = new Dictionary<ulong, FinalFrame>();
         private readonly Queue<ulong> _recentOrder = new Queue<ulong>();
         private SimulationRunner<TState>? _runner;
         private Checkpoint? _confirmed;
@@ -232,16 +233,17 @@ namespace FrameSync.Sessions
             var buffered = _frames[checkpoint.Tick];
             _confirmed = checkpoint; LastFrame = frame;
             _frames.Remove(checkpoint.Tick); _localInputs.Remove(checkpoint.Tick);
-            _recent.Add(checkpoint.Tick, buffered.Bytes); _recentOrder.Enqueue(checkpoint.Tick);
+            _recent.Add(checkpoint.Tick, buffered.Record); _recentOrder.Enqueue(checkpoint.Tick);
             if (_recentOrder.Count > _options.MaxFutureFrames) _recent.Remove(_recentOrder.Dequeue());
         }
 
         private void Receive(TransportMessage message)
         {
             if (message.ConnectionId != _serverConnectionId) { RejectedMessages++; return; }
-            if (message.Payload.Length > Math.Max(_options.MaxRealtimeBytes, _options.SnapshotChunkBytes + Wire.ChunkOverhead))
+            if (message.Payload.Length > Math.Max(_options.MaxRealtimeBytes, Wire.MaxSnapshotMessageBytes(_options.SnapshotChunkBytes)))
                 throw new InvalidDataException("Server message too large.");
-            var reader = new PacketReader(message.Payload); var kind = Wire.ReadHeader(ref reader, out var id, out var epoch);
+            var packet = Wire.Decode(message.Payload, Math.Max(_options.MaxRealtimeBytes, Wire.MaxSnapshotMessageBytes(_options.SnapshotChunkBytes)),
+                out var kind, out var id, out var epoch);
             if (id != _sessionId || epoch != _epoch) { RejectedMessages++; return; }
             if (message.Channel != Wire.Channel(kind) || message.Delivery != DeliveryMode.ReliableOrdered)
                 throw new InvalidDataException("Unexpected channel or delivery mode.");
@@ -249,34 +251,37 @@ namespace FrameSync.Sessions
                 throw new InvalidDataException("Realtime message too large.");
             switch (kind)
             {
-                case MessageKind.Snapshot: ReceiveSnapshot(ref reader); break;
+                case MessageKind.Snapshot: ReceiveSnapshot(packet.Snapshot); break;
                 case MessageKind.Start:
-                    string hash = Wire.ReadHash(ref reader); reader.End();
+                    string hash = Wire.ReadHash(packet.Start.InitialHash);
                     if ((Status != SessionStatus.Ready && Status != SessionStatus.Running) || hash != _initialHash)
                         throw new InvalidDataException("Start without matching restored initial state.");
                     Status = SessionStatus.Running; break;
                 case MessageKind.Final:
                     if (_runner == null || (Status != SessionStatus.Ready && Status != SessionStatus.Running)) throw new InvalidDataException("Final frame before initial state.");
-                    FinalFrame record = Wire.ReadFinal(ref reader, id, epoch, _runner.Limits); reader.End();
-                    BufferFrame(record, message.Payload); break;
+                    FinalFrame record = Wire.ReadFinal(packet.Final, id, epoch, _runner.Limits);
+                    BufferFrame(record); break;
                 case MessageKind.Close:
-                    ulong closeTick = reader.U64(); reader.End();
+                    ulong closeTick = packet.Close.Tick;
                     if (closeTick < ConfirmedTick || closeTick - ConfirmedTick > (ulong)_options.MaxFutureFrames ||
                         (_closeAt.HasValue && _closeAt.Value != closeTick)) throw new InvalidDataException("Invalid closing tick.");
                     _closeAt = closeTick;
                     if (closeTick == ConfirmedTick) Status = SessionStatus.Closed;
                     break;
                 case MessageKind.Fault:
-                    _ = reader.U64(); reader.End(); throw new InvalidDataException("Server simulation or session failed.");
+                    throw new InvalidDataException("Server simulation or session failed.");
                 default: throw new InvalidDataException("Unexpected server message.");
             }
         }
 
-        private void ReceiveSnapshot(ref PacketReader reader)
+        private void ReceiveSnapshot(SnapshotMessage snapshot)
         {
             if (Status != SessionStatus.Preparing) throw new InvalidDataException("Initial snapshot has already been restored.");
-            ushort slot = reader.U16(); int total = reader.Length(_receiveLimits.MaxCheckpointBytes);
-            int offset = reader.Length(total); ReadOnlySpan<byte> bytes = reader.Blob(_options.SnapshotChunkBytes); reader.End();
+            // 声明的总长、偏移和分块大小先验证，再分配完整检查点，避免整数截断和超量分配。
+            if (snapshot.TotalLength > (uint)_receiveLimits.MaxCheckpointBytes || snapshot.Offset > snapshot.TotalLength ||
+                snapshot.Data.Length > _options.SnapshotChunkBytes) throw new InvalidDataException("Snapshot size exceeds capacity.");
+            ushort slot = Wire.ReadSlot(snapshot.Slot); int total = (int)snapshot.TotalLength;
+            int offset = (int)snapshot.Offset; ReadOnlySpan<byte> bytes = snapshot.Data.Span;
             if (total == 0 || bytes.Length == 0 || bytes.Length > total - offset) throw new InvalidDataException("Invalid snapshot chunk range.");
             if (_snapshot == null)
             {
@@ -314,18 +319,18 @@ namespace FrameSync.Sessions
             _outbox.Add(_serverConnectionId, MessageKind.Ready, ready);
         }
 
-        private void BufferFrame(FinalFrame record, ReadOnlySpan<byte> bytes)
+        private void BufferFrame(FinalFrame record)
         {
             ulong tick = record.Frame.Tick;
             if (tick <= ConfirmedTick)
             {
-                if (_recent.TryGetValue(tick, out var old) && !old.Span.SequenceEqual(bytes)) throw new InvalidDataException("Conflicting confirmed frame.");
+                if (_recent.TryGetValue(tick, out var old) && !old.SameAs(record)) throw new InvalidDataException("Conflicting confirmed frame.");
                 return; // 早于保留窗口的旧帧不会再次计算。
             }
             if (tick - ConfirmedTick > (ulong)_options.MaxFutureFrames) throw new InvalidDataException("Confirmed frame exceeds receive window.");
             if (_frames.TryGetValue(tick, out var existing))
-            { if (!existing.Bytes.Span.SequenceEqual(bytes)) throw new InvalidDataException("Conflicting buffered frame."); return; }
-            _frames.Add(tick, new BufferedFrame(record, new ByteString(bytes)));
+            { if (!existing.Record.SameAs(record)) throw new InvalidDataException("Conflicting buffered frame."); return; }
+            _frames.Add(tick, new BufferedFrame(record));
         }
         private void EnsureNotBusy() { if (_busy) throw new InvalidOperationException("Reentrant session calls are not allowed."); }
     }

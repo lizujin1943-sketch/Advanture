@@ -20,7 +20,7 @@ dotnet run --project tools/SyncHarness -c Release -- --interactive
 
 ## 运行
 
-需要 .NET 8 SDK。工程不使用第三方 NuGet 包，`NuGet.Config` 关闭外部包源。请在本目录执行命令。
+需要 .NET 8 SDK。房间和帧同步消息采用 Protobuf；首次构建从 NuGet 下载固定版本的运行库和代码生成工具，缓存放在 `.build/nuget`。可靠 UDP、游戏输入和检查点/存档格式保持独立。所有 `.proto` 定义集中在 [proto/](proto/README.md)，协议结构与扩展规则见 [Protobuf 实现说明](docs/protobuf-protocol.md)。请在本目录执行命令。
 
 在 Cursor / VS Code 中打开仓库根目录时，工作区默认加载 `Advanture.sln`，包含框架、纯 C# 示例和工具，支持从 `TacticalGame.Network` 跳转到 `ReliableUdp.Core` 等框架源码。已打开的窗口可执行 `.NET: Open Solution` 选择根目录的 `Advanture.sln`，或执行 `Developer: Reload Window` 后等待 C# 项目加载完成。`framework/FrameSync.sln` 仍用于框架独立构建；Unity 工程使用 Unity 生成的解决方案。
 
@@ -60,6 +60,8 @@ dotnet tools/HeadlessHarness/bin/Release/net8.0/HeadlessHarness.dll --replay art
 | `framework/src/FrameSync.Abstractions` | 游戏要实现的接口、不可变输入、参与者与帧信息 |
 | `framework/src/FrameSync.Runtime` | 按帧推进、检查点、编码校验、输入录制和重放 |
 | `framework/src/FrameSync.Transport` | 只收发字节的传输接口、有界内存网络 |
+| `proto` | 统一存放帧同步和房间的 `.proto` 定义，按所属模块分别生成代码 |
+| `framework/src/FrameSync.Protocol.Protobuf` | 自动生成的通用会话消息类型和有容量限制的编解码入口 |
 | `framework/src/FrameSync.Sessions` | 服务器/客户端会话、成员停用、预测回滚、事件通知、输入调度和一致性检查 |
 | `framework/src/FrameSync.Diagnostics` | 可选的会话进度、结束原因和不同步快照文件记录器 |
 | `framework/src/FrameSync.Persistence` | 存档格式、完整性校验、与存储环境无关的保存服务 |
@@ -90,6 +92,8 @@ dotnet tools/HeadlessHarness/bin/Release/net8.0/HeadlessHarness.dll --replay art
 flowchart BT
     Sessions[FrameSync.Sessions] --> Runtime[FrameSync.Runtime]
     Sessions --> Transport[FrameSync.Transport]
+    Sessions --> Protocol[FrameSync.Protocol.Protobuf]
+    Protocol --> Protobuf[Google.Protobuf 运行库]
     Runtime --> Contracts[FrameSync.Abstractions]
     Persistence[FrameSync.Persistence] --> Runtime
     FileSystem[FrameSync.Storage.FileSystem] --> Persistence

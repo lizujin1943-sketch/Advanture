@@ -193,26 +193,26 @@ namespace FrameSync.Sessions
             try
             {
                 if (message.Payload.Length > _options.MaxRealtimeBytes) throw new InvalidDataException("Client message too large.");
-                var reader = new PacketReader(message.Payload); var kind = Wire.ReadHeader(ref reader, out var id, out var epoch);
+                var packet = Wire.Decode(message.Payload, _options.MaxRealtimeBytes, out var kind, out var id, out var epoch);
                 if (id != _runner.Session.SessionId || epoch != _runner.Session.Epoch) { Reject("Stale session or epoch."); return; }
                 if (message.Channel != Wire.Channel(kind) || message.Delivery != DeliveryMode.ReliableOrdered)
                     throw new InvalidDataException("Unexpected channel or delivery mode.");
                 if (kind == MessageKind.Ready)
                 {
-                    string hash = Wire.ReadHash(ref reader); int window = reader.U16(); reader.End();
+                    string hash = Wire.ReadHash(packet.Ready.InitialHash); uint window = packet.Ready.ReceiveWindow;
                     if (window < 1 || window > 1024) { Reject("Invalid client receive window."); return; }
                     if (hash != _initialHash || peer.Offset != peer.SnapshotLength) { Reject("Initial state not ready or hash mismatch."); return; }
-                    peer.ReceiveWindow = Math.Min(window, _options.MaxFutureFrames); peer.Ready = true; return;
+                    peer.ReceiveWindow = Math.Min((int)window, _options.MaxFutureFrames); peer.Ready = true; return;
                 }
                 if (kind == MessageKind.Progress)
                 {
-                    ulong executed = reader.U64(); reader.End();
+                    ulong executed = packet.Progress.Tick;
                     if (Status != SessionStatus.Running || executed > ConfirmedTick) { Reject("Invalid executed frame acknowledgement."); return; }
                     if (executed > peer.ExecutedTick) peer.ExecutedTick = executed;
                     return;
                 }
                 if (kind != MessageKind.Input) { Reject("Unexpected client message."); return; }
-                var input = Wire.ReadInput(ref reader, _runner.Limits.MaxInputBytes, out ulong tick); reader.End();
+                var input = Wire.ReadInput(packet.Input, _runner.Limits.MaxInputBytes, out ulong tick);
                 if (Status != SessionStatus.Running) { Reject("Session has not started."); return; }
                 var member = _confirmed.Membership.Find(peer.Participant.Slot);
                 if (input.Slot != member.Slot || input.Generation != member.Generation || (!member.IsActive && ConfirmedTick != 0)) { Reject("Input does not belong to this connection."); return; }

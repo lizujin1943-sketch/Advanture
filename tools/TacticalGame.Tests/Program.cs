@@ -6,7 +6,7 @@ internal static class Program
 {
     static int Main(string[] args)
     {
-        var tests = SimulationTests.Cases().Concat(WeaponTests.Cases()).Concat(NetworkTests.Cases()).Where(t => args.Length == 0 || t.Name.StartsWith(args[0], StringComparison.Ordinal)).ToList();
+        var tests = SimulationTests.Cases().Concat(WeaponTests.Cases()).Concat(NetworkTests.Cases()).Concat(RoomProtocolTests.Cases()).Where(t => args.Length == 0 || t.Name.StartsWith(args[0], StringComparison.Ordinal)).ToList();
         int failed=0;
         foreach(var test in tests)
         {

@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using Advanture.Tactical.Simulation;
+using Advanture.Tactical.Network.Protocol;
 using FrameSync.Sessions;
 using FrameSync.Transport.Udp;
 using ReliableUdp;
@@ -56,22 +57,25 @@ public sealed class TacticalClient : IDisposable
         if (_connected && !_joined) _joined = RoomProtocol.Send(_node, _peer, RoomProtocol.JoinBytes(_slot, _hash));
         while (_transport.Controls.Count > 0)
         {
-            var m = _transport.Controls.Dequeue(); var b = m.Payload;
+            var m = _transport.Controls.Dequeue();
             if (m.ConnectionId != _peer) continue;
-            if (b.Length == 51 && b[0] == RoomProtocol.Welcome && b[1] == RoomProtocol.Version && b[2] == _slot && b.Slice(19).SequenceEqual(_hash) && Session == null)
+            if (!RoomProtocol.TryDecode(m.Payload, out var packet, out byte rejection))
+            { Fail(rejection == 1 ? "房间协议版本不同，请使用同一份试玩。" : "收到不合法的房间消息。"); return; }
+            if (packet!.BodyCase == RoomPacket.BodyOneofCase.Welcome && packet.Welcome.Slot == _slot &&
+                packet.Welcome.MapHash.Span.SequenceEqual(_hash) && Session == null)
             {
-                var id = new Guid(b.Slice(3, 16));
+                var id = new Guid(packet.Welcome.SessionId.Span);
                 if (id == Guid.Empty) { Fail("房间身份不合法。"); return; }
                 Session = new ClientSession<TacticalState>(TacticalGame.CreateModule(), id, 1, _transport, _peer, RoomProtocol.Limits,
                     prediction: new PredictionOptions(maxPredictionFrames: 12), neutralInput: _ => RoomProtocol.Neutral);
             }
-            else if (b.Length == 2 && b[0] == RoomProtocol.Reject)
-            { Fail(b[1] == 1 ? "地图或协议版本不同，请使用同一份试玩。" : "房间已满、已经开局或请求不合法。"); return; }
+            else if (packet.BodyCase == RoomPacket.BodyOneofCase.Reject)
+            { Fail(packet.Reject.Reason == RejectReason.Incompatible ? "地图或协议版本不同，请使用同一份试玩。" : "房间已满、已经开局或请求不合法。"); return; }
             else { Fail("收到不合法的房间消息。"); return; }
         }
         if (Session != null)
         {
-            if (!_acked) _acked = RoomProtocol.Send(_node, _peer, new[] { RoomProtocol.Ack });
+            if (!_acked) _acked = RoomProtocol.Send(_node, _peer, RoomProtocol.AckBytes());
             Session.Poll(); // 先收确认帧/初态；之前预测过的帧已经有冻结的本地输入。
             if (!_checkedInitial && Session.LocalParticipant != null)
             {

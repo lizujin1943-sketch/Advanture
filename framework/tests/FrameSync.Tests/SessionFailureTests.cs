@@ -78,9 +78,9 @@ namespace FrameSync.Tests
         private static void OversizedSnapshot()
         {
             var f = new SyncFixture();
-            var w = Wire.Begin(MessageKind.Snapshot, Fixture.SessionId, 1, 64);
-            w.U16(0); w.U32(uint.MaxValue); w.U32(0); w.Blob(new byte[] { 0 });
-            SessionBoundaryTests.Send(f.ServerTransport, 2, MessageKind.Snapshot, w.Finish());
+            var p = FrameSync.Protocol.Protobuf.SessionPacket.Parser.ParseFrom(Wire.Snapshot(Fixture.SessionId, 1, 0, new byte[] { 0 }, 0, 1));
+            p.Snapshot.TotalLength = uint.MaxValue;
+            SessionBoundaryTests.Send(f.ServerTransport, 2, MessageKind.Snapshot, FrameSync.Protocol.Protobuf.ProtobufCodec.Encode(p, 900));
             f.A.Poll(); Assert.Equal(SessionStatus.Failed, f.A.Status);
             Assert.Throws<InvalidOperationException>(() => f.A.CaptureCheckpoint());
         }

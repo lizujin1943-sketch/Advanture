@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Advanture.Tactical.Simulation;
+using Advanture.Tactical.Network.Protocol;
 using FrameSync.Abstractions;
 using FrameSync.Sessions;
 using FrameSync.Transport.Udp;
@@ -61,21 +62,23 @@ public sealed class TacticalHost : IDisposable
         }
         while (_transport.Controls.Count > 0)
         {
-            var message = _transport.Controls.Dequeue(); var b = message.Payload;
+            var message = _transport.Controls.Dequeue();
             if (!_connected.ContainsKey(message.ConnectionId)) continue;
-            if (b.Length == 35 && b[0] == RoomProtocol.Join)
+            if (!RoomProtocol.TryDecode(message.Payload, out var packet, out byte rejection))
+            { _rejected[message.ConnectionId] = rejection; continue; }
+            if (packet!.BodyCase == RoomPacket.BodyOneofCase.Join)
             {
-                ushort slot = b[2];
-                if (b[1] != RoomProtocol.Version || !b.Slice(3).SequenceEqual(_hash)) { _rejected[message.ConnectionId] = 1; continue; }
+                ushort slot = (ushort)packet.Join.Slot;
+                if (!packet.Join.MapHash.Span.SequenceEqual(_hash)) { _rejected[message.ConnectionId] = 1; continue; }
                 if (Session != null || slot > 1 || (_peers.TryGetValue(slot, out var old) && old != message.ConnectionId) ||
                     _peers.Any(p => p.Key != slot && p.Value == message.ConnectionId)) { _rejected[message.ConnectionId] = 2; continue; }
                 _peers[slot] = message.ConnectionId;
             }
-            else if (b.Length == 1 && b[0] == RoomProtocol.Ack && _welcomed.Contains(message.ConnectionId)) _ready.Add(message.ConnectionId);
+            else if (packet.BodyCase == RoomPacket.BodyOneofCase.Ack && _welcomed.Contains(message.ConnectionId)) _ready.Add(message.ConnectionId);
             else _rejected[message.ConnectionId] = 3;
         }
         foreach (var pair in _rejected.ToArray())
-            if (RoomProtocol.Send(_node, pair.Key, new[] { RoomProtocol.Reject, pair.Value })) _rejected.Remove(pair.Key);
+            if (RoomProtocol.Send(_node, pair.Key, RoomProtocol.RejectBytes(pair.Value))) _rejected.Remove(pair.Key);
         // 未通过房间握手的连接不能无限占用 UDP 名额；已入房等待另一人则允许持续等待。
         foreach (var pair in _connected)
             if (!_peers.ContainsValue(pair.Key) && now - pair.Value > TimeSpan.FromSeconds(10)) _node.Close(pair.Key, "Room handshake expired");
