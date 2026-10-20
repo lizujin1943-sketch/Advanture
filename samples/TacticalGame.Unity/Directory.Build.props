@@ -1,0 +1,8 @@
+<Project>
+  <Import Project="../../Directory.Build.props" />
+  <!-- 仅供生成的 IDE 工程使用；Unity 脚本不启用根目录纯 C# 工程的可空检查和警告即错误。 -->
+  <PropertyGroup>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

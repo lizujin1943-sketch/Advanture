@@ -38,6 +38,17 @@ python3 scripts/run-yard-pair.py
 
 ## 代码阅读与分层
 
+Cursor / VS Code 的仓库工作区加载 `TacticalGame.Unity.sln`，同时索引 Unity 脚本和纯 C# 框架。工程固定安装 `Visual Studio Editor 2.0.23`，使用兼容本仓库 .NET 8 的 `.sln`，不升级到默认生成 `.slnx` 的版本。
+
+首次拉取或删除了本地工程文件后：
+
+1. 用 Unity 打开本目录，等待包安装和脚本编译完成。
+2. **Unity → Preferences → External Tools**，选择 **Visual Studio Code**，点击 **Regenerate project files**。这个选择让官方包自动维护 C# 工程文件；代码仍可在 Cursor 中编辑。
+3. 在仓库根目录运行 `python3 scripts/sync-unity-ide.py`，把纯 C# 工程加入生成的 Unity 解决方案。
+4. Cursor / VS Code 执行 **Developer: Reload Window**。状态栏不应再显示当前 Unity 脚本“位于任何打开的项目之外”。
+
+Unity 重新生成解决方案时会保留加入的外部工程。新增纯 C# 工程后可再次运行同步脚本。生成的 `.sln/.csproj` 不提交；只阅读独立框架时仍可选择根目录 `Advanture.sln`。Unity 通过 DLL 引用框架，跨 DLL 的定义跳转由语言服务处理，可能显示反编译内容。
+
 先读 [双客户端接入实现说明](../../docs/yard-network-implementation.md)，其中按“按下 W 后发生什么”解释输入冻结、网络确认、预测回滚和画面更新，并列出源文件阅读顺序。
 
 - `framework/`：通用纯 C# 同步框架，没有地图、角色或 Unity 依赖。

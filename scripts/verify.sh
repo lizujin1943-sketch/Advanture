@@ -49,3 +49,4 @@ done
 
 # 独立试玩接入：纯 C# 移动、碰撞、保存恢复，以及双客户端真实 UDP。无需安装 Unity。
 ./scripts/verify-tactical.sh
+./scripts/verify-hook-island.sh

@@ -1,0 +1,32 @@
+{
+  "scene": "Hook Island | v2",
+  "modeling_units": "metres (assumed from concept image)",
+  "object_count": 279,
+  "mesh_count": 266,
+  "polygon_count": 12422,
+  "island_top_dimensions_m": [
+    31.922,
+    26.702,
+    0.722
+  ],
+  "coconut_count": 2,
+  "frond_count": 8,
+  "sea_or_offshore_meshes": [],
+  "pier_clear_width_m": 2.95,
+  "pier_inland_overlap_m": 1.4,
+  "deck_height_m": 0.8,
+  "entrance_join_min_clearance_m": -0.0007,
+  "entrance_join_max_clearance_m": 0.00824,
+  "ramp_min_above_terrain_m": -0.00145,
+  "ramp_board_count": 5,
+  "deck_plank_count": 8,
+  "zero_area_face_count": 0,
+  "checks": [
+    "41 samples across pier/terrain entrance",
+    "527 samples along full ramp width and length",
+    "No water or offshore stone meshes",
+    "Two coconuts; frond count recorded against the current revision",
+    "Separate editable island/shop/tree/pier/dressing collections"
+  ],
+  "scope": "Geometry and rendered views only. Unity collision and multiplayer traversal not tested."
+}

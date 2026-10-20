@@ -22,7 +22,7 @@ dotnet run --project tools/SyncHarness -c Release -- --interactive
 
 需要 .NET 8 SDK。房间和帧同步消息采用 Protobuf；首次构建从 NuGet 下载固定版本的运行库和代码生成工具，缓存放在 `.build/nuget`。可靠 UDP、游戏输入和检查点/存档格式保持独立。所有 `.proto` 定义集中在 [proto/](proto/README.md)，协议结构与扩展规则见 [Protobuf 实现说明](docs/protobuf-protocol.md)。请在本目录执行命令。
 
-在 Cursor / VS Code 中打开仓库根目录时，工作区默认加载 `Advanture.sln`，包含框架、纯 C# 示例和工具，支持从 `TacticalGame.Network` 跳转到 `ReliableUdp.Core` 等框架源码。已打开的窗口可执行 `.NET: Open Solution` 选择根目录的 `Advanture.sln`，或执行 `Developer: Reload Window` 后等待 C# 项目加载完成。`framework/FrameSync.sln` 仍用于框架独立构建；Unity 工程使用 Unity 生成的解决方案。
+在 Cursor / VS Code 中打开仓库根目录时，工作区默认加载 Unity 生成的 `samples/TacticalGame.Unity/TacticalGame.Unity.sln`，同时索引 Unity 脚本、框架、纯 C# 示例和工具。首次使用先按 [Unity 代码阅读说明](samples/TacticalGame.Unity/README.md#代码阅读与分层) 生成工程文件，再运行 `python3 scripts/sync-unity-ide.py`。已打开的窗口可执行 `Developer: Reload Window` 后等待 C# 项目加载完成。仅开发纯 C# 时可执行 `.NET: Open Solution` 选择根目录的 `Advanture.sln`；`framework/FrameSync.sln` 仍用于框架独立构建。
 
 macOS / Linux / Git Bash 一键验收：
 

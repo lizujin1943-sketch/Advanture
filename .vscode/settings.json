@@ -1,3 +1,3 @@
 {
-  "dotnet.defaultSolution": "Advanture.sln"
+  "dotnet.defaultSolution": "samples/TacticalGame.Unity/TacticalGame.Unity.sln"
 }

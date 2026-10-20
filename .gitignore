@@ -127,3 +127,5 @@ artifacts/
 /adapters/Unity/Runtime.meta
 /samples/TacticalGame.Unity/Assets/TacticalGame/Plugins/Generated/
 /samples/TacticalGame.Unity/Assets/TacticalGame/Plugins/Generated.meta
+/samples/TacticalGame.Unity/Assets/HookIsland/Plugins/Generated/
+/samples/TacticalGame.Unity/Assets/HookIsland/Plugins/Generated.meta

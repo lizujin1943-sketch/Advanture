@@ -1,0 +1,7 @@
+{
+  "name": "Advanture.HookIsland.Editor",
+  "rootNamespace": "Advanture.HookIsland.Editor",
+  "references": ["Advanture.HookIsland"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}

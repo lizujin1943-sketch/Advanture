@@ -5,6 +5,7 @@
 /UserSettings/
 /Builds/
 /.vs/
+/.vscode/
 *.csproj
 *.sln
 *.slnx

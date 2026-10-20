@@ -1,0 +1,124 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using Advanture.HookIsland.Simulation;
+using Advanture.HookIsland.Network.Protocol;
+using FrameSync.Abstractions;
+using FrameSync.Sessions;
+using FrameSync.Transport.Udp;
+using ReliableUdp;
+
+namespace Advanture.HookIsland.Network;
+
+/// <summary>1～4 人房主。持有独立服务器模拟；房主本人也通过真实 UDP 客户端加入。</summary>
+/// <remarks>仅限可信本机/局域网，所有调用串行进行。系统时间由宿主传入，未引用任何 Unity 类型。</remarks>
+public sealed class IslandHost : IDisposable
+{
+    private readonly SocketDatagramPort _port;
+    private readonly UdpNode _node;
+    private readonly RoomTransport _transport;
+    private readonly IslandMap _map;
+    private readonly byte[] _hash;
+    private readonly Guid _id = Guid.NewGuid();
+    private readonly Dictionary<ushort, ulong> _peers = new Dictionary<ushort, ulong>();
+    private readonly Dictionary<ulong, TimeSpan> _connected = new Dictionary<ulong, TimeSpan>();
+    private readonly HashSet<ulong> _welcomed = new HashSet<ulong>(), _ready = new HashSet<ulong>();
+    private readonly Dictionary<ulong, byte> _rejected = new Dictionary<ulong, byte>();
+    private bool _disposed, _transportStopped;
+    private readonly int _capacity;
+
+    public IslandHost(IslandMap map, int port = 7778, int capacity = 2)
+    {
+        _map = map ?? throw new ArgumentNullException(nameof(map));
+        if (capacity < 1 || capacity > 4) throw new ArgumentOutOfRangeException(nameof(capacity));
+        _capacity = capacity;
+        _hash = RoomProtocol.Hash(map);
+        _port = new SocketDatagramPort(new DatagramAddress(IPAddress.Any, port));
+        try { _node = new UdpNode(_port); _node.Listen(); _transport = new RoomTransport(_node); }
+        catch { _port.Dispose(); throw; }
+    }
+    public int Port => _port.LocalAddress.Port;
+    public int JoinedCount => _peers.Count;
+    public int Capacity => _capacity;
+    public ServerSession<HookState>? Session { get; private set; }
+    public string? Failure { get; private set; }
+
+    /// <summary>人数到齐并确认欢迎信息才创建会话，等待好友不会消耗开局超时。</summary>
+    public void Poll(TimeSpan now)
+    {
+        if (_disposed) throw new ObjectDisposedException(nameof(IslandHost));
+        if (Failure != null) return;
+        _node.Poll(now); _transport.Pump();
+        while (_node.TryGetEvent(out var e))
+        {
+            if (e!.Kind == ConnectionEventKind.Connected) _connected[e.ConnectionId] = now;
+            else
+            {
+                _connected.Remove(e.ConnectionId); _rejected.Remove(e.ConnectionId);
+                var occupied = _peers.Where(p => p.Value == e.ConnectionId).ToArray();
+                if (occupied.Length == 0) continue;
+                if (Session != null) { Fail("玩家已断开连接，房间结束：" + e.Reason); return; }
+                foreach (var p in occupied) _peers.Remove(p.Key);
+                _welcomed.Remove(e.ConnectionId); _ready.Remove(e.ConnectionId);
+            }
+        }
+        while (_transport.Controls.Count > 0)
+        {
+            var message = _transport.Controls.Dequeue();
+            if (!_connected.ContainsKey(message.ConnectionId)) continue;
+            if (!RoomProtocol.TryDecode(message.Payload, out var packet, out byte rejection))
+            { _rejected[message.ConnectionId] = rejection; continue; }
+            if (packet!.BodyCase == RoomPacket.BodyOneofCase.Join)
+            {
+                ushort slot = (ushort)packet.Join.Slot;
+                if (!packet.Join.MapHash.Span.SequenceEqual(_hash)) { _rejected[message.ConnectionId] = 1; continue; }
+                if (slot == ushort.MaxValue)
+                {
+                    var existing = _peers.Where(p => p.Value == message.ConnectionId).ToArray();
+                    slot = existing.Length > 0 ? existing[0].Key :
+                        Enumerable.Range(1, _capacity - 1).Where(i => !_peers.ContainsKey((ushort)i)).Select(i => (ushort)i).DefaultIfEmpty(ushort.MaxValue).First();
+                }
+                if (Session != null || slot >= _capacity || (_peers.TryGetValue(slot, out var old) && old != message.ConnectionId) ||
+                    _peers.Any(p => p.Key != slot && p.Value == message.ConnectionId)) { _rejected[message.ConnectionId] = 2; continue; }
+                _peers[slot] = message.ConnectionId;
+            }
+            else if (packet.BodyCase == RoomPacket.BodyOneofCase.Ack && _welcomed.Contains(message.ConnectionId)) _ready.Add(message.ConnectionId);
+            else _rejected[message.ConnectionId] = 3;
+        }
+        foreach (var pair in _rejected.ToArray())
+            if (RoomProtocol.Send(_node, pair.Key, RoomProtocol.RejectBytes(pair.Value))) _rejected.Remove(pair.Key);
+        // 未通过房间握手的连接不能无限占用 UDP 名额；已入房等待另一人则允许持续等待。
+        foreach (var pair in _connected)
+            if (!_peers.ContainsValue(pair.Key) && now - pair.Value > TimeSpan.FromSeconds(10)) _node.Close(pair.Key, "Room handshake expired");
+        if (Session == null)
+        {
+            foreach (var pair in _peers)
+                if (!_welcomed.Contains(pair.Value) && RoomProtocol.Send(_node, pair.Value, RoomProtocol.WelcomeBytes(_id, pair.Key, _hash))) _welcomed.Add(pair.Value);
+            if (_peers.Count == _capacity && _ready.Count == _capacity)
+            {
+                var roster = Enumerable.Range(0, _capacity).Select(i => new Participant((ushort)i, Guid.NewGuid(), isActive: false)).ToArray();
+                Session = new ServerSession<HookState>(HookGame.CreateModule(), new SessionDescriptor(_id, 1, RoomProtocol.Rate, roster), _transport,
+                    _peers.Select(p => new PeerBinding(p.Value, p.Key)).ToArray(), _ => RoomProtocol.Neutral, RoomProtocol.Limits, new ByteString(_map.Encode()));
+            }
+        }
+        Session?.Poll(now);
+        if (Session?.Status == SessionStatus.Failed) Fail("服务器会话失败：" + Session.Failure);
+        if (Failure == null) _node.Poll(now);
+    }
+
+    private void Fail(string reason)
+    { Failure = reason; StopTransport(); }
+
+    /// <summary>停止网络并释放端口，保留 Session/Failure 供界面和日志读取。失败与主动离开共用此路径。</summary>
+    private void StopTransport()
+    {
+        if (_transportStopped) return;
+        _transportStopped = true;
+        try { _node.Shutdown(); } finally { _port.Dispose(); }
+    }
+
+    /// <summary>释放监听端口。退出和重新开房各调用一次即可；重复释放安全。</summary>
+    public void Dispose()
+    { if (_disposed) return; _disposed = true; StopTransport(); }
+}

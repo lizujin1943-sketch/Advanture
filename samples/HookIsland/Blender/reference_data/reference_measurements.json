@@ -1,0 +1,47 @@
+{
+  "reference": "/Users/lizujin/Documents/project/git_project/Advanture/docs/concepts/hook-island-multiview-v1.png",
+  "plan_pixel_bounds": [
+    0,
+    0,
+    760,
+    650
+  ],
+  "pixel_to_world": {
+    "x": "(pixel_x-390)*0.049",
+    "y": "(320-pixel_y)*0.049"
+  },
+  "mask_purpose": "Grass/sand distribution only, without source colors or shadows.",
+  "palette_samples": {
+    "grass_north": [
+      176.0,
+      189.0,
+      35.0
+    ],
+    "grass_east": [
+      174.0,
+      187.0,
+      35.0
+    ],
+    "sand": [
+      253.0,
+      199.0,
+      101.0
+    ],
+    "roof_bright": [
+      254.0,
+      119.0,
+      50.0
+    ],
+    "roof_dark": [
+      201.0,
+      70.0,
+      34.0
+    ],
+    "trunk": [
+      192.0,
+      108.5,
+      47.0
+    ]
+  },
+  "known_multiview_inconsistency": "The FRONT shop and tree are larger relative to island width than in TOP. TOP governs layout; ISOMETRIC governs the primary presentation. This discrepancy prevents a literal pixel-identical fit to every panel by one orthographic 3D model."
+}

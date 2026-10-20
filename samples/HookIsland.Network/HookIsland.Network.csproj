@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><AssemblyName>Advanture.HookIsland.Network</AssemblyName><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.Tools" Version="2.84.0" PrivateAssets="all" />
+    <Protobuf Include="../../proto/hook-island-room.proto" ProtoRoot="../../proto" Link="proto/hook-island-room.proto" GrpcServices="None" />
+    <ProjectReference Include="../HookIsland.Simulation/HookIsland.Simulation.csproj" />
+    <ProjectReference Include="../../framework/src/FrameSync.Sessions/FrameSync.Sessions.csproj" />
+    <ProjectReference Include="../../framework/src/FrameSync.Transport.Udp/FrameSync.Transport.Udp.csproj" />
+  </ItemGroup>
+</Project>
