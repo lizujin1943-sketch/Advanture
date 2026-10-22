@@ -15,7 +15,7 @@ namespace FrameSync.Sessions
         /// <param name="maxOutboxBytes">等待发送的总字节上限。</param>
         /// <param name="maxRealtimeBytes">输入和确认帧的最大消息大小。</param>
         /// <param name="snapshotChunkBytes">初始检查点每块的数据字节数，不含消息头。</param>
-        /// <param name="prepareTimeout">服务器从首次 Poll 到全员 Ready 的最长时间。</param>
+        /// <param name="prepareTimeout">初始全员准备及每次运行中连接同步的最长时间。</param>
         public SessionOptions(int maxFutureFrames = 128, int maxMessagesPerPoll = 64, int maxFramesPerPoll = 8,
             int maxOutboxMessages = 128, int maxOutboxBytes = 2097152, int maxRealtimeBytes = 900,
             int snapshotChunkBytes = 16384, TimeSpan? prepareTimeout = null)
@@ -47,7 +47,7 @@ namespace FrameSync.Sessions
         public int MaxRealtimeBytes { get; }
         /// <summary>检查点分块的数据大小。</summary>
         public int SnapshotChunkBytes { get; }
-        /// <summary>服务器等待全员准备的最长时间。</summary>
+        /// <summary>初始全员准备及每次运行中连接同步的最长时间。</summary>
         public TimeSpan PrepareTimeout { get; }
 
         // 开局之前检查最坏情况：不允许运行到一半才发现完整帧装不进传输或队列。

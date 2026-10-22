@@ -1,0 +1,11 @@
+id,name,weight,price_per_kg,escape_milli_per_kg,rarity
+fish_01,银背鲻鱼,2600,4,1000,Common
+fish_02,蓝纹鲭鱼,2000,6,1200,Common
+fish_03,赤尾鲷鱼,1600,9,1500,Common
+fish_04,斑点石斑鱼,1200,13,1800,Uncommon
+fish_05,刺球河鲀,900,18,2200,Uncommon
+fish_06,翡翠鹦嘴鱼,700,25,2600,Rare
+fish_07,月纹鲳鱼,500,35,3000,Rare
+fish_08,紫鳍狮子鱼,300,50,3600,Epic
+fish_09,金帆旗鱼,150,75,4200,Epic
+fish_10,星辉皇带鱼,50,110,5000,Legendary

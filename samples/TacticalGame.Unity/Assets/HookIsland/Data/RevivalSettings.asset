@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecb571f69bbab41ab9ef5d143219e021, type: 3}
+  m_Name: RevivalSettings
+  m_EditorClassIdentifier: 
+  downedSeconds: 60
+  rescueSeconds: 3
+  rescueRangeMetres: 1.5
+  rescueHealthFraction: 0.3
+  baseFee: 10
+  growthFee: 5
+  growthIntervalSeconds: 300
+  balanceFeeFraction: 0.1
+  respawnHealthFraction: 1
+  respawnStaminaFraction: 1

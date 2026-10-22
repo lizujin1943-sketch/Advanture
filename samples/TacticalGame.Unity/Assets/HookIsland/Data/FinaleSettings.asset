@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 005d88b24711641e09d531aa00ce6422, type: 3}
+  m_Name: FinaleSettings
+  m_EditorClassIdentifier: 
+  useFinale: 1
+  baitCost: 3
+  summonSeconds: 10
+  submergedSeconds: 6
+  holdSeconds: 5
+  sharedStaminaPerSecond: 12
+  requiredHooks: 01000000020000000200000003000000
+  bodyRadiusMetres: 1.2
+  edgeOffsetMetres: 3.1
+  preferredShiftMetres: 4

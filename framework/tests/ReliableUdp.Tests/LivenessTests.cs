@@ -13,6 +13,7 @@ namespace ReliableUdp.Tests
             yield return ("Liveness.MixedChannelsWithDifferentPacketSizes", () => MixedChannels(128));
             yield return ("Liveness.HandshakeRecoversAfterCookieExpires", ExpiredCookie);
             yield return ("Liveness.BoundedConsumerRotatesConnections", ReceiveFairness);
+            yield return ("Liveness.LateHandshakeSurvivesContinuousControlTraffic", LateHandshake);
         }
 
         private static void MixedChannels(int packetBudget)
@@ -127,6 +128,27 @@ namespace ReliableUdp.Tests
             }
             Check.True(gotB, "The first connection monopolized bounded application consumption");
             Check.True(server.GetStatistics(serverConnections[0]).BufferedReceiveMessages > 0);
+        }
+
+        private static void LateHandshake()
+        {
+            var p=new Pair();int received=0;
+            void Traffic()
+            {
+                for(byte channel=0;channel<4;channel++)p.A.TrySend(p.AId,channel,new byte[]{42},out _);
+                p.Step(0.001);while(p.B.TryReceive(out _))received++;
+            }
+            for(int i=0;i<2000;i++)Traffic();
+            Check.True(received>200,"Established peer did not sustain control traffic.");
+            var late=new UdpNode(p.Network.Create(14003));late.Poll(TimeSpan.FromSeconds(p.Network.Now));late.Connect(p.BPort.LocalAddress);
+            bool connected=false;double deadline=p.Network.Now+9;
+            while((!connected || p.Events.Count(e=>e.Kind==ConnectionEventKind.Connected)<3) && p.Network.Now<deadline)
+            {
+                Traffic();late.Poll(TimeSpan.FromSeconds(p.Network.Now));
+                while(late.TryGetEvent(out var e))if(e!.Kind==ConnectionEventKind.Connected)connected=true;
+            }
+            Check.True(connected,"Active connections starved a new handshake's control budget.");
+            Check.True(p.Events.Count(e=>e.Kind==ConnectionEventKind.Connected)>=3 && !p.Events.Any(e=>e.Kind==ConnectionEventKind.Disconnected),"Joining disrupted existing traffic.");
         }
     }
 }

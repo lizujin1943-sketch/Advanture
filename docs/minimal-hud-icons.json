@@ -1,0 +1,28 @@
+{
+  "cell": 64,
+  "columns": 8,
+  "rows": 3,
+  "icons": [
+    "Coin",
+    "Wood",
+    "Bone",
+    "Heart",
+    "Stamina",
+    "Backpack",
+    "Build",
+    "Menu",
+    "Help",
+    "Shop",
+    "SwimRing",
+    "Skull",
+    "Rescue",
+    "Shield",
+    "Hunger",
+    "Hook",
+    "Fish",
+    "Close",
+    "Recover",
+    "Check",
+    "Alert"
+  ]
+}

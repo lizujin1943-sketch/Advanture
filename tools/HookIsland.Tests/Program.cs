@@ -63,10 +63,16 @@ internal static partial class Program
             rejected=false;try{IslandMap.Decode(bytes.Concat(new byte[]{1}).ToArray());}catch{rejected=true;}Require(rejected,"Trailing map bytes accepted.");
         });
     }
-    private static int Main()
+    private static int Main(string[] args)
     {
         int failed=0,total=0;
-        foreach(var (name,test) in Cases().Concat(NetworkCases())){total++;try{test();Console.WriteLine("PASS "+name);}catch(Exception e){failed++;Console.WriteLine("FAIL "+name+": "+e.Message);}}
-        Console.WriteLine($"{total-failed}/{total} passed");return failed==0?0:1;
+        var tests=Cases().Concat(ShopCases()).Concat(PlayerHookCases()).Concat(FishDifficultyCases()).Concat(PlatformCases()).Concat(RodCases()).Concat(EscapeCases()).Concat(CooperativeFishingCases()).Concat(CooperativeInputCases()).Concat(RoomRulesCases()).Concat(RoomRulesInputCases()).Concat(TreasureCases()).Concat(TreasureInputCases()).Concat(CommissionCases()).Concat(CommissionInputCases()).Concat(OceanCases()).Concat(OceanInputCases()).Concat(FinaleCases()).Concat(FinaleGameCases()).Concat(FinaleInputCases()).Concat(MerchantCases()).Concat(MerchantGameCases());
+        if(!args.Contains("--simulation-only"))tests=tests.Concat(NetworkCases()).Concat(PlatformNetworkCases()).Concat(RodNetworkCases()).Concat(EscapeNetworkCases()).Concat(CooperativeNetworkCases()).Concat(TreasureNetworkCases()).Concat(RoomRulesNetworkCases()).Concat(CommissionNetworkCases()).Concat(OceanNetworkCases()).Concat(FinaleNetworkCases());
+        tests=tests.Concat(MerchantInputCases()).Concat(PresenceCases()).Concat(RecoveryProtocolCases());
+        if(!args.Contains("--simulation-only"))tests=tests.Concat(MerchantNetworkCases()).Concat(RecoveryNetworkCases()).Concat(RecoveryLifecycleCases());
+        var filter=args.FirstOrDefault(a=>a.StartsWith("--filter="));
+        if(filter!=null)tests=tests.Where(t=>t.Item1.Contains(filter.Substring(9),StringComparison.Ordinal));
+        foreach(var (name,test) in tests){total++;try{test();Console.WriteLine("PASS "+name);}catch(Exception e){failed++;Console.WriteLine("FAIL "+name+": "+e.Message);}}
+        Console.WriteLine($"{total-failed}/{total} passed");return failed==0 && total>0?0:1;
     }
 }

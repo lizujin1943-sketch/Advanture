@@ -9,6 +9,31 @@ namespace Advanture.HookIsland.Tests
     public sealed class IslandSceneTests
     {
         private IslandMap Map=>IslandMap.Decode(AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/HookIsland/Data/IslandMap.bytes").bytes);
+        [Test] public void PendingPurchaseSurvivesAnExpiredInputFrame()
+        {
+            EditorSceneManager.OpenScene("Assets/HookIsland/Scenes/HookIsland.unity");
+            var game=Object.FindObjectOfType<IslandFishingController>();
+            var type=typeof(IslandFishingController);
+            const System.Reflection.BindingFlags flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
+            // Seed a queued UI click without starting a network room in EditMode.
+            type.GetField("pendingPurchaseId",flags).SetValue(game,7u);
+            type.GetField("pendingUpgrade",flags).SetValue(game,HookUpgrade.Range);
+            var sample=type.GetMethod("Sample",flags);
+            try
+            {
+                var first=(HookInput)sample.Invoke(game,new object[]{1ul});
+                Assert.That(first.PurchaseId,Is.EqualTo(7u));
+                // A frame can expire before delivery. The next frozen input must carry the same receipt, not a new charge.
+                var retry=(HookInput)sample.Invoke(game,new object[]{2ul});
+                Assert.That(retry.Upgrade,Is.EqualTo(HookUpgrade.Range));
+                Assert.That(retry.PurchaseId,Is.EqualTo(first.PurchaseId));
+            }
+            finally
+            {
+                type.GetField("pendingPurchaseId",flags).SetValue(game,0u);
+                type.GetField("pendingUpgrade",flags).SetValue(game,HookUpgrade.None);
+            }
+        }
         [Test] public void SavedSceneHasConfiguredPlayableEntry()
         {
             EditorSceneManager.OpenScene("Assets/HookIsland/Scenes/HookIsland.unity");
@@ -24,6 +49,17 @@ namespace Advanture.HookIsland.Tests
             var map=Map;Assert.That(map.Spawns.Count,Is.EqualTo(4));Assert.That(map.FishSpots.Count,Is.EqualTo(24));
             foreach(var p in map.Spawns)Assert.That(map.CanStand(p.X,p.Z),Is.True,"Invalid spawn");
             foreach(var f in map.FishSpots)Assert.That(map.OnLand(f.X,f.Z),Is.False,"Fish spawned on island/pier");
+        }
+        [Test] public void ShopIsReachableFromAllSidesButNotFromFishingSpawns()
+        {
+            var map=Map;
+            foreach(var entry in new[]{new Point(-2800,-1600),new Point(2800,-1600),new Point(3200,3200),new Point(-3800,1050)})
+            {
+                Assert.That(map.CanStand(entry.X,entry.Z),Is.True,"Shop approach is blocked");
+                Assert.That(HookUpgrades.IsNearShop(entry.X,entry.Z),Is.True,"Cannot interact from shop approach");
+            }
+            foreach(var spawn in map.Spawns)
+                Assert.That(HookUpgrades.IsNearShop(spawn.X,spawn.Z),Is.False,"Store can be accessed from the fishing shore");
         }
         [Test] public void PierJoinsIslandWithoutLogicalOrVisualGap()
         {

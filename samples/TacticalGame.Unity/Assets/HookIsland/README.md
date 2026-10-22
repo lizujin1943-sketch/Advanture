@@ -1,6 +1,12 @@
 # 钩索小岛 · Unity 场景
 
-打开 **`Assets/HookIsland/Scenes/HookIsland.unity`**，点击 **Play**，选择“先自己玩”或创建 2～4 人联机房间。WASD 移动，鼠标瞄准，左键出钩，右键收回空钩；鱼被拉上岸后自动获得全队金币。完整连接和验证方法见仓库 [联机基础版说明](../../../../docs/hook-island-playable.md)。
+当前钓鱼平台请打开 `HookPlatform.unity`。背包与材料共用格子，每人拥有独立金币；Tab / I 切换角色和背包，E 购物，F 拾取。实现与验收说明见仓库 `docs/backpack-implementation.md`。以下岛屿场景说明保留旧基础版规则。
+
+新增平台入口：**`Assets/HookIsland/Scenes/HookPlatform.unity`**。Play 后按 **B** 进入铺地，**1／2** 选择木板／鱼骨块，左键确认，右键取消预览。配方默认各花费自己的 4 份材料，详见[平台地块实现](../../../../docs/hook-platform-implementation.md)。以下说明保留给原岛屿场景。
+
+打开 **`Assets/HookIsland/Scenes/HookIsland.unity`**，点击 **Play**，选择“先自己玩”或创建 2～4 人联机房间。WASD 移动，鼠标瞄准，左键出钩，右键收回空钩或放开队友；鱼被拉上岸后自动获得全队金币。左键命中队友会将其拉到身边，岸边与障碍会阻止继续拖拽，释放后有 3 秒保护。靠近中央商店按 **E**，用共享金币为自己升级射程和出钩速度，各可升 3 级；购物期间受保护，联机同步扣款、等级与拉拽。完整连接和验证方法见仓库 [联机基础版说明](../../../../docs/hook-island-playable.md)。
+
+鱼会先在水下游动，再向前跃起并落水，只有跃出水面时可钩中。初始射程 8 米、速度 9 米/秒；需靠近岸边、沿鱼影方向预判出钩。射程 Lv.1 / Lv.2 分别解锁中海青鱼 / 远海金鱼，远海鱼不会进入初始射程。滚轮可缩放视角，观察更远的鱼群。
 
 ## 场景内容
 
@@ -47,3 +53,5 @@ Unity 菜单 **Hook Island → Create or Rebuild Island Scene** 会重建生成�
 - 核心玩法文档：仓库 `docs/hook-island-game-design.md`
 
 小岛资源与脚本都位于 `Assets/HookIsland/`，有独立程序集。既有 Yard 场景和默认构建场景列表不变。
+
+当前房间支持房主提前开始、预留空位晚加入及同应用内“重新连接”。规则／状态／房间版本 22，状态 HISE，输入 10、地图 HIMF；拒绝旧构建及旧档。实现和实际验证范围见仓库 `docs/live-room-recovery-implementation.md`。

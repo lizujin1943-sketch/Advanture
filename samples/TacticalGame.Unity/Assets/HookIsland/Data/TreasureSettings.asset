@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fed1187b025644f73a287cf9a23830f1, type: 3}
+  m_Name: TreasureSettings
+  m_EditorClassIdentifier: 
+  smallCount: 1
+  rareCount: 1
+  largeCount: 1
+  initialDelaySeconds: 4
+  slotDelaySeconds: 6
+  respawnSeconds: 30
+  floatLifetimeSeconds: 45
+  driftMetresPerSecond: 0.2
+  rareDriftMetresPerSecond: 0.5
+  smallReelMetresPerSecond: 1.8
+  largeReelMetresPerSecond: 0.9
+  openRangeMetres: 1.6
+  smallCoins: 18
+  smallWood: 4
+  smallBones: 2
+  rareCoins: 45
+  rareWood: 6
+  rareBones: 6
+  largeCoins: 61
+  largeWood: 13
+  largeBones: 9

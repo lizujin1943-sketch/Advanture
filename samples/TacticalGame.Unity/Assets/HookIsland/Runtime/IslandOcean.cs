@@ -76,6 +76,8 @@ namespace Advanture.HookIsland
 #if UNITY_EDITOR
         private void EditorTick()
         {
+            // Scene switches can leave an already queued editor callback after OnDisable unsubscribes it.
+            if(this==null){UnityEditor.EditorApplication.update-=EditorTick;return;}
             if (Application.isPlaying || !previewInEditor || !isActiveAndEnabled) return;
             double now = UnityEditor.EditorApplication.timeSinceStartup;
             if (now < nextEditorFrame) return;

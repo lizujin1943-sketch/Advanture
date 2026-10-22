@@ -21,48 +21,70 @@ public sealed class IslandHost : IDisposable
     private readonly IslandMap _map;
     private readonly byte[] _hash;
     private readonly Guid _id = Guid.NewGuid();
-    private readonly Dictionary<ushort, ulong> _peers = new Dictionary<ushort, ulong>();
+    private readonly RoomSeatRegistry _seats;
     private readonly Dictionary<ulong, TimeSpan> _connected = new Dictionary<ulong, TimeSpan>();
-    private readonly HashSet<ulong> _welcomed = new HashSet<ulong>(), _ready = new HashSet<ulong>();
     private readonly Dictionary<ulong, byte> _rejected = new Dictionary<ulong, byte>();
     private bool _disposed, _transportStopped;
     private readonly int _capacity;
+    private Participant[] _roster = Array.Empty<Participant>();
+    private RoomRestartBarrier? _restart;
+    private TimeSpan _lastPoll;
 
     public IslandHost(IslandMap map, int port = 7778, int capacity = 2)
     {
         _map = map ?? throw new ArgumentNullException(nameof(map));
         if (capacity < 1 || capacity > 4) throw new ArgumentOutOfRangeException(nameof(capacity));
         _capacity = capacity;
+        _seats=new RoomSeatRegistry(_id,capacity);
         _hash = RoomProtocol.Hash(map);
         _port = new SocketDatagramPort(new DatagramAddress(IPAddress.Any, port));
         try { _node = new UdpNode(_port); _node.Listen(); _transport = new RoomTransport(_node); }
         catch { _port.Dispose(); throw; }
     }
     public int Port => _port.LocalAddress.Port;
-    public int JoinedCount => _peers.Count;
+    public int JoinedCount => _seats.Connected.Count();
     public int Capacity => _capacity;
+    public bool CanStart => !_disposed && Failure==null && Session==null && _seats.Connected.Any(s=>s.Slot==0 && s.Ready);
+    public bool TryStart()
+    {
+        if(!CanStart)return false;
+        _roster=Enumerable.Range(0,_capacity).Select(i=>new Participant((ushort)i,Guid.NewGuid(),isActive:false)).ToArray();
+        CreateSession();return true;
+    }
     public ServerSession<HookState>? Session { get; private set; }
     public string? Failure { get; private set; }
+    public ulong RoundEpoch { get; private set; } = 1;
+    public bool Restarting => _restart != null || RoundEpoch > 1 && Session?.Status == SessionStatus.Preparing;
+    public bool CanRestart => !_disposed && Failure == null && _restart == null && RoundEpoch < ulong.MaxValue &&
+        Session?.Status == SessionStatus.Running && _seats.Connected.Any(s=>s.Slot==0 && s.Entered) &&
+        _seats.Connected.All(s=>s.Bound && Session.CaptureCheckpoint().Membership.Find(s.Slot).IsActive) &&
+        Session.InspectState().RoundFinished;
+
+    /// <summary>Only the room owner has this capability. Keep connections/seats; replace the finished simulation after every peer acknowledges.</summary>
+    public bool TryRestart()
+    {
+        if (!CanRestart) return false;
+        _restart = new RoomRestartBarrier(RoundEpoch + 1, _seats.Connected.Select(s=>s.Connection!.Value), _lastPoll);
+        return true;
+    }
 
     /// <summary>人数到齐并确认欢迎信息才创建会话，等待好友不会消耗开局超时。</summary>
     public void Poll(TimeSpan now)
     {
         if (_disposed) throw new ObjectDisposedException(nameof(IslandHost));
         if (Failure != null) return;
+        _lastPoll = now;
+        if (_restart != null) _transport.DiscardSessionMessages();
         _node.Poll(now); _transport.Pump();
         while (_node.TryGetEvent(out var e))
         {
             if (e!.Kind == ConnectionEventKind.Connected) _connected[e.ConnectionId] = now;
-            else
-            {
-                _connected.Remove(e.ConnectionId); _rejected.Remove(e.ConnectionId);
-                var occupied = _peers.Where(p => p.Value == e.ConnectionId).ToArray();
-                if (occupied.Length == 0) continue;
-                if (Session != null) { Fail("玩家已断开连接，房间结束：" + e.Reason); return; }
-                foreach (var p in occupied) _peers.Remove(p.Key);
-                _welcomed.Remove(e.ConnectionId); _ready.Remove(e.ConnectionId);
-            }
+            else if(!Disconnect(e.ConnectionId,e.Reason))return;
         }
+        // CloseAck can wait for transport allowance. Stop frame delivery as soon as the
+        // peer stops accepting application messages, before its final resource-release event.
+        foreach(var connection in _connected.Keys.ToArray())
+            if(!_node.IsConnected(connection) && !Disconnect(connection,"Transport closing"))return;
         while (_transport.Controls.Count > 0)
         {
             var message = _transport.Controls.Dequeue();
@@ -71,40 +93,95 @@ public sealed class IslandHost : IDisposable
             { _rejected[message.ConnectionId] = rejection; continue; }
             if (packet!.BodyCase == RoomPacket.BodyOneofCase.Join)
             {
-                ushort slot = (ushort)packet.Join.Slot;
                 if (!packet.Join.MapHash.Span.SequenceEqual(_hash)) { _rejected[message.ConnectionId] = 1; continue; }
-                if (slot == ushort.MaxValue)
-                {
-                    var existing = _peers.Where(p => p.Value == message.ConnectionId).ToArray();
-                    slot = existing.Length > 0 ? existing[0].Key :
-                        Enumerable.Range(1, _capacity - 1).Where(i => !_peers.ContainsKey((ushort)i)).Select(i => (ushort)i).DefaultIfEmpty(ushort.MaxValue).First();
-                }
-                if (Session != null || slot >= _capacity || (_peers.TryGetValue(slot, out var old) && old != message.ConnectionId) ||
-                    _peers.Any(p => p.Key != slot && p.Value == message.ConnectionId)) { _rejected[message.ConnectionId] = 2; continue; }
-                _peers[slot] = message.ConnectionId;
+                var room=packet.Join.RoomId.IsEmpty?Guid.Empty:new Guid(packet.Join.RoomId.Span);
+                if(_restart!=null || !_seats.TryClaim(message.ConnectionId,(ushort)packet.Join.Slot,room,packet.Join.ResumeToken.Span,
+                    Session==null || !Session.InspectState().RoundFinished,out _))
+                    _rejected[message.ConnectionId]=2;
             }
-            else if (packet.BodyCase == RoomPacket.BodyOneofCase.Ack && _welcomed.Contains(message.ConnectionId)) _ready.Add(message.ConnectionId);
+            else if (packet.BodyCase == RoomPacket.BodyOneofCase.Ack && _seats.Find(message.ConnectionId)?.Welcomed==true)
+                _seats.Find(message.ConnectionId)!.Ready=true;
+            else if (packet.BodyCase == RoomPacket.BodyOneofCase.RestartAck && _seats.Find(message.ConnectionId)!=null &&
+                new Guid(packet.RestartAck.SessionId.Span) == _id)
+            {
+                // Late acknowledgements from an already committed epoch are harmless.
+                if (packet.RestartAck.Epoch > RoundEpoch &&
+                    !(_restart?.Acknowledge(message.ConnectionId, packet.RestartAck.Epoch) ?? false))
+                    _rejected[message.ConnectionId] = 3;
+            }
             else _rejected[message.ConnectionId] = 3;
         }
         foreach (var pair in _rejected.ToArray())
             if (RoomProtocol.Send(_node, pair.Key, RoomProtocol.RejectBytes(pair.Value))) _rejected.Remove(pair.Key);
-        // 未通过房间握手的连接不能无限占用 UDP 名额；已入房等待另一人则允许持续等待。
-        foreach (var pair in _connected)
-            if (!_peers.ContainsValue(pair.Key) && now - pair.Value > TimeSpan.FromSeconds(10)) _node.Close(pair.Key, "Room handshake expired");
-        if (Session == null)
+        // 未确认 Welcome 的候选席位也有期限；准备完成后等待房主开局不限时。
+        foreach (var pair in _connected.ToArray())
         {
-            foreach (var pair in _peers)
-                if (!_welcomed.Contains(pair.Value) && RoomProtocol.Send(_node, pair.Value, RoomProtocol.WelcomeBytes(_id, pair.Key, _hash))) _welcomed.Add(pair.Value);
-            if (_peers.Count == _capacity && _ready.Count == _capacity)
+            var seat=_seats.Find(pair.Key);
+            if((seat==null || !seat.Ready || Session!=null && !seat.Bound) && now-pair.Value>TimeSpan.FromSeconds(10))
+                CloseCandidate(pair.Key,"Room handshake expired");
+        }
+        foreach(var seat in _seats.Connected)
+            if(!seat.Welcomed && RoomProtocol.Send(_node,seat.Connection!.Value,RoomProtocol.WelcomeBytes(_id,seat.Slot,_hash,RoundEpoch,seat.Token)))seat.Welcomed=true;
+        if(Session==null && JoinedCount==_capacity && _seats.Connected.All(s=>s.Ready))TryStart();
+        if (_restart != null)
+        {
+            _transport.DiscardSessionMessages();
+            foreach (ulong peer in _restart.PendingSends)
+                if (RoomProtocol.Send(_node, peer, RoomProtocol.RestartBytes(_id, _restart.Epoch, _hash))) _restart.MarkSent(peer);
+            if (_restart.Complete)
             {
-                var roster = Enumerable.Range(0, _capacity).Select(i => new Participant((ushort)i, Guid.NewGuid(), isActive: false)).ToArray();
-                Session = new ServerSession<HookState>(HookGame.CreateModule(), new SessionDescriptor(_id, 1, RoomProtocol.Rate, roster), _transport,
-                    _peers.Select(p => new PeerBinding(p.Value, p.Key)).ToArray(), _ => RoomProtocol.Neutral, RoomProtocol.Limits, new ByteString(_map.Encode()));
+                RoundEpoch = _restart.Epoch; _restart = null;
+                CreateSession();
+            }
+            else if (_restart.Expired(now)) { Fail("重新开始失败：等待队友确认超时。"); return; }
+        }
+        if (_restart == null)
+        {
+            if(Session?.Status==SessionStatus.Running)
+                foreach(var seat in _seats.Connected.Where(s=>s.Ready && !s.Bound).ToArray())
+                {
+                    if(!seat.Entered && Session.InspectState().RoundFinished){CloseCandidate(seat.Connection!.Value,"Round has ended");continue;}
+                    seat.Bound=Session.TryBind(new PeerBinding(seat.Connection!.Value,seat.Slot));
+                }
+            Session?.Poll(now);
+            if(Session?.Status==SessionStatus.Running)
+            {
+                var checkpoint=Session.CaptureCheckpoint();var finished=Session.InspectState().RoundFinished;
+                foreach(var seat in _seats.Connected.Where(s=>s.Bound).ToArray())
+                {
+                    if(checkpoint.Membership.Find(seat.Slot).IsActive)seat.Entered=true;
+                    if(!Session.IsConnected(seat.Connection!.Value) || !seat.Entered && finished)
+                        CloseCandidate(seat.Connection.Value,"Synchronization expired");
+                }
             }
         }
-        Session?.Poll(now);
         if (Session?.Status == SessionStatus.Failed) Fail("服务器会话失败：" + Session.Failure);
         if (Failure == null) _node.Poll(now);
+    }
+
+    private void CreateSession()
+    {
+        bool friendlyPranks=Session?.InspectState().RoomRules.FriendlyPranksEnabled??true;
+        var ready=_seats.Connected.Where(s=>s.Ready).ToArray();
+        Session = new ServerSession<HookState>(HookGame.CreateModule(friendlyPranks), new SessionDescriptor(_id, RoundEpoch, RoomProtocol.Rate, _roster), _transport,
+            ready.Select(s => new PeerBinding(s.Connection!.Value, s.Slot)).ToArray(), _ => RoomProtocol.Neutral, RoomProtocol.Limits, new ByteString(_map.Encode()),allowUnboundParticipants:true);
+        foreach(var seat in ready)seat.Bound=true;
+    }
+
+    private bool Disconnect(ulong connection,string reason)
+    {
+        _connected.Remove(connection);_rejected.Remove(connection);
+        var seat=_seats.Find(connection);if(seat==null)return true;
+        if(_restart!=null || seat.Bound && Session?.Status==SessionStatus.Preparing)
+        {Fail("开始新一局时玩家断开连接："+reason);return false;}
+        if(Session?.IsConnected(connection)==true)Session.Deactivate(connection);
+        _seats.Release(connection);return true;
+    }
+
+    private void CloseCandidate(ulong connection,string reason)
+    {
+        if(Session?.IsConnected(connection)==true)Session.Deactivate(connection);
+        _seats.Release(connection);_node.Close(connection,reason);
     }
 
     private void Fail(string reason)

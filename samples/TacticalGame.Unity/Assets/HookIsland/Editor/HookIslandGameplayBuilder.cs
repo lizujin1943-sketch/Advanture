@@ -19,12 +19,13 @@ namespace Advanture.HookIsland.Editor
             var game=go.GetComponent<IslandFishingController>();
             if(game==null)game=Undo.AddComponent<IslandFishingController>(go);
             if(go.GetComponent<FishingOverlay>()==null)Undo.AddComponent<FishingOverlay>(go);
-            if(go.GetComponent<FishingSmokeDriver>()==null)Undo.AddComponent<FishingSmokeDriver>(go);
+            var legacyDriver=go.GetComponent<FishingSmokeDriver>();
+            if(legacyDriver!=null)Undo.DestroyObjectImmediate(legacyDriver);
             var data=AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/HookIsland/Data/IslandMap.bytes");
             var camera=GameObject.Find("Island Camera").GetComponent<Camera>();
             game.Configure(data,camera,Shader.Find("Hook Island/Fishing Line"));
             CreatePierSurface(go.transform);
-            camera.orthographicSize=15.5f;
+            camera.orthographicSize=19.5f;
             EditorUtility.SetDirty(game);EditorUtility.SetDirty(camera);
             EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);
             Selection.activeGameObject=go;

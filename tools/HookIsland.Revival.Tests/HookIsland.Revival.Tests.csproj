@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><DefineConstants>HOOK_ISLAND_TESTS</DefineConstants><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/RevivalSmokePilot.cs" Link="RevivalSmokePilot.cs" />
+    <ProjectReference Include="../../samples/HookIsland.Simulation/HookIsland.Simulation.csproj" />
+    <ProjectReference Include="../../samples/HookIsland.Network/HookIsland.Network.csproj" />
+    <ProjectReference Include="../../framework/src/FrameSync.Runtime/FrameSync.Runtime.csproj" />
+  </ItemGroup>
+</Project>

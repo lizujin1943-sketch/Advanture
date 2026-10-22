@@ -1,6 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><DefineConstants>$(DefineConstants);HOOK_ISLAND_TESTS</DefineConstants></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/MerchantSmokePilot.cs" Link="MerchantSmokePilot.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/FinaleSmokePilot.cs" Link="FinaleSmokePilot.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/OceanSmokePilot.cs" Link="OceanSmokePilot.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/CommissionSmokePilot.cs" Link="CommissionSmokePilot.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/TreasureSmokePilot.cs" Link="TreasureSmokePilot.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/RoomRulesSmokePilot.cs" Link="RoomRulesSmokePilot.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/CooperativeFishingSmokePilot.cs" Link="CooperativeFishingSmokePilot.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/PlatformSmokePilot.cs" Link="PlatformSmokePilot.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/RodSmokePilot.cs" Link="RodSmokePilot.cs" />
     <ProjectReference Include="../../samples/HookIsland.Simulation/HookIsland.Simulation.csproj" />
     <ProjectReference Include="../../samples/HookIsland.Network/HookIsland.Network.csproj" />
     <ProjectReference Include="../../framework/src/FrameSync.Runtime/FrameSync.Runtime.csproj" />

@@ -1,0 +1,11 @@
+id,name,level,speed_permille,stamina_permille,price,tier
+swim_ring_lv01,旧橡胶泳圈,1,1200,900,150,1
+swim_ring_lv02,加厚泳圈,2,1300,850,260,1
+swim_ring_lv03,水手泳圈,3,1400,800,450,2
+swim_ring_lv04,稳浮泳圈,4,1500,750,750,2
+swim_ring_lv05,轻便泳圈,5,1600,700,1200,3
+swim_ring_lv06,远游泳圈,6,1700,650,1800,3
+swim_ring_lv07,巡海泳圈,7,1800,600,2700,4
+swim_ring_lv08,探险泳圈,8,1900,550,3900,4
+swim_ring_lv09,领航泳圈,9,2000,500,5500,5
+swim_ring_lv10,远征泳圈,10,2100,450,7600,5

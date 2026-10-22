@@ -50,3 +50,18 @@ done
 # 独立试玩接入：纯 C# 移动、碰撞、保存恢复，以及双客户端真实 UDP。无需安装 Unity。
 ./scripts/verify-tactical.sh
 ./scripts/verify-hook-island.sh
+
+# 角色属性、装备装卸、状态恢复及四客户端一致性。
+./scripts/verify-hook-character.sh
+
+# 落水、泳圈、出钩移动锁与四客户端救援。
+./scripts/verify-hook-swimming.sh
+
+# 食人鱼、水怪、打断和击退，含单人及四客户端完整 checkpoint 一致性。
+./scripts/verify-hook-enemies.sh
+
+# 倒地、免费救援、个人付费复活与四客户端一致性。
+./scripts/verify-hook-revival.sh
+
+# 全队失败后保留连接重开、旧局隔离与单人／四人连续换局。
+./scripts/verify-hook-restart.sh

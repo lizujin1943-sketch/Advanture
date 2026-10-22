@@ -11,6 +11,15 @@
 - 完整验证入口为 `./scripts/verify.sh`；当前实现和验证范围见 `docs/stage-a-implementation.md` 、`docs/stage-b-implementation.md` 、`docs/stage-e-implementation.md` 与最新的 `docs/stage-c-d-implementation.md`；文件保存约定见 `docs/stage-d-storage.md`。
 - `.build/`、`bin/`、`obj/` 和 `artifacts/` 是本地生成内容，不提交到 Git。
 
+## 游戏实现约束
+
+- 本项目按正式游戏开发，阶段性功能也须满足可维护性、可扩展性和多人一致性要求。
+- 遵循单一职责、里氏替换、开闭等设计原则；优先通过组合与配置扩展，不为尚无需求的功能堆叠继承或抽象。
+- 将确定性玩法规则、状态与结算、网络命令交付、Unity 输入及表现分开。Unity 显示和预览不得直接修改权威状态。
+- 资源扣除与生成结果必须作为同一事务处理；联机重试须可去重，失败请求不能隐式重放，恢复存档后保持既有结算结果。
+- 自动游玩、注入资源等验证工具不得作为正式场景的常驻玩法组件或进入发布构建；开发构建中的自动验证必须显式启用。
+- 阶段性未实现的系统要记录范围及接入边界，不用测试特判代替正式玩法，不将局部验收描述为完整游戏已完成。
+
 ## Unity MCP
 
 - 本仓库 Unity 工程是 `samples/TacticalGame.Unity`，不是仓库根目录。

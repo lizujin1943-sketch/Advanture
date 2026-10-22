@@ -18,19 +18,21 @@ namespace ReliableUdp
         private bool _listening, _portFailed;
         private double _now, _lastPoll;
         private int _sendBudget, _rotation;
-        private double _tokens, _controlTokens;
+        private double _tokens, _controlTokens, _handshakeTokens;
         internal double Now => _now;
 
         /// <summary>创建节点并验证配置；必须不断 Poll 才能推进握手、ACK、重发和超时。</summary>
         public UdpNode(IDatagramPort port,UdpOptions? options=null)
         {
             _port=port ?? throw new ArgumentNullException(nameof(port)); Options=options ?? new UdpOptions();
-            _profile=Options.Fingerprint(); _tokens=2400*Options.MaxConnections; _controlTokens=2400;
+            _profile=Options.Fingerprint(); _tokens=2400*Options.MaxConnections; _controlTokens=_handshakeTokens=2400;
         }
         /// <summary>冻结的通道与容量配置。</summary>
         public UdpOptions Options { get; }
         /// <summary>包括握手中和关闭中的连接数量，永不超过配置上限。</summary>
         public int ConnectionCount => _peers.Count;
+        /// <summary>是否仍可交换应用消息。开始关闭时立即变为 false；资源释放通知可能稍后到达。</summary>
+        public bool IsConnected(ulong id) => _peers.TryGetValue(id,out var peer) && peer.State==PeerState.Connected;
         /// <summary>开始接收连接请求；不会自动创建任何游戏会话。</summary>
         public void Listen() => _listening=true;
 
@@ -51,6 +53,7 @@ namespace ReliableUdp
             double elapsed=_now-_lastPoll; _lastPoll=_now;
             _tokens=Math.Min(2400*Options.MaxConnections,_tokens+elapsed*Options.BytesPerSecond);
             _controlTokens=Math.Min(2400,_controlTokens+elapsed*12000);
+            _handshakeTokens=Math.Min(2400,_handshakeTokens+elapsed*12000);
             _sendBudget=Options.MaxDatagramsPerPoll;
             if(_portFailed) return;
             try
@@ -112,9 +115,14 @@ namespace ReliableUdp
         internal bool Output(DatagramAddress destination,Packet packet,bool control)
         {
             byte[] bytes=packet.Encode();
-            if(_sendBudget==0 || _tokens<bytes.Length || (control && _controlTokens<bytes.Length)) return false;
+            // Credit/ACK traffic can remain permanently busy while new peers arrive. Handshakes
+            // need their own bounded allowance, still subject to total bandwidth/datagram limits.
+            bool handshake=packet.Number==0;
+            if(_sendBudget==0 || _tokens<bytes.Length || (control && (handshake?_handshakeTokens:_controlTokens)<bytes.Length)) return false;
             if(!_port.TrySend(destination,bytes)) return false;
-            _sendBudget--; _tokens-=bytes.Length; if(control) _controlTokens-=bytes.Length; return true;
+            _sendBudget--; _tokens-=bytes.Length;
+            if(control){if(handshake)_handshakeTokens-=bytes.Length;else _controlTokens-=bytes.Length;}
+            return true;
         }
 
         private void Receive(DatagramAddress source,Packet packet)

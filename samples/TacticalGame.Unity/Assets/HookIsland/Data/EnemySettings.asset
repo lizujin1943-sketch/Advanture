@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 982bdedb062f742ec95edf38c581fe1d, type: 3}
+  m_Name: EnemySettings
+  m_EditorClassIdentifier: 
+  piranhaCount: 3
+  minWeightKg: 1
+  maxWeightKg: 4
+  damagePerKg: 3
+  biteIntervalSeconds: 1.5
+  swimMetresPerSecond: 2.4
+  aggroMetres: 20
+  biteMetres: 0.8
+  monsterEnabled: 1
+  monsterWeightKg: 50
+  monsterPositionMetres: {x: 0, y: -6}
+  waterballDamage: 20
+  windupSeconds: 2
+  attackIntervalSeconds: 6
+  initialDelaySeconds: 8
+  interruptDelaySeconds: 3
+  waterballMetresPerSecond: 8
+  waterballRadiusMetres: 0.3
+  waterballRangeMetres: 24
+  patrolMetresPerSecond: 1.2
+  piranhaRespawnSeconds: 10
+  piranhaCoinsPerKg: 6
+  piranhaStaminaPerKgSecond: 1.2
+  monsterLevel: 1
+  baseKnockbackMetres: 4
+  knockbackMetresPerLevel: 2

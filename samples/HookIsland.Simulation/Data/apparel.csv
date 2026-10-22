@@ -1,0 +1,4 @@
+id,name,slot,width,height,price,health,move_speed_mm_s,armor
+guard_cap,护额帽,Hat,2,2,150,0,0,20
+reinforced_coat,加固外套,Clothes,2,3,150,25,0,0
+light_shoes,轻便鞋,Shoes,2,2,150,0,300,0

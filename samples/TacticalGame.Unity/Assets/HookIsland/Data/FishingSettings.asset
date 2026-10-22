@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bda5a36f284704b5484e3764108661d6, type: 3}
+  m_Name: FishingSettings
+  m_EditorClassIdentifier: 
+  character: {fileID: 11400000, guid: b0bef3f8fdc8844a58d41d8574907726, type: 2}
+  swimming: {fileID: 11400000, guid: 4d631e4442004dff88a7a7753c4f4348, type: 2}
+  enemies: {fileID: 11400000, guid: e65ca013386914b7d9eedc5988389b73, type: 2}
+  revival: {fileID: 11400000, guid: 705cda846508a4eb894d993d6b56377e, type: 2}
+  treasure: {fileID: 11400000, guid: 2437dbb96abc94fc78954248c2eb419d, type: 2}
+  commissions: {fileID: 11400000, guid: 89f651760a89649819a647e11b913305, type: 2}
+  ocean: {fileID: 11400000, guid: e55ac20fb2fb946e48bd29c42f809ebe, type: 2}
+  finale: {fileID: 11400000, guid: 572a2ad7497d84281bd6d0b3ff8066fc, type: 2}
+  merchants: {fileID: 11400000, guid: 5e8ff500481794127baa3b38ddcab46a, type: 2}
+  characterBaseStamina: 100
+  recoveryDelaySeconds: 2
+  recoveryPointsPerSecond: 5
+  fishReelMetresPerSecond: 2
+  additionalAnglerSpeedBonus: 0.5
+  merchantLevel: 1
+  restockSeconds: 600
+  worldSeed: 7381

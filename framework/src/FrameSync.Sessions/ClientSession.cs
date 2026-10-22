@@ -15,6 +15,7 @@ namespace FrameSync.Sessions
     public sealed class ClientSession<TState>
     {
         private readonly SimulationModule<TState> _module;
+        private readonly bool _allowLiveBootstrap;
         private readonly Guid _sessionId;
         private readonly ulong _epoch, _serverConnectionId;
         private readonly ITransport _transport;
@@ -52,9 +53,10 @@ namespace FrameSync.Sessions
         /// <param name="options">消息缓存和单次工作量限制。</param>
         /// <param name="prediction">可选预测窗口与检查点预算；省略时只执行确认帧。</param>
         /// <param name="neutralInput">用于预测远端玩家的游戏中性输入；不会替宿主补齐本地未采样帧。</param>
+        /// <param name="allowLiveBootstrap">显式允许当前局的非零帧检查点，宿主仍须等待本地成员启用再采样输入。</param>
         public ClientSession(SimulationModule<TState> module, Guid sessionId, ulong epoch, ITransport transport,
             ulong serverConnectionId, RuntimeLimits? receiveLimits = null, SessionOptions? options = null,
-            PredictionOptions? prediction = null, Func<Participant, ByteString>? neutralInput = null)
+            PredictionOptions? prediction = null, Func<Participant, ByteString>? neutralInput = null, bool allowLiveBootstrap = false)
         {
             _module = module ?? throw new ArgumentNullException(nameof(module));
             if (sessionId == Guid.Empty) throw new ArgumentException("Missing session identity.");
@@ -63,7 +65,7 @@ namespace FrameSync.Sessions
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _receiveLimits = receiveLimits ?? new RuntimeLimits(); _options = options ?? new SessionOptions();
             _options.Validate(transport, _receiveLimits, 1); _outbox = new Outbox(_options);
-            _predictionOptions = prediction; _neutralInput = neutralInput;
+            _predictionOptions = prediction; _neutralInput = neutralInput; _allowLiveBootstrap = allowLiveBootstrap;
             if (prediction != null)
             {
                 if (neutralInput == null) throw new ArgumentNullException(nameof(neutralInput));
@@ -299,7 +301,7 @@ namespace FrameSync.Sessions
             bytes.CopyTo(_snapshot.AsSpan(offset)); _receivedBytes += bytes.Length;
             if (_receivedBytes != total) return;
             Checkpoint checkpoint = CheckpointCodec.Decode(_snapshot, _receiveLimits);
-            if (checkpoint.Session.SessionId != _sessionId || checkpoint.Session.Epoch != _epoch || checkpoint.Tick != 0 ||
+            if (checkpoint.Session.SessionId != _sessionId || checkpoint.Session.Epoch != _epoch || (!_allowLiveBootstrap && checkpoint.Tick != 0) ||
                 !checkpoint.Manifest.Equals(_module.Manifest)) throw new InvalidDataException("Incompatible initial checkpoint.");
             _options.Validate(_transport, checkpoint.Limits, checkpoint.Session.Participants.Count);
             foreach (var p in checkpoint.Session.Participants) if (p.Slot == _assignedSlot) _participant = p;

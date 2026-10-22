@@ -1,8 +1,20 @@
 {
   "name": "Advanture.HookIsland.Tests",
-  "references": ["Advanture.HookIsland"],
-  "includePlatforms": ["Editor"],
-  "optionalUnityReferences": ["TestAssemblies"],
+  "references": [
+    "Advanture.HookIsland"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
   "overrideReferences": true,
-  "precompiledReferences": ["nunit.framework.dll", "Advanture.HookIsland.Simulation.dll"]
+  "precompiledReferences": [
+    "nunit.framework.dll",
+    "FrameSync.Abstractions.dll",
+    "FrameSync.Sessions.dll",
+    "Advanture.HookIsland.Simulation.dll",
+    "Advanture.HookIsland.Network.dll"
+  ]
 }
