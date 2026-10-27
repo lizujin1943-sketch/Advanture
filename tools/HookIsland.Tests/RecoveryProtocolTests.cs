@@ -64,7 +64,7 @@ internal static partial class Program
                 new RoomPacket{Welcome=new WelcomeRoom{Slot=0,MapHash=hash,SessionId=Bytes.CopyFrom(id.ToByteArray()),Epoch=2,ResumeToken=Bytes.CopyFrom(new byte[31])}}
             })
             {p.ProtocolVersion=RoomProtocol.Version;Require(!RoomProtocol.TryDecode(ProtobufCodec.Encode(p,1024),out _,out _),"Invalid identity packet accepted.");}
-            var old=RoomPacket.Parser.ParseFrom(RoomProtocol.JoinBytes(0,new byte[32]));old.ProtocolVersion=21;
+            var old=RoomPacket.Parser.ParseFrom(RoomProtocol.JoinBytes(0,new byte[32]));old.ProtocolVersion=23;
             Require(!RoomProtocol.TryDecode(ProtobufCodec.Encode(old,1024),out _,out byte rejection) && rejection==1,"Legacy protocol accepted.");
         });
     }

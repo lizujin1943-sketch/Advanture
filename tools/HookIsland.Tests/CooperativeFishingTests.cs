@@ -9,10 +9,10 @@ namespace Advanture.HookIsland.Tests;
 internal static partial class Program
 {
     // Valid equipped swimmers let angle fixtures cover both sides of a fish without fake terrain rules.
-    private static IDeterministicSimulation<HookState> CoopModel(int count=2,bool piranha=false,bool monster=false,CommissionConfig? commissions=null)
+    private static IDeterministicSimulation<HookState> CoopModel(int count=2,bool piranha=false,bool monster=false,CommissionConfig? commissions=null,CharacterConfig? character=null)
     {
         var basis=IslandMap.CreatePlatform();
-        var config=new FishingConfig(enemies:piranha || monster?new EnemyConfig(piranhaCount:piranha?1:0,monsterEnabled:monster,patrolSpeed:30,initialDelayTicks:18000):EnemyConfig.Disabled,commissions:commissions);
+        var config=new FishingConfig(enemies:piranha || monster?new EnemyConfig(piranhaCount:piranha?1:0,monsterEnabled:monster,patrolSpeed:30,initialDelayTicks:18000):EnemyConfig.Disabled,commissions:commissions,character:character);
         var map=new IslandMap(basis.Shore,basis.Pier,basis.Spawns,basis.FishSpots,basis.Platform,config);
         var model=PullModel(map,count);var s=model.Capture();var players=s.Players.ToArray();
         var inventory=new InventorySystem(s.Tackle!.Inventory);

@@ -4,7 +4,7 @@ using System.Buffers.Binary;
 
 namespace Advanture.HookIsland.Simulation;
 
-/// <summary>Hold-to-help is continuous input; paid respawn is a receipt tied to one death generation.</summary>
+/// <summary>Hold-to-help is continuous input; DeathId binds payment to the current DownedId, including before bleedout.</summary>
 public readonly struct RevivalCommand
 {
     public const int ByteCount=9;

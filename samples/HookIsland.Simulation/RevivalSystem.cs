@@ -6,6 +6,13 @@ namespace Advanture.HookIsland.Simulation;
 /// <summary>Deterministic life cycle and personal revival transaction, independent of Unity and transport.</summary>
 public static class RevivalSystem
 {
+    // Reserved seats are not players; a disconnected teammate remains part of the round.
+    public static bool IsSolo(IReadOnlyList<Fisher> players)
+    {
+        int entered=0;
+        foreach(var p in players)if(!p.WaitingToJoin && ++entered>1)return false;
+        return entered==1;
+    }
     public static bool GameOver(IReadOnlyList<Fisher> players)
     {
         bool entered=false;
@@ -38,7 +45,7 @@ public static class RevivalSystem
     public static void Resolve(IslandMap map,IReadOnlyList<PlatformTile> tiles,Fisher[] players,HookInput[] commands,
         int[] healthAtFrameStart,ulong tick,Func<Fisher,CharacterStats> attributes)
     {
-        var config=map.Fishing!.Revival;
+        var config=map.Fishing!.Revival;bool solo=IsSolo(players);
         var helpers=new int[players.Length];
         // Select from one pre-resolution state: a newly revived player cannot help in the same frame.
         for(int target=0;target<players.Length;target++)
@@ -55,21 +62,26 @@ public static class RevivalSystem
             var p=players[i];var life=p.Revival;
             if(p.WaitingToJoin || life.Dead)continue;
             if(!p.Vitals.Downed){life.DownedTicks=life.Rescuer=life.RescueTicks=0;p.Revival=life;players[i]=p;continue;}
+            if(!life.HasQuote)
+            {
+                life.DeathTick=tick;life.DeathBalance=p.Coins;life.DeathCost=config.Cost(tick,p.Coins);
+                if(life.DownedId<uint.MaxValue)life.DownedId++;
+            }
             int helper=helpers[i];
             life.RescueTicks=helper==0?0:life.Rescuer==helper?life.RescueTicks+1:1;life.Rescuer=helper;
             if(life.RescueTicks>=config.RescueTicks)
             {
                 p.Vitals.Health=Health(attributes(p).HealthMax,config.RescueHealthPermille);
-                life.DownedTicks=life.Rescuer=life.RescueTicks=0;
+                ClearQuote(ref life);
                 p.RegenDelay=map.Fishing.RegenDelayTicks;p.Swimming.DamageRemainder=0;
             }
             else
             {
                 // A fresh health-zero transition starts the full countdown at this confirmed frame.
                 if(healthAtFrameStart[i]==0)life.DownedTicks++;
-                if(life.DownedTicks>=config.DownedTicks)
+                if(solo || life.DownedTicks>=config.DownedTicks)
                 {
-                    life.Dead=true;life.DeathTick=tick;life.DeathBalance=p.Coins;life.DeathCost=config.Cost(tick,p.Coins);
+                    life.Dead=true;life.DownedTicks=config.DownedTicks;
                     if(life.Deaths<uint.MaxValue)life.Deaths++;
                     life.Rescuer=life.RescueTicks=0;
                 }
@@ -83,16 +95,15 @@ public static class RevivalSystem
         if(command.RespawnRequest==0 || command.RespawnRequest<=p.Revival.LastRequest)return;
         p.Revival.LastRequest=command.RespawnRequest;
         if(p.Unavailable){p.Revival.LastResult=RespawnResult.Unavailable;return;}
-        if(!p.Revival.Dead){p.Revival.LastResult=RespawnResult.NotDead;return;}
-        if(command.DeathId!=p.Revival.Deaths){p.Revival.LastResult=RespawnResult.StaleDeath;return;}
+        if(!p.Vitals.Downed || !p.Revival.HasQuote){p.Revival.LastResult=RespawnResult.NotDead;return;}
+        if(command.DeathId!=p.Revival.DownedId){p.Revival.LastResult=RespawnResult.StaleDeath;return;}
         if(GameOver(players)){p.Revival.LastResult=RespawnResult.GameOver;return;}
         int cost=p.Revival.DeathCost;
         if(p.Coins<cost){p.Revival.LastResult=RespawnResult.InsufficientCoins;return;}
         if(!Landing(map,tiles,players,p.Slot,out var point)){p.Revival.LastResult=RespawnResult.NoLanding;return;}
         // No fallible work follows the commit. Income bounds guarantee the loss ledger cannot overflow.
         p.Coins-=cost;totalCoins-=cost;p.Revival.CoinsSpent+=cost;
-        p.Revival.Dead=false;p.Revival.DownedTicks=p.Revival.Rescuer=p.Revival.RescueTicks=p.Revival.DeathCost=0;
-        p.Revival.DeathTick=0;p.Revival.DeathBalance=0;
+        p.Revival.Dead=false;ClearQuote(ref p.Revival);
         p.Revival.LastResult=RespawnResult.Success;
         p.Vitals.Health=Health(attributes.HealthMax,map.Fishing!.Revival.RespawnHealthPermille);
         p.Stamina=(int)((long)attributes.StaminaMax*map.Fishing.Revival.RespawnStaminaPermille/1000);
@@ -100,6 +111,11 @@ public static class RevivalSystem
         p.X=point.X;p.Z=point.Z;p.HookX=point.X;p.HookZ=point.Z;
         p.MoveRemainderX=p.MoveRemainderZ=p.RemainderX=p.RemainderZ=0;
         p.HookTravelRemainder=p.ReelRemainder=0;p.Shopping=false;
+    }
+    private static void ClearQuote(ref RevivalState life)
+    {
+        life.DownedTicks=life.Rescuer=life.RescueTicks=life.DeathCost=life.DeathBalance=0;
+        life.DeathTick=0;
     }
     private static int Health(int maximum,int permille)=>Math.Max(1,(int)((long)maximum*permille/1000));
     private static bool Landing(IslandMap map,IReadOnlyList<PlatformTile> tiles,IReadOnlyList<Fisher> players,int slot,out Point point)

@@ -167,6 +167,12 @@ MonoBehaviour:
   mapData: {fileID: 4900000, guid: b13d56dfbdd9441eba0a7ced554e9e78, type: 3}
   viewCamera: {fileID: 416633591}
   lineShader: {fileID: 4800000, guid: cef66624c43b4402c8f9cc68de3c1f06, type: 3}
+  thirdPersonFieldOfView: 75
+  thirdPersonPivotHeight: 1
+  thirdPersonDistance: 3.1
+  thirdPersonShoulderOffset: 0.6
+  mouseLookSensitivity: 1.2
+  verticalLookSensitivityMultiplier: 0.75
 --- !u!4 &384935535
 Transform:
   m_ObjectHideFlags: 0

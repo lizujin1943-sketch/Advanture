@@ -23,11 +23,16 @@ namespace Advanture.HookIsland
                 var mode = feedback.Observe(player, state.Steps, Time.unscaledTime);
                 // Observe even while a menu covers the scene; reopening it must not replay old escapes.
                 if (!visible || mode == ReelingFeedbackMode.Hidden || room.ViewCamera == null || room.Presentation == null) continue;
-                var position = room.Presentation.PlayerPosition(player.Slot) + Vector3.up * (room.Map.Platform == null ? 2.2f : 1.2f);
-                var point = room.ViewCamera.WorldToScreenPoint(position);
-                if (point.z <= 0 || point.x < 0 || point.x > Screen.width || point.y < 0 || point.y > Screen.height) continue;
-                var rect = new Rect(Mathf.Clamp(point.x / scale - 70, 8, width - 148),
-                    Mathf.Clamp(height - point.y / scale - 62, 8, height - 46), 140, 34);
+                Rect rect;
+                if(room.ThirdPerson && player.Slot==room.LocalSlot)rect=new Rect(width/2-70,height-204,140,34);
+                else
+                {
+                    var position = room.Presentation.PlayerPosition(player.Slot) + Vector3.up * (room.Map.Platform == null ? 2.2f : 1.2f);
+                    var point = room.ViewCamera.WorldToScreenPoint(position);
+                    if (point.z <= 0 || point.x < 0 || point.x > Screen.width || point.y < 0 || point.y > Screen.height) continue;
+                    rect = new Rect(Mathf.Clamp(point.x / scale - 70, 8, width - 148),
+                        Mathf.Clamp(height - point.y / scale - 62, 8, height - 46), 140, 34);
+                }
                 DrawBar(rect, player, FishingRules.MaxStamina(state, player), mode, player.Slot == room.LocalSlot);
                 if(mode==ReelingFeedbackMode.Reeling)
                 {

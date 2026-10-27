@@ -102,6 +102,8 @@ namespace Advanture.HookIsland
                 if(LaunchValue("-island-room-rules-smoke")=="1")map=RoomRulesSmokePilot.CreateMap();
 #endif
                 presentation=new FishingPresentation(transform,viewCamera,lineShader,map);
+                cameraView=new FishingCameraView(viewCamera,map.Platform!=null,thirdPersonFieldOfView,mouseLookSensitivity,
+                    thirdPersonPivotHeight,verticalLookSensitivityMultiplier,thirdPersonDistance,thirdPersonShoulderOffset);
                 if(map.Fishing!=null)groundItems=new GroundItemPresentation(transform);
                 if(map.Fishing?.Treasure.Enabled==true)Treasures=new TreasureController(this,viewCamera);
                 if(map.Fishing?.Enemies.Enabled==true)Enemies=new EnemyPresentation(transform,viewCamera,lineShader,map.Fishing.Enemies);
@@ -149,11 +151,10 @@ namespace Advanture.HookIsland
                 if(ShopOpen && (!Playing || !CanShopAt(ShopMerchantId)))CloseShop();
                 presentation.Present(State,Client.Session.InspectPredictedState(),LocalSlot,aim,
                     Playing && CanCast && !overlay.MenuOpen && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null);
-                if(map.Platform!=null && TryGetLocalPlayer(out var local) && !local.WaitingToJoin)
+                if(TryGetLocalPlayer(out var local) && !local.WaitingToJoin)
                 {
-                    // Follow confirmed movement, including towing/knockback while a panel or background window blocks local input.
-                    var target=new Vector3(local.X/1000f,24,local.Z/1000f-20);
-                    viewCamera.transform.position=Vector3.Lerp(viewCamera.transform.position,target,1-Mathf.Exp(-4*Time.unscaledDeltaTime));
+                    // Third person follows the displayed (locally predicted) avatar; overhead keeps its confirmed follow.
+                    cameraView.Follow(presentation.PlayerPosition(LocalSlot),new Vector3(local.X/1000f,0,local.Z/1000f),Time.unscaledDeltaTime);
                 }
             }
             catch(Exception e)
@@ -166,14 +167,16 @@ namespace Advanture.HookIsland
         private void CaptureInput()
         {
             Revival?.Capture();
+            CaptureCameraInput();
             if(!Playing || Incapacitated || !Application.isFocused || ShopOpen || Equipment?.InventoryOpen==true || BeingPulled || (overlay!=null && overlay.MenuOpen))
             { moveX=moveZ=0;pendingFire=pendingCancel=false;return; }
             Vector2 move=new Vector2((Input.GetKey(KeyCode.D)?1:0)-(Input.GetKey(KeyCode.A)?1:0),
                 (Input.GetKey(KeyCode.W)?1:0)-(Input.GetKey(KeyCode.S)?1:0));
-            move=Vector2.ClampMagnitude(move,1);moveX=(short)(move.x*1000);moveZ=(short)(move.y*1000);
-            var plane=new Plane(Vector3.up,new Vector3(0,.75f,0));
-            var ray=viewCamera.ScreenPointToRay(Input.mousePosition);
-            if(plane.Raycast(ray,out float distance))aim=ray.GetPoint(distance);
+            move=cameraView.Movement(move);moveX=(short)(move.x*1000);moveZ=(short)(move.y*1000);
+            var pointer=ThirdPerson && Construction?.Open!=true?new Vector3(Screen.width*.5f,Screen.height*.5f):Input.mousePosition;
+            var ray=viewCamera.ScreenPointToRay(pointer);
+            // Equipment IDs and their inventory must come from the same confirmed timeline.
+            if(TryGetLocalPlayer(out var shooter))aim=cameraView.Aim(ray,presentation.PlayerPosition(LocalSlot),FishingRules.Range(map,State,shooter)/1000f);
             // A small screen-space assist makes clicking an airborne fish match its XZ hit shape.
             // The synchronized simulation still validates timing, range and collision.
             float nearest=27f*27f;
@@ -181,14 +184,14 @@ namespace Advanture.HookIsland
             {
                 if(f.Phase!=FishPhase.Jumping)continue;
                 var screen=viewCamera.WorldToScreenPoint(new Vector3(f.X/1000f,f.Y/1000f,f.Z/1000f));
-                float d=((Vector2)screen-(Vector2)Input.mousePosition).sqrMagnitude;
+                float d=((Vector2)screen-(Vector2)pointer).sqrMagnitude;
                 if(screen.z>0 && d<14f*14f && d<nearest){nearest=d;aim=new Vector3(f.X/1000f,.75f,f.Z/1000f);}
             }
             if(State!=null && Construction?.Open!=true)foreach(var d in State.Driftwood)
             {
                 if(d.Phase!=DriftwoodPhase.Floating)continue;
                 var screen=viewCamera.WorldToScreenPoint(new Vector3(d.X/1000f,.13f,d.Z/1000f));
-                float distanceToPointer=((Vector2)screen-(Vector2)Input.mousePosition).sqrMagnitude;
+                float distanceToPointer=((Vector2)screen-(Vector2)pointer).sqrMagnitude;
                 if(screen.z>0 && distanceToPointer<18f*18f && distanceToPointer<nearest)
                 {nearest=distanceToPointer;aim=new Vector3(d.X/1000f,.75f,d.Z/1000f);}
             }
@@ -196,41 +199,41 @@ namespace Advanture.HookIsland
             {
                 if(chest.Phase==TreasurePhase.Waiting || chest.Phase==TreasurePhase.Landed)continue;
                 var screen=viewCamera.WorldToScreenPoint(new Vector3(chest.X/1000f,.4f,chest.Z/1000f));
-                float d=((Vector2)screen-(Vector2)Input.mousePosition).sqrMagnitude;
+                float d=((Vector2)screen-(Vector2)pointer).sqrMagnitude;
                 if(screen.z>0 && d<18f*18f && d<nearest){nearest=d;aim=new Vector3(chest.X/1000f,.75f,chest.Z/1000f);}
             }
             if(State!=null && Construction?.Open!=true)foreach(var friend in State.Players)
             {
                 if(friend.WaitingToJoin || friend.Revival.Dead || friend.Slot==LocalSlot || (!friend.Swimming.InWater && (friend.Unavailable || !State.RoomRules.FriendlyPranksEnabled || friend.Shopping || friend.ProtectionTicks>0)) || friend.PulledBy>=0 || friend.HookedPlayer>=0)continue;
                 var screen=viewCamera.WorldToScreenPoint(presentation.PlayerPosition(friend.Slot)+Vector3.up*(map.Platform==null?1.2f:.6f));
-                float d=((Vector2)screen-(Vector2)Input.mousePosition).sqrMagnitude;
+                float d=((Vector2)screen-(Vector2)pointer).sqrMagnitude;
                 if(screen.z>0 && d<nearest){nearest=d;aim=new Vector3(friend.X/1000f,.75f,friend.Z/1000f);}
             }
             if(State!=null && Construction?.Open!=true)foreach(var f in State.Enemies.Piranhas)
             {
                 if(f.Owner>=0 || f.RespawnTicks>0 || f.Escape.Active)continue;
                 var position=new Vector3(f.X/1000f,.12f,f.Z/1000f);var screen=viewCamera.WorldToScreenPoint(position);
-                float d=((Vector2)screen-(Vector2)Input.mousePosition).sqrMagnitude;
+                float d=((Vector2)screen-(Vector2)pointer).sqrMagnitude;
                 if(screen.z>0 && d<18f*18f && d<nearest){nearest=d;aim=new Vector3(position.x,.75f,position.z);}
             }
             if(State!=null && Construction?.Open!=true && map.Fishing?.Enemies.MonsterEnabled==true && State.Enemies.Monster.Phase==MonsterPhase.Windup)
             {
                 var enemy=State.Enemies.Monster;var position=new Vector3(enemy.X/1000f,.75f,enemy.Z/1000f);
-                var screen=viewCamera.WorldToScreenPoint(position);float d=((Vector2)screen-(Vector2)Input.mousePosition).sqrMagnitude;
+                var screen=viewCamera.WorldToScreenPoint(position);float d=((Vector2)screen-(Vector2)pointer).sqrMagnitude;
                 if(screen.z>0 && d<24f*24f && d<nearest)aim=position;
             }
             if(State?.Finale.Phase==FinalePhase.Surfaced && Construction?.Open!=true)
             {
                 var giant=State.Finale;var position=new Vector3(giant.X/1000f,.75f,giant.Z/1000f);
-                var screen=viewCamera.WorldToScreenPoint(position);float d=((Vector2)screen-(Vector2)Input.mousePosition).sqrMagnitude;
+                var screen=viewCamera.WorldToScreenPoint(position);float d=((Vector2)screen-(Vector2)pointer).sqrMagnitude;
                 if(screen.z>0 && d<28f*28f && d<nearest)aim=position;
             }
             aim.x=Mathf.Clamp(aim.x,-90,90);aim.z=Mathf.Clamp(aim.z,-90,90);
-            bool overUi=overlay!=null && overlay.PointerOverHud;
-            if(!overUi && CanCast && Construction?.Open!=true && Input.GetMouseButtonDown(0))pendingFire=true;
-            if(!overUi && Construction?.Open!=true && Input.GetMouseButtonDown(1))pendingCancel=true;
+            bool overUi=!CameraPointerCaptured && overlay!=null && overlay.PointerOverHud;
+            if(!skipPointerFrame && !overUi && CanCast && Construction?.Open!=true && Input.GetMouseButtonDown(0))pendingFire=true;
+            if(!skipPointerFrame && !overUi && Construction?.Open!=true && Input.GetMouseButtonDown(1))pendingCancel=true;
             float scroll=Input.mouseScrollDelta.y;
-            if(!overUi && Mathf.Abs(scroll)>.01f)viewCamera.orthographicSize=Mathf.Clamp(viewCamera.orthographicSize-scroll*.7f,map.Platform==null?12:5,28);
+            if(!ThirdPerson && !overUi && Mathf.Abs(scroll)>.01f)viewCamera.orthographicSize=Mathf.Clamp(viewCamera.orthographicSize-scroll*.7f,map.Platform==null?12:5,28);
         }
         private HookInput Sample(ulong tick)
         {
@@ -296,7 +299,7 @@ namespace Advanture.HookIsland
             }
         }
         private void OnApplicationFocus(bool focused)
-        {if(!focused){moveX=moveZ=0;pendingFire=pendingCancel=false;}}
+        {if(!focused){moveX=moveZ=0;pendingFire=pendingCancel=false;cameraView?.SetPointerCapture(false);}}
         public void LeaveRoom()
         {
             if(Client!=null)Client.RoundChanged-=ResetLocalRoundState;
@@ -308,6 +311,7 @@ namespace Advanture.HookIsland
         private void ResetLocalRoundState()
         {
             State=null;moveX=moveZ=0;pendingFire=pendingCancel=false;aim=Vector3.zero;presentation?.ClearPlayers();
+            cameraView?.Reset();skipPointerFrame=true;
             ShopOpen=false;ShopMerchantId=-1;pendingPurchaseId=0;pendingUpgrade=HookUpgrade.None;shopMessage=null;
             roomRulesRequests.Reset();
             Construction?.ResetSession();Equipment?.ResetSession();Revival?.ResetSession();groundItems?.Clear();Enemies?.Clear();Treasures?.Clear();
@@ -317,7 +321,7 @@ namespace Advanture.HookIsland
             {var spawn=map.Spawns[LocalSlot];viewCamera.transform.position=new Vector3(spawn.X/1000f,24,spawn.Z/1000f-20);}
         }
         private void OnDestroy()
-        {LeaveRoom();presentation?.Dispose();groundItems?.Dispose();Enemies?.Dispose();Treasures?.Dispose();Finale?.Dispose();Merchants?.Dispose();Application.runInBackground=restoreBackground;}
+        {LeaveRoom();cameraView?.Dispose();presentation?.Dispose();groundItems?.Dispose();Enemies?.Dispose();Treasures?.Dispose();Finale?.Dispose();Merchants?.Dispose();Application.runInBackground=restoreBackground;}
         private void OnApplicationQuit(){Client?.Dispose();Host?.Dispose();}
         public static string LaunchValue(string key)
         {var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,key);return i>=0 && i+1<args.Length?args[i+1]:null;}

@@ -47,7 +47,7 @@ internal static partial class Program
             finally{foreach(var c in clients)c.Dispose();}
         });
         yield return ("payment_buffer_retries_same_death_until_success_or_failure_receipt",()=>{
-            var buffer=new RevivalRequestBuffer();var life=new RevivalState{Dead=true,Deaths=3,LastRequest=7,LastResult=RespawnResult.NoLanding};
+            var buffer=new RevivalRequestBuffer();var life=new RevivalState{Dead=false,DownedId=3,DeathTick=1,LastRequest=7,LastResult=RespawnResult.NoLanding};
             Require(buffer.TryQueue(life) && buffer.Command.RespawnRequest==8 && buffer.Command.DeathId==3,"Wrong payment intent.");
             Require(!buffer.TryQueue(life) && !buffer.Observe(life,out _),"Unconfirmed request was replaced/cleared.");
             life.LastRequest=8;life.LastResult=RespawnResult.InsufficientCoins;
@@ -82,6 +82,7 @@ internal static partial class Program
                 Require(host.Session!=null,"Room did not start.");var s=host.Session!.InspectState();
                 Require(observer.Complete(s),$"Revival loop incomplete at {s.Steps}.");
                 Require(s.Players[1].Revival.CoinsSpent==0 && s.Players[2].Revival.CoinsSpent>0 && s.Players[2].CoinsEarned-s.Players[2].Coins==s.Players[2].Revival.CoinsSpent,"Personal/free settlement differs.");
+                Require(s.Players[2].Revival.Deaths==0,"Manual respawn waited for final death instead of accepting the downed state.");
                 var cp=host.Session.CaptureCheckpoint();string hash=CheckpointCodec.Hash(cp);
                 foreach(var c in clients)Require(CheckpointCodec.Hash(c.Session!.CaptureCheckpoint())==hash,"Revival checkpoint differs across peers.");
                 var copy=Model(4,enemies:new EnemyConfig());copy.Restore(new HookGame().Decode(cp.ApplicationState.Span));

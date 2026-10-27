@@ -6,6 +6,11 @@ namespace Advanture.HookIsland.Simulation;
 public static class CharacterMovement
 {
     public const int Denominator = 1000 * HookGame.Rate;
+    public const int ReelingSpeedPermille = 300;
+    // Only a connected fish allows movement while the hook is out. Empty hooks,
+    // cargo and player towing keep their existing movement lock.
+    public static int HookSpeedPermille(Fisher player) => player.Phase == HookPhase.Ready ? 1000 :
+        player.Phase == HookPhase.Returning && CooperativeFishing.Attached(player) ? ReelingSpeedPermille : 0;
     public static int Delta(int direction, int speed, ref int remainder)
     {
         if (direction < -1000 || direction > 1000 || speed < 0 || speed > CharacterConfig.MaximumSpeed ||

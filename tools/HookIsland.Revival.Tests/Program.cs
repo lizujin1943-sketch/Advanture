@@ -13,7 +13,7 @@ internal static partial class Program
     private static int Main(string[] args)
     {
         int passed=0,total=0;
-        foreach(var (name,test) in Cases().Concat(BoundaryCases()).Concat(NetworkCases()))
+        foreach(var (name,test) in Cases().Concat(BoundaryCases()).Concat(ImmediateCases()).Concat(NetworkCases()).Concat(ImmediateNetworkCases()))
         {
             if(args.Length>0 && !name.Contains(args[0],StringComparison.Ordinal))continue;
             total++;try{test();passed++;Console.WriteLine("PASS "+name);}catch(Exception e){Console.WriteLine("FAIL "+name+": "+e);}
@@ -38,7 +38,7 @@ internal static partial class Program
     private static void Down(IDeterministicSimulation<HookState> m,int slot,int coins=0,bool water=false)
     {Change(m,p=>{p[slot].Vitals.Health=0;p[slot].Coins=p[slot].CoinsEarned=coins;p[slot].Stamina=0;p[slot].X=slot*700;p[slot].Z=water?-4000:-2000;p[slot].Swimming.InWater=water;});}
     private static HookInput Help(int slot)=>new HookInput(0,0,revival:new RevivalCommand(rescueSlot:slot));
-    private static HookInput Pay(Fisher p,uint request=1)=>new HookInput(0,0,revival:new RevivalCommand(respawnRequest:request,deathId:p.Revival.Deaths));
+    private static HookInput Pay(Fisher p,uint request=1)=>new HookInput(0,0,revival:new RevivalCommand(respawnRequest:request,deathId:p.Revival.DownedId));
     private static void Wait(IDeterministicSimulation<HookState> m,int ticks,params HookInput[] c){for(int i=0;i<ticks;i++)Step(m,c);}
     private static IEnumerable<(string,Action)> Cases()
     {

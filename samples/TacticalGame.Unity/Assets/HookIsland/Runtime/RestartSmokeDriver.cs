@@ -54,7 +54,16 @@ namespace Advanture.HookIsland
                 if(failed && !clicked && room.Host!=null && Time.realtimeSinceStartup-failedAt>1)
                 {
                     clicked=room.RestartRound();
-                    if(!clicked || room.RestartRound())throw new InvalidOperationException("Host restart/double-click contract failed.");
+                    if(!clicked || room.RestartRound())
+                    {
+                        var server=room.Host.Session;
+                        string reason="Host restart/double-click contract failed: clicked="+clicked+", roomCanRestart="+room.CanRestart+
+                            ", hostCanRestart="+room.Host.CanRestart+", roomFinished="+room.State?.RoundFinished+
+                            ", serverFinished="+server?.InspectState().RoundFinished+", serverStatus="+server?.Status+
+                            ", clientStatus="+session.Status+", failure="+room.Failure;
+                        File.WriteAllText(report,JsonUtility.ToJson(new Report{error=reason},true));
+                        written=true;finished=Time.realtimeSinceStartup;return;
+                    }
                 }
                 if(cp.Session.Epoch==2 && !fresh && state.Steps<15)
                 {

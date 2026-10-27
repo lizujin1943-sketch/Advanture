@@ -23,7 +23,7 @@ namespace Advanture.HookIsland.Tests
                 var sample=typeof(IslandFishingController).GetMethod("Sample",Private);
                 var input=(HookInput)sample.Invoke(room,new object[]{1UL});
                 Assert.That(HookInput.Decode(input.Encode()).RoomRules.RequestId,Is.EqualTo(1));Assert.That(input.Inventory.Action,Is.EqualTo(InventoryAction.Pickup));
-                Get<RevivalRequestBuffer>(revival,"requests").TryQueue(new RevivalState{Dead=true,Deaths=1});
+                Get<RevivalRequestBuffer>(revival,"requests").TryQueue(new RevivalState{Dead=true,Deaths=1,DownedId=1,DeathTick=1});
                 input=(HookInput)sample.Invoke(room,new object[]{2UL});
                 Assert.That(HookInput.Decode(input.Encode()).RoomRules.RequestId,Is.EqualTo(1));Assert.That(input.Revival.RespawnRequest,Is.EqualTo(1));
                 Assert.That(room.RoomRulesPending,Is.True,"Sampling is not an authoritative acknowledgement.");

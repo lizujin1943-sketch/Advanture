@@ -1,7 +1,8 @@
 {
   "name": "Advanture.HookIsland.Tests",
   "references": [
-    "Advanture.HookIsland"
+    "Advanture.HookIsland",
+    "Unity.InputSystem"
   ],
   "includePlatforms": [
     "Editor"

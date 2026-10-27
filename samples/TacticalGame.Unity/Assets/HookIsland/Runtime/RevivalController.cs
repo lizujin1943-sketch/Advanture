@@ -55,7 +55,7 @@ namespace Advanture.HookIsland
         }
         public bool RequestRespawn()
         {
-            if(!room.Playing || room.State==null || room.State.GameOver || !room.TryGetLocalPlayer(out var p) || !p.Revival.Dead ||
+            if(!room.Playing || room.State==null || room.State.GameOver || !room.TryGetLocalPlayer(out var p) || !p.Vitals.Downed || !p.Revival.HasQuote ||
                 p.Coins<p.Revival.DeathCost || room.Equipment?.Pending==true || room.Construction?.Pending==true || room.PurchasePending || room.Treasures?.Pending==true)return false;
             if(!requests.TryQueue(p.Revival))return false;
             room.CloseShop();room.Equipment?.Close();room.Construction?.Close();Message=null;return true;

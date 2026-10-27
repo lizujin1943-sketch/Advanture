@@ -231,11 +231,13 @@ try:
                     raise RuntimeError("Restart left stale presentation or multiple acceptance drivers.")
                 continue
             if args.revival:
-                if not all(r.get(k) for k in ("complete", "freeRescue", "paidRespawn", "downed", "helping", "dead")) or r["renderedPlayers"] != 4 or r["activeSmokeDrivers"] != 1:
+                if not all(r.get(k) for k in ("complete", "freeRescue", "paidRespawn", "earlyRespawn", "downed", "helping")) or r["renderedPlayers"] != 4 or r["activeSmokeDrivers"] != 1:
                     raise RuntimeError("Revival flow or presentation incomplete.")
                 p = r["players"]
                 if p[1]["spent"] != 0 or p[2]["spent"] <= 0 or p[2]["earned"] - p[2]["coins"] != p[2]["spent"]:
                     raise RuntimeError("Free rescue or personal payment ledger incorrect.")
+                if r["slot"] == 2 and not r.get("paymentCaptured"):
+                    raise RuntimeError("Early respawn button was not captured before submitting payment.")
                 continue
             if args.enemies:
                 if r.get("activeSmokeDrivers") != 1 or not all(r.get(k) for k in ("complete", "windup", "waterball", "knockback", "impact", "patrol", "submerged", "relocated", "hooked")):

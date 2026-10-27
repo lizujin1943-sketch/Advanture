@@ -25,8 +25,8 @@ namespace Advanture.HookIsland
         public HookInput Sample(IslandMap map,HookState s,int slot,ulong tick)
         {
             Observe(s);var p=s.Players[slot];int lead=(int)Math.Min(30,tick>s.Steps?tick-s.Steps-1:0);
-            if(slot==2 && p.Revival.Dead && p.Coins>=p.Revival.DeathCost)
-                return new HookInput(0,0,revival:new RevivalCommand(respawnRequest:p.Revival.LastRequest+1,deathId:p.Revival.Deaths));
+            if(slot==2 && p.Vitals.Downed && p.Revival.HasQuote && p.Coins>=p.Revival.DeathCost)
+                return new HookInput(0,0,revival:new RevivalCommand(respawnRequest:p.Revival.LastRequest+1,deathId:p.Revival.DownedId));
             if(p.Vitals.Downed || p.PulledBy>=0 || p.Knockback.Active)return default;
             if(slot==0)
             {

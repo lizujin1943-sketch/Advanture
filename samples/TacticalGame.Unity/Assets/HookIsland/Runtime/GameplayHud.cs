@@ -20,6 +20,7 @@ namespace Advanture.HookIsland
             if(room.State==null || !room.TryGetLocalPlayer(out var local))return;
             if(room.State.Won){finale.DrawVictory(layout);return;}
             DrawSquad(layout);DrawWallet(layout,local);
+            DrawPerspective(layout);
             if(room.State.Finale.Phase!=FinalePhase.Dormant)finale.DrawObjective(layout);else commissions.Draw(layout);
             merchants.Draw(layout,scale,local);
             if(room.State.Tackle!=null)DrawVitals(layout.Vitals,local);
@@ -33,6 +34,17 @@ namespace Advanture.HookIsland
             DrawWorld(scale,layout.Height);
             if(room.Construction?.Open==true)DrawConstruction(layout.Construction);
             DrawFeedback(layout);
+        }
+
+        private void DrawPerspective(HudLayout layout)
+        {
+            ui.Text(new Rect(layout.Width/2-130,25,260,30),room.ThirdPerson?"第三人称 · V 切换视角":"俯视角 · V 切换视角",12,HudPainter.White,TextAnchor.MiddleCenter);
+            if(!room.ThirdPerson || room.Incapacitated || room.Construction?.Open==true)return;
+            float x=layout.Width/2,y=layout.Height/2;
+            HudPainter.Fill(new Rect(x-7,y-2,14,4),new Color(0,0,0,.65f));
+            HudPainter.Fill(new Rect(x-2,y-7,4,14),new Color(0,0,0,.65f));
+            HudPainter.Fill(new Rect(x-6,y-1,12,2),HudPainter.White);
+            HudPainter.Fill(new Rect(x-1,y-6,2,12),HudPainter.White);
         }
 
         private void DrawSquad(HudLayout layout)
@@ -155,7 +167,7 @@ namespace Advanture.HookIsland
             }
             foreach(var player in room.State.Players)
             {
-                if(player.WaitingToJoin)continue;
+                if(player.WaitingToJoin || room.ThirdPerson && player.Slot==room.LocalSlot)continue;
                 var point=room.ViewCamera.WorldToScreenPoint(room.Presentation.PlayerPosition(player.Slot)+Vector3.up*(room.Map.Platform==null?2.2f:1.2f));
                 if(point.z<=0)continue;
                 var rect=new Rect(point.x/scale-12,height-point.y/scale-15,24,20);ui.Surface(rect,new Color(.03f,.10f,.13f,.7f));
@@ -177,8 +189,8 @@ namespace Advanture.HookIsland
         {
             var rect=layout.Help;ui.Surface(rect);ui.Text(new Rect(rect.x+26,rect.y+18,300,32),"操作指南",20,HudPainter.White,TextAnchor.MiddleLeft,true);
             if(ui.IconButton(new Rect(rect.xMax-48,rect.y+13,32,32),HudIcon.Close,"关闭 · Esc"))overlay.MenuOpen=false;
-            string[] keys={"WASD","左键","右键","R","E","Tab / I","B","滚轮"};
-            string[] hints={"移动","瞄准出钩","收钩 / 取消","按住救起队友","开箱 / 商店","角色与背包","扩建平台 · 1 / 2 切换材料","缩放视野"};
+            string[] keys={"WASD","鼠标","左键","右键","V","R","E","Tab / I","B","滚轮"};
+            string[] hints={"移动 · 第三人称按视角方向","俯视角瞄准 / 第三人称转向","出钩 · 第三人称用中心准星","收钩 / 取消","切换俯视角 / 第三人称","按住救起队友","开箱 / 商店","角色与背包","扩建平台 · 1 / 2 切换材料","俯视角缩放 / 第三人称拉近拉远"};
             for(int i=0;i<keys.Length;i++)
             {float y=rect.y+65+i*32;ui.Surface(new Rect(rect.x+26,y+3,70,24),HudPainter.Track);ui.Text(new Rect(rect.x+26,y+3,70,24),keys[i],12,HudPainter.White,TextAnchor.MiddleCenter);ui.Text(new Rect(rect.x+116,y,280,30),hints[i],14,HudPainter.Muted);}
         }

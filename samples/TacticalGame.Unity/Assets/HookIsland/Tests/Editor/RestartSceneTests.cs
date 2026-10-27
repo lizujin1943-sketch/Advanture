@@ -31,7 +31,7 @@ namespace Advanture.HookIsland.Tests
                 Get<RodRequestBuffer>(equipment,"requests").TryQueue(4,RodAction.Equip,1,0);
                 Get<InventoryRequestBuffer>(equipment,"inventoryRequests").TryQueue(4,new InventoryCommand(InventoryAction.Pickup,target:1));
                 Get<PlatformBuildRequestBuffer>(construction,"requests").TryQueue(4,TileKind.Wood,2,0);
-                Get<RevivalRequestBuffer>(revival,"requests").TryQueue(new RevivalState{Dead=true,Deaths=2,LastRequest=4});
+                Get<RevivalRequestBuffer>(revival,"requests").TryQueue(new RevivalState{Dead=true,Deaths=2,DownedId=2,DeathTick=1,LastRequest=4});
                 Get<RoomRulesRequestBuffer>(room,"roomRulesRequests").TryQueue(new RoomRulesState(true,4),false);
                 Set(revival,"heldTarget",1);
                 Assert.That(equipment.Pending && construction.Pending && revival.Pending,Is.True);

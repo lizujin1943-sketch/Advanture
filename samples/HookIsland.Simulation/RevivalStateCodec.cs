@@ -6,11 +6,11 @@ namespace Advanture.HookIsland.Simulation;
 public static class RevivalStateCodec
 {
     public static void Write(BinaryWriter w,RevivalState s)
-    {w.Write(s.Dead?(byte)1:(byte)0);w.Write(s.DownedTicks);w.Write(s.Rescuer);w.Write(s.RescueTicks);w.Write(s.DeathCost);w.Write(s.CoinsSpent);w.Write(s.DeathBalance);w.Write(s.DeathTick);w.Write(s.Deaths);w.Write(s.LastRequest);w.Write((byte)s.LastResult);}
+    {w.Write(s.Dead?(byte)1:(byte)0);w.Write(s.DownedTicks);w.Write(s.Rescuer);w.Write(s.RescueTicks);w.Write(s.DeathCost);w.Write(s.CoinsSpent);w.Write(s.DeathBalance);w.Write(s.DeathTick);w.Write(s.Deaths);w.Write(s.LastRequest);w.Write((byte)s.LastResult);w.Write(s.DownedId);}
     public static RevivalState Read(BinaryReader r)
     {
         byte dead=r.ReadByte();if(dead>1)throw new InvalidDataException("Invalid death flag.");
-        return new RevivalState{Dead=dead==1,DownedTicks=r.ReadInt32(),Rescuer=r.ReadInt32(),RescueTicks=r.ReadInt32(),DeathCost=r.ReadInt32(),CoinsSpent=r.ReadInt32(),DeathBalance=r.ReadInt32(),DeathTick=r.ReadUInt64(),Deaths=r.ReadUInt32(),LastRequest=r.ReadUInt32(),LastResult=(RespawnResult)r.ReadByte()};
+        return new RevivalState{Dead=dead==1,DownedTicks=r.ReadInt32(),Rescuer=r.ReadInt32(),RescueTicks=r.ReadInt32(),DeathCost=r.ReadInt32(),CoinsSpent=r.ReadInt32(),DeathBalance=r.ReadInt32(),DeathTick=r.ReadUInt64(),Deaths=r.ReadUInt32(),LastRequest=r.ReadUInt32(),LastResult=(RespawnResult)r.ReadByte(),DownedId=r.ReadUInt32()};
     }
     public static void Validate(HookState state,Fisher p)
     {
@@ -21,8 +21,9 @@ public static class RevivalStateCodec
             s.LastResult>RespawnResult.Unavailable || (s.LastRequest==0)!=(s.LastResult==RespawnResult.None) ||
             (!p.Vitals.Downed && (s.Dead || s.DownedTicks!=0 || s.RescueTicks!=0)) ||
             (s.DeathBalance<0 || s.DeathTick>state.Steps) ||
-            (s.Dead && (s.DeathTick==0 || s.DeathCost!=c.Cost(s.DeathTick,s.DeathBalance))) ||
-            (!s.Dead && (s.DeathCost!=0 || s.DeathTick!=0 || s.DeathBalance!=0)) ||
+            s.Deaths>s.DownedId ||
+            (s.HasQuote && (!p.Vitals.Downed || s.DownedId==0 || s.DeathCost!=c.Cost(s.DeathTick,s.DeathBalance))) ||
+            (!s.HasQuote && (s.Dead || s.DeathCost!=0 || s.DeathBalance!=0)) ||
             (s.Dead && (p.Knockback.Active || p.Swimming.Active || s.Deaths==0 || s.DownedTicks!=c.DownedTicks || s.RescueTicks!=0 || p.Phase!=HookPhase.Ready || p.PulledBy>=0 || p.HookedPlayer>=0 || p.Shopping)) ||
             (!s.Dead && s.DownedTicks>=c.DownedTicks))throw new InvalidDataException("Invalid revival state.");
         if(s.Rescuer>0)

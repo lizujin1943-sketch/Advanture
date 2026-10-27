@@ -15,7 +15,7 @@ namespace Advanture.HookIsland
         public Rect Tools => new Rect(Width-172,Height-70,148,46);
         public Rect Tool(int index) => new Rect(Tools.x+index*52,Tools.y,44,46);
         public Rect Construction => new Rect(24,Height-190,260,166);
-        public Rect Help => new Rect(Width/2-210,Height/2-174,420,348);
+        public Rect Help => new Rect(Width/2-210,Height/2-206,420,412);
         public Rect Commissions => new Rect(24,88,300,108);
         public Rect Merchants=>new Rect(Width-244,88,220,176);
         public Rect Finale=>CommissionPanel(true);

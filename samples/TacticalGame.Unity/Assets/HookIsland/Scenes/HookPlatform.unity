@@ -1398,6 +1398,12 @@ MonoBehaviour:
   viewCamera: {fileID: 98994642}
   lineShader: {fileID: 4800000, guid: cef66624c43b4402c8f9cc68de3c1f06, type: 3}
   platformSettings: {fileID: 11400000, guid: 7ba59490c0d7e4d67859576dec9cc923, type: 2}
+  thirdPersonFieldOfView: 75
+  thirdPersonPivotHeight: 1
+  thirdPersonDistance: 3.1
+  thirdPersonShoulderOffset: 0.6
+  mouseLookSensitivity: 1.2
+  verticalLookSensitivityMultiplier: 0.75
 --- !u!4 &1678539910
 Transform:
   m_ObjectHideFlags: 0

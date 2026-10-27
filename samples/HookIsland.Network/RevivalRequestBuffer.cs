@@ -9,8 +9,8 @@ public sealed class RevivalRequestBuffer
     public bool Pending=>Command.RespawnRequest!=0;
     public bool TryQueue(RevivalState life)
     {
-        if(Pending || !life.Dead || life.Deaths==0 || life.LastRequest==uint.MaxValue)return false;
-        Command=new RevivalCommand(respawnRequest:life.LastRequest+1,deathId:life.Deaths);return true;
+        if(Pending || !life.HasQuote || life.DownedId==0 || life.LastRequest==uint.MaxValue)return false;
+        Command=new RevivalCommand(respawnRequest:life.LastRequest+1,deathId:life.DownedId);return true;
     }
     public bool Observe(RevivalState life,out RespawnResult result)
     {

@@ -95,12 +95,12 @@ internal static partial class Program
             m=Model();At(m,0,0,-4500);Step(m,new HookInput(1000,0,0,-8500,true));
             Require(m.Capture().Players[0].X==33 && m.Capture().Players[0].Casts==0 && m.Capture().Players[0].Swimming.Active,"Invalid no-ring cast locked swimming.");
         });
-        yield return ("cast_locks_swimming_while_fish_keeps_draining",()=>{
+        yield return ("reeling_allows_slow_swimming_and_both_stamina_costs",()=>{
             var m=Model();GiveRing(m,0,10);At(m,0,0,-4500);FishOnLine(m);Change(m,p=>p[0].Stamina=15000);
             Step(m,new HookInput(1000,0));var p=m.Capture().Players[0];
-            Require(p.X==0 && p.Stamina==9000 && !p.Swimming.Active,"Hook did not lock active swimming or charged blocked swim input.");
+            Require(p.X==21 && p.Stamina==4500 && p.Swimming.Active,"Reeling must swim at 30% of the equipped ring speed and pay both swimming and fish costs.");
             Step(m,new HookInput(1000,0));Step(m,new HookInput(1000,0));p=m.Capture().Players[0];
-            Require(p.X==0 && p.Stamina==0 && p.Escapes==1,"Locked fishing failed normal escape rule.");
+            Require(p.X==42 && p.Stamina==0 && p.Escapes==1,"Exhaustion must detach the fish and stop further movement while the empty hook returns.");
         });
         yield return ("water_simultaneous_rescue_claim_has_one_owner_and_disconnect_releases",()=>{
             var m=Model(3);At(m,0,-500,-2600);At(m,1,500,-2600);At(m,2,0,-4500);

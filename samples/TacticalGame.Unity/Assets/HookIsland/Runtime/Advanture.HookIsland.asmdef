@@ -1,6 +1,6 @@
 {
   "name": "Advanture.HookIsland",
   "rootNamespace": "Advanture.HookIsland",
-  "references": [],
+  "references": ["Unity.InputSystem"],
   "autoReferenced": true
 }

@@ -13,6 +13,7 @@ namespace Advanture.HookIsland
         private readonly Transform root;
         private readonly Camera camera;
         private readonly IslandMap map;
+        private readonly FisherCharacterDefinition character;
         private readonly List<Object> resources=new List<Object>();
         private readonly Dictionary<int,Avatar> avatars=new Dictionary<int,Avatar>();
         private readonly Transform[] fishes,fishShadows;
@@ -22,6 +23,9 @@ namespace Advanture.HookIsland
         private readonly Material[] coats,fishMaterials,rodMaterials,speciesMaterials;
         private readonly int[] shownSpecies,shownGrades;
         private readonly LineRenderer aimRing,aimLine;
+        // 出钩期间冻结的预瞄落点；只有重新变为 Ready 才重新跟随鼠标。
+        private Vector3 lockedAim;
+        private bool aimTargetLocked;
         private readonly Collider ground,pier;
         private readonly List<CatchPopup> popups=new List<CatchPopup>();
         private readonly AudioSource audio;
@@ -39,7 +43,8 @@ namespace Advanture.HookIsland
             public Transform Root,Body,Hook,LeftLeg,RightLeg,Rod,RodTip,Backpack;
             public CharacterEquipmentAppearance Equipment;
             public SwimmingAppearance Swimming;
-            public MeshRenderer RodShaft;
+            public FisherAnimationView Animation;
+            public Renderer RodShaft,RodTipShaft;
             public LineRenderer Rope,Ring;
             public int Catches,Casts,Coins,RangeLevel,SpeedLevel,PlayerHooks,TimesHooked;
             public bool Placed;
@@ -48,6 +53,12 @@ namespace Advanture.HookIsland
         public FishingPresentation(Transform parent,Camera camera,Shader lineShader,IslandMap map)
         {
             this.camera=camera;this.map=map;
+            if(map.Fishing!=null)
+            {
+                character=Resources.Load<FisherCharacterDefinition>(FisherCharacterDefinition.ResourcePath);
+                if(character==null || !character.Complete)
+                    throw new InvalidOperationException("Missing animated fisher. Run Tools/Hook Island/Install Animated Fisher.");
+            }
             root=new GameObject("Fishing visuals").transform;root.SetParent(parent,false);
             ground=GameObject.Find("Island_Ground")?.GetComponent<Collider>();
             pier=GameObject.Find("Pier Walk Surface")?.GetComponent<Collider>()??GameObject.Find("Island_Pier")?.GetComponent<Collider>();
@@ -109,7 +120,7 @@ namespace Advanture.HookIsland
                     foreach(var future in predicted.Players)if(future.Slot==local){p=future;break;}
                 if(!avatars.TryGetValue(p.Slot,out var a))
                 {
-                    a=CreateAvatar(p.Slot);avatars.Add(p.Slot,a);
+                    a=CreateAvatar(p.Slot,confirmed.Casts);avatars.Add(p.Slot,a);
                     // A late/restored snapshot contains history; only subsequent changes play feedback.
                     a.Catches=confirmed.Catches;a.Casts=confirmed.Casts;a.Coins=state.Tackle==null?confirmed.Coins:confirmed.CoinsEarned;
                     a.PlayerHooks=confirmed.PlayerHooks;a.TimesHooked=confirmed.TimesHooked;
@@ -121,6 +132,9 @@ namespace Advanture.HookIsland
                 a.Placed=true;
                 bool moving=(state.Tackle==null || !confirmed.Vitals.Downed) && (a.Root.position-a.Previous).sqrMagnitude>.000005f;a.Previous=a.Root.position;
                 Vector3 direction=p.Slot==local && showAim?aim-a.Root.position:new Vector3(p.AimX/1000f,0,p.AimZ/1000f)-a.Root.position;
+                // Aim can change while a hook is flying. The body casts along the accepted
+                // launch direction instead of turning after the mouse during the swing.
+                if(p.Phase!=HookPhase.Ready)direction=new Vector3(p.DirectionX,0,p.DirectionZ);
                 if(confirmed.PulledBy>=0)
                 {
                     var owner=state.Players[confirmed.PulledBy];
@@ -131,7 +145,20 @@ namespace Advanture.HookIsland
                 float walk=moving?Mathf.Sin(Time.time*(confirmed.PulledBy>=0?24:15))*(confirmed.PulledBy>=0?42:25):0;
                 a.Ring.startColor=a.Ring.endColor=confirmed.PulledBy>=0?new Color(1,.7f,.12f):
                     confirmed.Shopping || confirmed.ProtectionTicks>0?new Color(.55f,1,1):PlayerColors[p.Slot];
-                a.LeftLeg.localRotation=Quaternion.Euler(walk,0,0);a.RightLeg.localRotation=Quaternion.Euler(-walk,0,0);
+                if(a.Animation==null)
+                {a.LeftLeg.localRotation=Quaternion.Euler(walk,0,0);a.RightLeg.localRotation=Quaternion.Euler(-walk,0,0);}
+                else
+                {
+                    bool hasRing=state.Tackle!=null && SwimRingCatalog.Equipped(state.Tackle.Inventory,confirmed.Slot)!=null;
+                    bool interrupted=state.RoundFinished || confirmed.Unavailable || confirmed.Vitals.Downed ||
+                        confirmed.PulledBy>=0 || confirmed.Knockback.Active || confirmed.EquippedRod==0 ||
+                        confirmed.Swimming.InWater && !hasRing;
+                    bool reeling=p.Phase==HookPhase.Returning || p.FishId>=0 || p.DriftwoodId>=0 ||
+                        p.HookedPlayer>=0 || p.HookedPiranha>0 || p.HookedChest>0 || p.HookedFinale;
+                    // Local motion/casts use prediction for immediate feedback. Peers use
+                    // confirmed observations. Hook ownership and all rewards below stay confirmed.
+                    a.Animation.Present(dt,p.Casts,moving,reeling,interrupted);
+                }
                 Ring(a.Ring,new Vector3(a.Root.position.x,p.Swimming.InWater?.075f:a.Root.position.y+.045f,a.Root.position.z),(p.Slot==local?.65f:.48f)*(map.Platform==null?1:.55f));
                 // Hook and ownership use confirmed state; speculative catches never play a reward.
                 bool active=confirmed.Phase!=HookPhase.Ready;
@@ -173,7 +200,11 @@ namespace Advanture.HookIsland
                 }
                 a.Coins=state.Tackle==null?confirmed.Coins:confirmed.CoinsEarned;
                 if(state.Tackle!=null)
-                {a.Equipment?.Present(state.Tackle.Inventory,confirmed.Slot);a.Swimming?.Present(SwimRingCatalog.Equipped(state.Tackle.Inventory,confirmed.Slot)?.Level??0,confirmed.Swimming.InWater,moving,a.Root.position);}
+                {
+                    a.Equipment?.Present(state.Tackle.Inventory,confirmed.Slot);
+                    if(a.RodTipShaft!=null)a.RodTipShaft.sharedMaterial=a.RodShaft.sharedMaterial;
+                    a.Swimming?.Present(SwimRingCatalog.Equipped(state.Tackle.Inventory,confirmed.Slot)?.Level??0,confirmed.Swimming.InWater,moving,a.Root.position);
+                }
                 if(confirmed.RangeLevel>a.RangeLevel || confirmed.SpeedLevel>a.SpeedLevel)
                 {
                     if(p.Slot==local)audio.PlayOneShot(catchSound);
@@ -232,14 +263,49 @@ namespace Advanture.HookIsland
                     Ring(ripples[i],splashPosition,radius);
                 }
             }
-            aimLine.enabled=aimRing.enabled=showAim && avatars.ContainsKey(local) && FishingRules.Range(map,state,state.Players[local])>0;
-            if(aimRing.enabled)
+            // 预瞄落点只在可再次出钩时跟随鼠标。钩子一离开就冻结目标点，
+            // 否则出钩后移动鼠标会让“刚才瞄准的位置”看起来变了，玩家无法判断钩子飞向哪里。
+            // 线的起点仍然跟着角色走，被拉拽时不会与角色脱节。
+            // 自己能否出钩必须读预测态：确认态落后约一秒，用它会让线在钩子已飞出后继续乱动。
+            bool aiming=showAim && local<state.Players.Count && local<predicted.Players.Count && avatars.ContainsKey(local);
+            if(aiming)
             {
-                var start=PlayerPosition(local);Vector3 direction=aim-start;direction.y=0;
-                var end=start+Vector3.ClampMagnitude(direction,FishingRules.Range(map,state,state.Players[local])/1000f);
-                end.y=.12f;Ring(aimRing,end,.42f);aimLine.positionCount=2;
-                aimLine.SetPosition(0,start+Vector3.up*.16f);aimLine.SetPosition(1,end);
+                // 射程读确认态：预测态可能已换上尚未确认的鱼竿，此时按 id 查背包会失败。
+                var shooter=predicted.Players[local];
+                var range=FishingRules.Range(map,state,state.Players[local]);
+                aiming=range>0;
+                if(aiming)
+                {
+                    var start=PlayerPosition(local);
+                    float reach=range/1000f;
+                    bool canAim=shooter.Phase==HookPhase.Ready && shooter.Cooldown==0;
+                    if(canAim)
+                    {
+                        Vector3 direction=aim-start;direction.y=0;
+                        lockedAim=start+Vector3.ClampMagnitude(direction,reach);
+                        aimTargetLocked=true;
+                    }
+                    else if(!aimTargetLocked)
+                    {
+                        // 重新显示（例如刚关掉面板）时不能偷看当前鼠标：出钩后
+                        // 鼠标早已移开，只有已提交的瞄准点才代表玩家当时的选择。
+                        lockedAim=new Vector3(shooter.AimX/1000f,.12f,shooter.AimZ/1000f);
+                        if((lockedAim-start).sqrMagnitude<1e-4f)
+                        {
+                            Vector3 direction=aim-start;direction.y=0;
+                            lockedAim=start+Vector3.ClampMagnitude(direction,reach);
+                        }
+                        aimTargetLocked=true;
+                    }
+                    // 冻结的是出钩瞬间的落点；角色被拉走后按当前手长收拢，线段不会超过射程。
+                    Vector3 offset=lockedAim-start;offset.y=0;
+                    var end=canAim?lockedAim:start+Vector3.ClampMagnitude(offset,reach);
+                    end.y=.12f;Ring(aimRing,end,.42f);aimLine.positionCount=2;
+                    aimLine.SetPosition(0,start+Vector3.up*.16f);aimLine.SetPosition(1,end);
+                }
             }
+            else aimTargetLocked=false;
+            aimLine.enabled=aimRing.enabled=aiming;
             popups.RemoveAll(p=>p.Until<Time.unscaledTime);
         }
         public float Height(float x,float z)
@@ -250,9 +316,46 @@ namespace Advanture.HookIsland
             if(pier!=null && pier.Raycast(ray,out hit,12))y=Mathf.Max(y,hit.point.y);
             return y+.015f;
         }
-        private Avatar CreateAvatar(int slot)
+        private Avatar CreateAvatar(int slot,int initialCasts)
         {
             var a=new Avatar();a.Root=new GameObject("Fisher "+(slot+1)).transform;a.Root.SetParent(root,false);
+            if(character!=null)CreateAnimatedBody(a,slot,initialCasts);
+            else CreateLegacyBody(a,slot);
+            a.Rope=Line("P"+(slot+1)+" rope",.055f,new Color(1,.76f,.26f));
+            a.Hook=new GameObject("P"+(slot+1)+" hook").transform;a.Hook.SetParent(root,false);
+            Part(a.Hook,"Tip",shape,Vector3.zero,new Vector3(.22f,.2f,.43f),metal);
+            var arc=Line("Hook curve",.075f,new Color(.8f,.96f,1));arc.transform.SetParent(a.Hook,false);arc.useWorldSpace=false;
+            arc.positionCount=12;
+            for(int i=0;i<12;i++){float t=i/11f*Mathf.PI*1.6f;arc.SetPosition(i,new Vector3(Mathf.Cos(t)*.24f,0,Mathf.Sin(t)*.24f));}
+            a.Ring=Line("P"+(slot+1)+" marker",.075f,PlayerColors[slot]);a.Ring.loop=true;
+            if(map.Platform!=null)a.Hook.localScale=Vector3.one*.65f;
+            return a;
+        }
+        private void CreateAnimatedBody(Avatar a,int slot,int initialCasts)
+        {
+            a.Body=Object.Instantiate(character.model,a.Root,false).transform;a.Body.name="Body";
+            foreach(var renderer in a.Body.GetComponentsInChildren<Renderer>(true))
+            {
+                var materials=renderer.sharedMaterials;
+                for(int i=0;i<materials.Length;i++)if(materials[i].name=="Fisher_Coat")materials[i]=coats[slot];
+                renderer.sharedMaterials=materials;
+            }
+            a.Animation=new FisherAnimationView(a.Body.GetComponent<Animator>(),character,initialCasts);
+            a.Rod=a.Body.Find("Equipped fishing rod");a.RodTip=a.Animation.LineGuide;
+            a.RodShaft=a.Rod.Find("Rod Shaft").GetComponent<Renderer>();
+            a.RodTipShaft=a.Rod.Find("Rod Tip Shaft").GetComponent<Renderer>();
+            a.Backpack=a.Body.Find("Backpack");
+            a.Equipment=new CharacterEquipmentAppearance(a.Rod,a.RodShaft,a.Backpack,rodMaterials,
+                new EquipmentSlotVisual(EquipmentSlot.Hat,a.Body.Find("Equipped cap guard")),
+                new EquipmentSlotVisual(EquipmentSlot.Clothes,a.Body.Find("Equipped reinforced vest")),
+                new EquipmentSlotVisual(EquipmentSlot.Shoes,a.Body.Find("Equipped light shoe L")),
+                new EquipmentSlotVisual(EquipmentSlot.Shoes,a.Body.Find("Equipped light shoe R")));
+            // The previous equipment mesh was authored at twice the one-metre character scale.
+            var ringMount=new GameObject("Swim ring mount").transform;ringMount.SetParent(a.Body,false);ringMount.localScale=Vector3.one*.5f;
+            a.Swimming=new SwimmingAppearance(ringMount,a.Root,line.shader);
+        }
+        private void CreateLegacyBody(Avatar a,int slot)
+        {
             a.Body=new GameObject("Body").transform;a.Body.SetParent(a.Root,false);
             a.LeftLeg=Part(a.Body,"Left boot",cube,new Vector3(-.19f,.25f,0),new Vector3(.25f,.5f,.34f),boots);
             a.RightLeg=Part(a.Body,"Right boot",cube,new Vector3(.19f,.25f,0),new Vector3(.25f,.5f,.34f),boots);
@@ -264,38 +367,10 @@ namespace Advanture.HookIsland
             a.Backpack=Part(a.Body,"Backpack",cube,new Vector3(0,.88f,-.37f),new Vector3(.48f,.51f,.26f),wood);
             Part(a.Body,"Left hand",shape,new Vector3(-.45f,.9f,.25f),Vector3.one*.17f,skin);
             Part(a.Body,"Right hand",shape,new Vector3(.4f,1.0f,.42f),Vector3.one*.17f,skin);
-            if(map.Fishing==null)Part(a.Body,"Hook launcher",cube,new Vector3(.35f,1.05f,.56f),new Vector3(.22f,.22f,.52f),metal);
-            else
-            {
-                a.Rod=new GameObject("Equipped fishing rod").transform;a.Rod.SetParent(a.Body,false);
-                a.Rod.localPosition=new Vector3(.4f,1,.42f);a.Rod.localRotation=Quaternion.Euler(-24,0,0);
-                Part(a.Rod,"Grip",cube,new Vector3(0,0,.05f),new Vector3(.12f,.12f,.4f),wood);
-                a.RodShaft=Part(a.Rod,"Shaft",cube,new Vector3(0,0,.95f),new Vector3(.055f,.055f,1.6f),wood).GetComponent<MeshRenderer>();
-                Part(a.Rod,"Reel",cone,new Vector3(.05f,-.08f,.15f),Vector3.one*.16f,metal);
-                a.RodTip=Part(a.Rod,"Line guide",shape,new Vector3(0,0,1.78f),Vector3.one*.065f,gold);
-            }
-            if(a.Rod!=null)
-            {
-                var guard=Part(a.Body,"Equipped cap guard",cube,new Vector3(0,1.8f,.28f),new Vector3(.39f,.19f,.08f),metal);
-                var vest=Part(a.Body,"Equipped reinforced vest",cube,new Vector3(0,.88f,.27f),new Vector3(.49f,.49f,.08f),wood);
-                var leftShoe=Part(a.LeftLeg,"Equipped light shoe",cube,new Vector3(0,-.18f,.12f),new Vector3(1.08f,.65f,1.1f),white);
-                var rightShoe=Part(a.RightLeg,"Equipped light shoe",cube,new Vector3(0,-.18f,.12f),new Vector3(1.08f,.65f,1.1f),white);
-                a.Equipment=new CharacterEquipmentAppearance(a.Rod,a.RodShaft,a.Backpack,rodMaterials,
-                    new EquipmentSlotVisual(EquipmentSlot.Hat,guard),new EquipmentSlotVisual(EquipmentSlot.Clothes,vest),
-                    new EquipmentSlotVisual(EquipmentSlot.Shoes,leftShoe),new EquipmentSlotVisual(EquipmentSlot.Shoes,rightShoe));
-                a.Swimming=new SwimmingAppearance(a.Body,a.Root,line.shader);
-            }
+            Part(a.Body,"Hook launcher",cube,new Vector3(.35f,1.05f,.56f),new Vector3(.22f,.22f,.52f),metal);
             Part(a.Body,"Left eye",cube,new Vector3(-.13f,1.45f,.29f),new Vector3(.075f,.09f,.04f),dark);
             Part(a.Body,"Right eye",cube,new Vector3(.13f,1.45f,.29f),new Vector3(.075f,.09f,.04f),dark);
-            a.Rope=Line("P"+(slot+1)+" rope",.055f,new Color(1,.76f,.26f));
-            a.Hook=new GameObject("P"+(slot+1)+" hook").transform;a.Hook.SetParent(root,false);
-            Part(a.Hook,"Tip",shape,Vector3.zero,new Vector3(.22f,.2f,.43f),metal);
-            var arc=Line("Hook curve",.075f,new Color(.8f,.96f,1));arc.transform.SetParent(a.Hook,false);arc.useWorldSpace=false;
-            arc.positionCount=12;
-            for(int i=0;i<12;i++){float t=i/11f*Mathf.PI*1.6f;arc.SetPosition(i,new Vector3(Mathf.Cos(t)*.24f,0,Mathf.Sin(t)*.24f));}
-            a.Ring=Line("P"+(slot+1)+" marker",.075f,PlayerColors[slot]);a.Ring.loop=true;
-            if(map.Platform!=null){a.Body.localScale=Vector3.one*.5f;a.Hook.localScale=Vector3.one*.65f;}
-            return a;
+            if(map.Platform!=null)a.Body.localScale=Vector3.one*.5f;
         }
         private Material Mat(string name,Color color)
         {
@@ -340,15 +415,16 @@ namespace Advanture.HookIsland
         }
         public void ClearPlayers()
         {
-            foreach(var a in avatars.Values){a.Swimming?.Dispose();Release(a.Root.gameObject);Release(a.Rope.gameObject);Release(a.Ring.gameObject);Release(a.Hook.gameObject);}
+            foreach(var a in avatars.Values){a.Animation?.Dispose();a.Swimming?.Dispose();Release(a.Root.gameObject);Release(a.Rope.gameObject);Release(a.Ring.gameObject);Release(a.Hook.gameObject);}
             audio.Stop();
             escapes.Clear();
             avatars.Clear();popups.Clear();PresentedCatches=PresentedCasts=PresentedPlayerHooks=0;
             foreach(var f in fishes)f.gameObject.SetActive(false);foreach(var f in fishShadows)f.gameObject.SetActive(false);
             foreach(var r in ripples)r.enabled=false;foreach(var w in wakes)w.enabled=false;
             aimRing.enabled=aimLine.enabled=false;
+            aimTargetLocked=false;
         }
-        public void Dispose(){escapes.Dispose();foreach(var a in avatars.Values)a.Swimming?.Dispose();Release(root.gameObject);foreach(var r in resources)Release(r);}
+        public void Dispose(){escapes.Dispose();foreach(var a in avatars.Values){a.Animation?.Dispose();a.Swimming?.Dispose();}Release(root.gameObject);foreach(var r in resources)Release(r);}
         private static void Release(Object value){if(Application.isPlaying)Object.Destroy(value);else Object.DestroyImmediate(value);}
     }
 }

@@ -16,15 +16,15 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     public static SimulationModule<HookState> CreateModule(bool initialFriendlyPranks=true)
     {
         var game=new HookGame(initialFriendlyPranks);
-        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"22",inputFormatVersion:"10",
-            stateFormatVersion:"22",contentHash:CatalogData.Hash(),determinismHash:"integer-mm-presence-v22"),game,game,game);
+        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"24",inputFormatVersion:"11",
+            stateFormatVersion:"23",contentHash:CatalogData.Hash(),determinismHash:"integer-mm-immediate-revival-v24"),game,game,game);
     }
     public IDeterministicSimulation<HookState> Create()=>new Model(initialFriendlyPranks);
     public void ValidateCanonical(ReadOnlySpan<byte> bytes)=>HookInput.Decode(bytes);
     public byte[] Encode(HookState s)
     {
         using var stream=new MemoryStream();using var w=new BinaryWriter(stream);
-        w.Write(0x45534948);w.Write(s.Steps);w.Write(s.Coins);w.Write(s.Players.Count);
+        w.Write(0x46534948);w.Write(s.Steps);w.Write(s.Coins);w.Write(s.Players.Count);
         foreach(var p in s.Players)
         {
             w.Write(p.Slot);w.Write(p.X);w.Write(p.Z);w.Write(p.AimX);w.Write(p.AimZ);w.Write(p.RemainderX);w.Write(p.RemainderZ);
@@ -55,7 +55,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     {
         if(bytes.Length<24 || bytes.Length>MaximumStateBytes)throw new InvalidDataException("Invalid state length.");
         using var r=new BinaryReader(new MemoryStream(bytes.ToArray(),false));
-        if(r.ReadInt32()!=0x45534948)throw new InvalidDataException("State version mismatch.");
+        if(r.ReadInt32()!=0x46534948)throw new InvalidDataException("State version mismatch.");
         ulong tick=r.ReadUInt64();int coins=r.ReadInt32(),count=r.ReadInt32();
         if(count<1 || count>4 || coins<0)throw new InvalidDataException("Invalid players/wallet.");
         var players=new Fisher[count];
@@ -221,7 +221,15 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             {
                 var p=players[i];var c=commands[i];
                 if(p.WaitingToJoin)continue;
+                bool wasDowned=p.Vitals.Downed;
                 if(equipment!=null)RevivalSystem.Respawn(map,tiles,players,ref p,c.Revival,equipment.Attributes(p),ref coins);
+                if(wasDowned && !p.Vitals.Downed)
+                {
+                    // Early payment can occur during a teammate's tow. Release only after the transaction succeeds.
+                    if(p.PulledBy>=0)
+                    {var owner=players[p.PulledBy];ReleasePlayer(ref owner);players[owner.Slot]=owner;p.PulledBy=-1;p.ProtectionTicks=ProtectionDuration;}
+                    StopCharacterHook(ref p);
+                }
                 bool knockedBack=p.Knockback.Active;
                 if(knockedBack)KnockbackSystem.Advance(map,tiles,players,ref p);
                 bool canAct=!p.Unavailable && (equipment==null || !p.Vitals.Downed);
@@ -242,7 +250,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                         p.HookX=p.X;p.HookZ=p.Z;p.Phase=HookPhase.Flying;p.Distance=0;p.Casts++;p.HookTravelRemainder=p.ReelRemainder=0;
                     }
                 }
-                bool canMove=canAct && !knockedBack && p.PulledBy<0 && !p.Shopping && p.Phase==HookPhase.Ready;
+                int movementPermille=CharacterMovement.HookSpeedPermille(p);
+                bool canMove=canAct && !knockedBack && p.PulledBy<0 && !p.Shopping && movementPermille>0;
                 p.Swimming.Active=false;
                 if(equipment!=null)
                 {
@@ -257,13 +266,13 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                         int dx,dz;
                         if(p.Swimming.InWater)
                         {
-                            int speed=SwimmingSystem.Speed(map.Fishing!.Swimming,ring);
+                            int speed=SwimmingSystem.Speed(map.Fishing!.Swimming,ring)*movementPermille/1000;
                             dx=SwimmingSystem.Delta(c.MoveX,speed,fraction,ref p.Swimming.MoveRemainderX);
                             dz=SwimmingSystem.Delta(c.MoveZ,speed,fraction,ref p.Swimming.MoveRemainderZ);
                         }
                         else
                         {
-                            int speed=equipment.Attributes(p).MoveSpeed;
+                            int speed=equipment.Attributes(p).MoveSpeed*movementPermille/1000;
                             dx=CharacterMovement.Delta(c.MoveX,speed,ref p.MoveRemainderX);
                             dz=CharacterMovement.Delta(c.MoveZ,speed,ref p.MoveRemainderZ);
                         }
@@ -280,7 +289,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 }
                 else if(canMove)
                 {
-                    int speed=map.Platform==null?180:100;
+                    int speed=(map.Platform==null?180:100)*movementPermille/1000;
                     int nx=c.MoveX*speed+p.RemainderX,nz=c.MoveZ*speed+p.RemainderZ;
                     int x=p.X+nx/1000,z=p.Z+nz/1000;
                     if(CanStand(x,p.Z)){p.X=x;p.RemainderX=nx%1000;}else p.RemainderX=0;
@@ -315,13 +324,19 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             }
             if(equipment!=null)
             {
+                bool solo=RevivalSystem.IsSolo(players);
+                var alreadyDead=players.Select(p=>p.Revival.Dead).ToArray();
                 RevivalSystem.Resolve(map,tiles,players,commands,healthAtFrameStart,tick+1,equipment.Attributes);
                 for(int i=0;i<players.Length;i++)if(players[i].Revival.Dead)
                 {
                     var dead=players[i];
                     if(dead.PulledBy>=0)
                     {var owner=players[dead.PulledBy];ReleasePlayer(ref owner);players[owner.Slot]=owner;dead=players[i];}
-                    StopCharacterHook(ref dead);dead.Knockback=default;dead.Swimming.Active=false;dead.Shopping=false;players[i]=dead;
+                    StopCharacterHook(ref dead);dead.Knockback=default;dead.Swimming.Active=false;dead.Shopping=false;
+                    // One automatic attempt on the death transition; failures must not silently retry.
+                    if(solo && !alreadyDead[i] && !dead.Unavailable && dead.Coins>=dead.Revival.DeathCost && dead.Revival.LastRequest<uint.MaxValue)
+                        RevivalSystem.Respawn(map,tiles,players,ref dead,new RevivalCommand(respawnRequest:dead.Revival.LastRequest+1,deathId:dead.Revival.DownedId),equipment.Attributes(dead),ref coins);
+                    players[i]=dead;
                 }
             }
             ReelTreasures();OpenTreasures(commands);

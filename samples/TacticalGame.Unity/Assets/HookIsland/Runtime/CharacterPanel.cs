@@ -68,7 +68,9 @@ namespace Advanture.HookIsland
             }
             GUI.Label(new Rect(0, 365, 384, 56), "点击装备查看详情；把备用装备拖到对应槽位。\n默认服饰是外观，空槽不会提供属性。", small);
             DrawResource(400, 48, "生命", vitals.Health, current.HealthMax, new Color(.94f, .39f, .36f));
-            GUI.Label(new Rect(400, 116, 270, 28), $"移速   {(vitals.Downed ? 0 : player.Swimming.InWater ? SwimmingSystem.Speed(swimming??new SwimmingConfig(),SwimRingCatalog.Equipped(inventory,player.Slot)) : current.MoveSpeed) / 1000f:0.###} 米/秒", body);
+            int normalSpeed=player.Swimming.InWater ? SwimmingSystem.Speed(swimming??new SwimmingConfig(),SwimRingCatalog.Equipped(inventory,player.Slot)) : current.MoveSpeed;
+            int moveSpeed=vitals.Downed ? 0 : normalSpeed*CharacterMovement.HookSpeedPermille(player)/1000;
+            GUI.Label(new Rect(400, 116, 270, 28), $"移速   {moveSpeed / 1000f:0.###} 米/秒", body);
             GUI.Label(new Rect(400, 158, 270, 28), $"防御   {current.Armor}", body);
             GUI.Label(new Rect(400, 188, 270, 25), $"攻击减伤 {100f * current.Armor / (CharacterDamage.DefenseScale + current.Armor):0.#}% · 不消耗", small);
             DrawResource(400, 221, "饥饿", vitals.Hunger, current.HungerMax, new Color(1, .73f, .31f));
