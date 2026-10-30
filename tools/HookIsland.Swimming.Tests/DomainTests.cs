@@ -32,19 +32,51 @@ internal static partial class Program
             }
             Throws<InvalidDataException>(()=>new SwimmingConfig(speed:10001));
             Throws<InvalidDataException>(()=>new SwimmingConfig(staminaMilliPerSecond:0));
-            Throws<InvalidDataException>(()=>new SwimmingConfig(healthLossMilliPerSecond:-1));
+            Throws<InvalidDataException>(()=>new SwimmingConfig(healthLossBasisPointsPerSecond:-1));
+            Throws<InvalidDataException>(()=>new SwimmingConfig(healthLossBasisPointsPerSecond:10001));
             using var ms=new MemoryStream();using var w=new BinaryWriter(ms);new SwimmingConfig(750,1400,11250).Write(w);ms.Position=0;
-            using var r2=new BinaryReader(ms);var round=SwimmingConfig.Read(r2);Require(round.HealthLossMilliPerSecond==750 && round.Speed==1400 && round.StaminaMilliPerSecond==11250,"Config roundtrip failed.");
+            using var r2=new BinaryReader(ms);var round=SwimmingConfig.Read(r2);Require(round.HealthLossBasisPointsPerSecond==750 && round.Speed==1400 && round.StaminaMilliPerSecond==11250,"Config roundtrip failed.");
         });
         yield return ("domain_damage_is_exact_ignores_defense_and_never_revives",()=>{
             var c=new SwimmingConfig();var water=new SwimmingState{InWater=true};var v=new CharacterVitals{Health=100,Hunger=100};
-            for(int i=0;i<30;i++)SwimmingSystem.Damage(ref water,ref v,c,false);
-            Require(v.Health==95 && water.DamageRemainder==0,"Damage rate or direct damage incorrect.");
-            for(int i=0;i<90;i++)SwimmingSystem.Damage(ref water,ref v,c,true);
-            Require(v.Health==95,"Equipped ring failed to stop water damage.");
-            water.InWater=false;SwimmingSystem.Damage(ref water,ref v,c,false);Require(v.Health==95,"Land healed/damaged.");
-            water.InWater=true;for(int i=0;i<600;i++)SwimmingSystem.Damage(ref water,ref v,c,false);
+            for(int i=0;i<30;i++)SwimmingSystem.Damage(ref water,ref v,c,false,100);
+            Require(v.Health==99 && water.DamageRemainder==0,"Damage rate or direct damage incorrect.");
+            for(int i=0;i<90;i++)SwimmingSystem.Damage(ref water,ref v,c,true,100);
+            Require(v.Health==99,"Equipped ring failed to stop water damage.");
+            water.InWater=false;SwimmingSystem.Damage(ref water,ref v,c,false,100);Require(v.Health==99,"Land healed/damaged.");
+            water.InWater=true;for(int i=0;i<3000;i++)SwimmingSystem.Damage(ref water,ref v,c,false,100);
             Require(v.Downed && water.InWater,"Downed state cleared water state.");
+        });
+        yield return ("domain_water_damage_pulses_once_per_second_uses_maximum_and_carries_fractions",()=>{
+            var c=new SwimmingConfig();
+            foreach(int max in new[]{50,100,175,200})
+            {
+                var water=new SwimmingState{InWater=true};var v=new CharacterVitals{Health=max/2,Hunger=100};int start=v.Health;
+                for(int second=1;second<=4;second++)
+                {
+                    int before=v.Health;
+                    for(int tick=0;tick<29;tick++)SwimmingSystem.Damage(ref water,ref v,c,false,max);
+                    Require(v.Health==before,"Water damage occurred before a full second elapsed.");
+                    SwimmingSystem.Damage(ref water,ref v,c,false,max);
+                    Require(v.Health==start-max*second/100 && water.DamageTicks==0,"Damage used current HP, lost fractions, or did not pulse at one second.");
+                }
+            }
+        });
+        yield return ("domain_landing_and_ring_restart_damage_interval_without_losing_fraction",()=>{
+            var c=new SwimmingConfig();
+            foreach(bool ring in new[]{false,true})
+            {
+                var water=new SwimmingState{InWater=true};var v=new CharacterVitals{Health=175,Hunger=100};
+                for(int tick=0;tick<59;tick++)SwimmingSystem.Damage(ref water,ref v,c,false,175);
+                Require(v.Health==174 && water.DamageRemainder==7500 && water.DamageTicks==29,"Fixture missed the next pulse boundary.");
+                water.InWater=ring;SwimmingSystem.Damage(ref water,ref v,c,ring,175);
+                Require(v.Health==174 && water.DamageTicks==0 && water.DamageRemainder==7500,"Protection did not reset the interval or erased fractional damage.");
+                water.InWater=true;
+                for(int tick=0;tick<29;tick++)SwimmingSystem.Damage(ref water,ref v,c,false,175);
+                Require(v.Health==174,"Returning to water caused an early pulse.");
+                SwimmingSystem.Damage(ref water,ref v,c,false,175);
+                Require(v.Health==172 && water.DamageRemainder==5000,"Returning pulse lost the fractional remainder.");
+            }
         });
         yield return ("domain_shared_budget_uses_sum_and_last_partial_step",()=>{
             int stamina=5250;int f=SwimmingSystem.Spend(ref stamina,4500,6000);long remainder=0;
@@ -57,12 +89,20 @@ internal static partial class Program
             Require(!SwimmingSystem.CanCast(true,false,false) && SwimmingSystem.CanCast(true,false,true) && !SwimmingSystem.CanCast(true,true,true),"Cast permission incorrect.");
         });
         yield return ("domain_water_snapshot_preserves_fractional_damage_and_rejects_corruption",()=>{
-            var s=new SwimmingState{InWater=true,DamageRemainder=12500,MoveRemainderX=-15400000000,MoveRemainderZ=19000};
+            var s=new SwimmingState{InWater=true,DamageRemainder=1250,DamageTicks=17,MoveRemainderX=-15400000000,MoveRemainderZ=19000};
             using var ms=new MemoryStream();using var w=new BinaryWriter(ms);SwimmingStateCodec.Write(w,s);ms.Position=0;
             using var r=new BinaryReader(ms);var t=SwimmingStateCodec.Read(r);
-            Require(t.InWater && t.DamageRemainder==12500 && t.MoveRemainderX==s.MoveRemainderX && t.MoveRemainderZ==19000,"Lost residual state.");
-            t.DamageRemainder=30000;Throws<InvalidDataException>(()=>SwimmingStateCodec.Validate(t));
-            t.DamageRemainder=0;t.MoveRemainderX=long.MinValue;Throws<InvalidDataException>(()=>SwimmingStateCodec.Validate(t));
+            Require(t.InWater && t.DamageRemainder==1250 && t.DamageTicks==17 && t.MoveRemainderX==s.MoveRemainderX && t.MoveRemainderZ==19000,"Lost residual state.");
+            var original=new CharacterVitals{Health=100,Hunger=100};var restored=original;var c=new SwimmingConfig();
+            for(int tick=0;tick<60;tick++)
+            {
+                SwimmingSystem.Damage(ref s,ref original,c,false,175);SwimmingSystem.Damage(ref t,ref restored,c,false,175);
+                Require(original.Health==restored.Health && s.DamageTicks==t.DamageTicks && s.DamageRemainder==t.DamageRemainder,"Restored damage schedule diverged.");
+            }
+            Require(restored.Health==97,"Snapshot resumed with a skipped or duplicated damage pulse.");
+            t.DamageRemainder=10000;Throws<InvalidDataException>(()=>SwimmingStateCodec.Validate(t));
+            t.DamageRemainder=0;t.DamageTicks=30;Throws<InvalidDataException>(()=>SwimmingStateCodec.Validate(t));
+            t.DamageTicks=0;t.MoveRemainderX=long.MinValue;Throws<InvalidDataException>(()=>SwimmingStateCodec.Validate(t));
         });
     }
 }

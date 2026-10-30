@@ -121,7 +121,7 @@ flowchart LR
 | `samples/HookIsland.Network/` | 1～4 人固定房间、自动分配槽位、地图兼容检查、输入冻结与预测、连接清理 |
 | `proto/hook-island-room.proto` | 小岛房间 Protobuf 协议，与庭院房间独立 |
 | `Assets/HookIsland/Runtime/` | Unity 键鼠、中文菜单与商店面板、角色与鱼模型、钩绳、水圈、音效与金币提示 |
-| `Assets/HookIsland/Editor/HookIslandGameplayBuilder.cs` | 在既有场景中添加玩法入口和连续的码头行走面 |
+| `Assets/HookIsland/Editor/Scenes/HookIslandGameplayBuilder.cs` | 在既有场景中添加玩法入口和连续的码头行走面 |
 | `scripts/prepare-hook-island-map.py` | 从 Blender 导出的 156 点海岸线生成碰撞边界、四个出生点及 24 个鱼点 |
 
 逻辑固定为 30 Hz。本地移动读取预测状态以降低操作延迟；钩鱼归属、奖励和音效读取确认状态。同一帧内多个钩子碰到同一条鱼时，按玩家槽位顺序决定唯一捕获者，其他钩子继续飞行；所有玩家获得同一个团队钱包结果。

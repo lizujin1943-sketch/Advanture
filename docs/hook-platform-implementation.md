@@ -45,17 +45,17 @@ Unity 工程：`samples/TacticalGame.Unity`。打开 `Assets/HookIsland/Scenes/H
 
 | 模块 | 职责 |
 | --- | --- |
-| `HookIsland.Simulation/PlatformRules.cs` | 网格、相邻连接、占用与通行校验，无 Unity 依赖 |
-| `HookIsland.Simulation/PlatformBuildSystem.cs` | 按同步顺序执行建造事务，保存成功和失败回执 |
-| `HookIsland.Simulation/PersonalMaterialInventory.cs` | 个人材料的读取、完整入账与扣除；后续背包接入的集中边界 |
-| `HookIsland.Simulation/PlatformStateCodec.cs` | 地块、浮木的状态读写与不变量验证 |
-| `HookIsland.Simulation/DriftwoodMotion.cs` | 浮木的确定性漂流、归属与刷新状态 |
-| `HookIsland.Network/PlatformBuildRequestBuffer.cs` | 等待权威回执前重发同一请求，保留移动等其他输入 |
-| `Runtime/PlatformConstruction.cs` | 本地输入与建造交互，协调请求和表现，不直接扣材料 |
-| `Runtime/PlatformPresentation.cs` | 已确认地块、候选格和预览显示；通过预制体映射获取外观 |
-| `Runtime/PlatformShoreline.cs` | 根据已确认地块生成水边距离纹理，为海水提供泡沫和向外扩散的波纹 |
-| `Runtime/DriftwoodPresentation.cs` | 浮木显示与纯视觉起伏 |
-| `Runtime/PlatformSettings.cs` | Unity 配置资产到不可变模拟配置的转换 |
+| `HookIsland.Simulation/Logic/Construction/PlatformRules.cs` | 网格、相邻连接、占用与通行校验，无 Unity 依赖 |
+| `HookIsland.Simulation/Logic/Construction/PlatformBuildSystem.cs` | 按同步顺序执行建造事务，保存成功和失败回执 |
+| `HookIsland.Simulation/Logic/Inventory/PersonalMaterialInventory.cs` | 个人材料的读取、完整入账与扣除；后续背包接入的集中边界 |
+| `HookIsland.Simulation/Serialization/PlatformStateCodec.cs` | 地块、浮木的状态读写与不变量验证 |
+| `HookIsland.Simulation/Logic/World/DriftwoodMotion.cs` | 浮木的确定性漂流、归属与刷新状态 |
+| `HookIsland.Network/Commands/PlatformBuildRequestBuffer.cs` | 等待权威回执前重发同一请求，保留移动等其他输入 |
+| `Runtime/Application/Commands/PlatformConstruction.cs` | 本地输入与建造交互，协调请求和表现，不直接扣材料 |
+| `Runtime/Presentation/World/PlatformPresentation.cs` | 已确认地块、候选格和预览显示；通过预制体映射获取外观 |
+| `Runtime/Presentation/World/PlatformShoreline.cs` | 根据已确认地块生成水边距离纹理，为海水提供泡沫和向外扩散的波纹 |
+| `Runtime/Presentation/World/DriftwoodPresentation.cs` | 浮木显示与纯视觉起伏 |
+| `Runtime/Data/Settings/PlatformSettings.cs` | Unity 配置资产到不可变模拟配置的转换 |
 
 前六项路径位于 `samples/`；Unity 的 `Runtime/` 位于 `samples/TacticalGame.Unity/Assets/HookIsland/`。`HookGame` 只在移动后调用建造事务，不再兼管其扣料与回执细节。新价格与预制体配置不应改动网络运输或帧同步核心。需要新增材料种类时，扩展材料／配方定义及外观注册；相邻连接、命令去重及移动规则保持共用。没有为两种地块建立不同的移动子类，以免破坏相同通行行为的契约。
 
@@ -104,6 +104,6 @@ python3 scripts/run-island-party.py --platform --players 4
 
 地块规则、`PlatformBuildSystem`、`PersonalMaterialInventory` 和 `PlatformBuildRequestBuffer` 的职责拆分已完成。背包可从个人材料读写边界接入，同时更新快照的收支守恒校验；不要在 Unity 面板里另扣一次材料。钓竿命令与建造命令互斥，待确认的建造优先，其余系统保留自己的回执并在后续帧重试。
 
-地块收尾现已完成，可交接上述代码、`Runtime/PlatformSmokePilot.cs`、`Runtime/PlatformSmokeDriver.cs`、`tools/HookIsland.Tests/PlatformTests.cs` 和 `scripts/run-island-party.py`；地块任务不再修改这些文件或占用 Unity 验收。共享 `HookGame`／`HookState`／`HookInput` 的地块接入已完成，`Inventory*` 和背包计划由背包模块维护。
+地块收尾现已完成，可交接上述代码、`Runtime/Development/Pilots/PlatformSmokePilot.cs`、`Runtime/Development/Drivers/PlatformSmokeDriver.cs`、`tools/HookIsland.Tests/PlatformTests.cs` 和 `scripts/run-island-party.py`；地块任务不再修改这些文件或占用 Unity 验收。共享 `HookGame`／`HookState`／`HookInput` 的地块接入已完成，`Inventory*` 和背包计划由背包模块维护。
 
 后续将数量库存替换为格子堆叠／溢出包时，需同步调整 `PlatformStateCodec` 的守恒公式与材料显示；当前公式是“累计获得 − 当前余额 = 历史建造支出”，未计入地上包与主动丢弃。保留建造事务的唯一扣料入口，以及成功／失败请求的持久回执。验收驾驶员按 `FishingRules.Range/Speed` 读取实际钓竿参数，支持输入延迟；材料获取由真实捕获完成，接入背包后应继续沿这条流程验收。

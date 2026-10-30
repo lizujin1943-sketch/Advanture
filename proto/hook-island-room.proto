@@ -5,7 +5,7 @@ option csharp_namespace = "Advanture.HookIsland.Network.Protocol";
 // 游戏房间协议，独立于帧同步核心。
 // 已发布的字段编号不可换含义，删除后必须 reserved。
 message RoomPacket {
-  uint32 protocol_version = 1; // 房间协议版本 22：预留席位、晚加入及原席位恢复。
+  uint32 protocol_version = 1; // 房间协议版本 29：预留席位、晚加入及持久身份存档恢复。
   reserved 2 to 9;
   oneof body { // 消息正文，选择一个分支。
     JoinRoom join = 10; // 客户端申请加入房间。
@@ -23,6 +23,7 @@ message JoinRoom {
   bytes map_hash = 2; // 客户端地图编码的 SHA-256 摘要，32 字节。
   bytes room_id = 3; // 仅恢复时携带的原房间 ID；新加入留空。
   bytes resume_token = 4; // 仅恢复时携带的 32 字节不透明凭据，不记录到日志。
+  bytes player_key = 5; // 本机持久席位凭据，32 字节；不进入共享快照或日志。
 }
 
 // 房主接受加入后返回的信息。

@@ -1,0 +1,398 @@
+{
+  "width": 1024,
+  "height": 896,
+  "entries": [
+    {
+      "id": "material_wood",
+      "x": 11,
+      "y": 12,
+      "width": 93,
+      "height": 85
+    },
+    {
+      "id": "material_fishbone",
+      "x": 137,
+      "y": 28,
+      "width": 109,
+      "height": 63
+    },
+    {
+      "id": "rod_starter",
+      "x": 295,
+      "y": 14,
+      "width": 62,
+      "height": 106
+    },
+    {
+      "id": "rod_t1_long",
+      "x": 423,
+      "y": 6,
+      "width": 62,
+      "height": 114
+    },
+    {
+      "id": "rod_t1_fast",
+      "x": 551,
+      "y": 17,
+      "width": 62,
+      "height": 103
+    },
+    {
+      "id": "rod_t1_tough",
+      "x": 679,
+      "y": 16,
+      "width": 62,
+      "height": 104
+    },
+    {
+      "id": "rod_t1_swiftlong",
+      "x": 807,
+      "y": 6,
+      "width": 62,
+      "height": 114
+    },
+    {
+      "id": "rod_t1_deepline",
+      "x": 935,
+      "y": 5,
+      "width": 62,
+      "height": 115
+    },
+    {
+      "id": "rod_t1_balanced",
+      "x": 39,
+      "y": 145,
+      "width": 62,
+      "height": 103
+    },
+    {
+      "id": "rod_t2_long",
+      "x": 167,
+      "y": 134,
+      "width": 62,
+      "height": 114
+    },
+    {
+      "id": "rod_t2_fast",
+      "x": 295,
+      "y": 145,
+      "width": 62,
+      "height": 103
+    },
+    {
+      "id": "rod_t2_tough",
+      "x": 423,
+      "y": 144,
+      "width": 62,
+      "height": 104
+    },
+    {
+      "id": "rod_t2_swiftlong",
+      "x": 551,
+      "y": 134,
+      "width": 62,
+      "height": 114
+    },
+    {
+      "id": "rod_t2_deepline",
+      "x": 679,
+      "y": 133,
+      "width": 62,
+      "height": 115
+    },
+    {
+      "id": "rod_t2_balanced",
+      "x": 807,
+      "y": 145,
+      "width": 62,
+      "height": 103
+    },
+    {
+      "id": "rod_t3_long",
+      "x": 935,
+      "y": 134,
+      "width": 62,
+      "height": 114
+    },
+    {
+      "id": "rod_t3_fast",
+      "x": 39,
+      "y": 273,
+      "width": 62,
+      "height": 103
+    },
+    {
+      "id": "rod_t3_tough",
+      "x": 167,
+      "y": 272,
+      "width": 62,
+      "height": 104
+    },
+    {
+      "id": "rod_t3_swiftlong",
+      "x": 295,
+      "y": 262,
+      "width": 62,
+      "height": 114
+    },
+    {
+      "id": "rod_t3_deepline",
+      "x": 423,
+      "y": 261,
+      "width": 62,
+      "height": 115
+    },
+    {
+      "id": "rod_t3_balanced",
+      "x": 551,
+      "y": 273,
+      "width": 62,
+      "height": 103
+    },
+    {
+      "id": "rod_t4_long",
+      "x": 679,
+      "y": 262,
+      "width": 62,
+      "height": 114
+    },
+    {
+      "id": "rod_t4_fast",
+      "x": 807,
+      "y": 273,
+      "width": 62,
+      "height": 103
+    },
+    {
+      "id": "rod_t4_tough",
+      "x": 935,
+      "y": 272,
+      "width": 62,
+      "height": 104
+    },
+    {
+      "id": "rod_t4_swiftlong",
+      "x": 39,
+      "y": 390,
+      "width": 62,
+      "height": 114
+    },
+    {
+      "id": "rod_t4_deepline",
+      "x": 167,
+      "y": 389,
+      "width": 62,
+      "height": 115
+    },
+    {
+      "id": "rod_t4_balanced",
+      "x": 295,
+      "y": 401,
+      "width": 62,
+      "height": 103
+    },
+    {
+      "id": "rod_t5_long",
+      "x": 423,
+      "y": 390,
+      "width": 62,
+      "height": 114
+    },
+    {
+      "id": "rod_t5_fast",
+      "x": 551,
+      "y": 401,
+      "width": 62,
+      "height": 103
+    },
+    {
+      "id": "rod_t5_tough",
+      "x": 679,
+      "y": 400,
+      "width": 62,
+      "height": 104
+    },
+    {
+      "id": "rod_t5_swiftlong",
+      "x": 807,
+      "y": 390,
+      "width": 62,
+      "height": 114
+    },
+    {
+      "id": "rod_t5_deepline",
+      "x": 935,
+      "y": 389,
+      "width": 62,
+      "height": 115
+    },
+    {
+      "id": "rod_t5_balanced",
+      "x": 39,
+      "y": 529,
+      "width": 62,
+      "height": 103
+    },
+    {
+      "id": "bag_lv01",
+      "x": 153,
+      "y": 518,
+      "width": 77,
+      "height": 111
+    },
+    {
+      "id": "bag_lv02",
+      "x": 281,
+      "y": 518,
+      "width": 77,
+      "height": 111
+    },
+    {
+      "id": "bag_lv03",
+      "x": 397,
+      "y": 518,
+      "width": 89,
+      "height": 111
+    },
+    {
+      "id": "bag_lv04",
+      "x": 525,
+      "y": 518,
+      "width": 103,
+      "height": 111
+    },
+    {
+      "id": "bag_lv05",
+      "x": 653,
+      "y": 518,
+      "width": 103,
+      "height": 111
+    },
+    {
+      "id": "bag_lv06",
+      "x": 781,
+      "y": 518,
+      "width": 103,
+      "height": 111
+    },
+    {
+      "id": "bag_lv07",
+      "x": 909,
+      "y": 518,
+      "width": 103,
+      "height": 111
+    },
+    {
+      "id": "bag_lv08",
+      "x": 13,
+      "y": 646,
+      "width": 103,
+      "height": 111
+    },
+    {
+      "id": "bag_lv09",
+      "x": 141,
+      "y": 646,
+      "width": 103,
+      "height": 111
+    },
+    {
+      "id": "bag_lv10",
+      "x": 266,
+      "y": 646,
+      "width": 106,
+      "height": 111
+    },
+    {
+      "id": "swim_ring_lv01",
+      "x": 396,
+      "y": 657,
+      "width": 101,
+      "height": 97
+    },
+    {
+      "id": "swim_ring_lv02",
+      "x": 524,
+      "y": 657,
+      "width": 101,
+      "height": 97
+    },
+    {
+      "id": "swim_ring_lv03",
+      "x": 647,
+      "y": 657,
+      "width": 113,
+      "height": 97
+    },
+    {
+      "id": "swim_ring_lv04",
+      "x": 775,
+      "y": 657,
+      "width": 113,
+      "height": 97
+    },
+    {
+      "id": "swim_ring_lv05",
+      "x": 903,
+      "y": 657,
+      "width": 113,
+      "height": 97
+    },
+    {
+      "id": "swim_ring_lv06",
+      "x": 7,
+      "y": 785,
+      "width": 113,
+      "height": 97
+    },
+    {
+      "id": "swim_ring_lv07",
+      "x": 135,
+      "y": 785,
+      "width": 113,
+      "height": 97
+    },
+    {
+      "id": "swim_ring_lv08",
+      "x": 263,
+      "y": 785,
+      "width": 113,
+      "height": 97
+    },
+    {
+      "id": "swim_ring_lv09",
+      "x": 391,
+      "y": 785,
+      "width": 113,
+      "height": 97
+    },
+    {
+      "id": "swim_ring_lv10",
+      "x": 519,
+      "y": 785,
+      "width": 113,
+      "height": 97
+    },
+    {
+      "id": "guard_cap",
+      "x": 646,
+      "y": 791,
+      "width": 113,
+      "height": 81
+    },
+    {
+      "id": "reinforced_coat",
+      "x": 773,
+      "y": 785,
+      "width": 115,
+      "height": 97
+    },
+    {
+      "id": "light_shoes",
+      "x": 901,
+      "y": 794,
+      "width": 104,
+      "height": 81
+    }
+  ]
+}

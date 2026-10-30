@@ -52,7 +52,7 @@ internal static partial class Program
     {
         var m = IslandMap.CreatePlatform();
         return new IslandMap(m.Shore, m.Pier, m.Spawns, m.FishSpots, m.Platform,
-            new FishingConfig(swimming: new SwimmingConfig(healthLossMilliPerSecond: 1000000),
+            new FishingConfig(swimming: new SwimmingConfig(healthLossBasisPointsPerSecond: 10000),
                 revival: new RevivalConfig(downedTicks: 30)));
     }
     private static HookInput LeavePlatform(IslandClient c) => new HookInput(c.Slot % 2 == 0 ? (short)1000 : (short)-1000, 0);

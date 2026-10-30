@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba44b76ea14482893b94321a05fdabe, type: 3}
   m_Name: SwimmingSettings
   m_EditorClassIdentifier: 
-  waterHealthLossPerSecond: 5
+  waterHealthLossPercentPerSecond: 1
   swimMetresPerSecond: 1
   swimStaminaPerSecond: 10

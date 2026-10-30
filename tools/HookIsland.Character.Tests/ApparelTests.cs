@@ -29,7 +29,7 @@ internal static partial class Program
         yield return ("apparel_full_bag_rejects_removal_without_losing_attributes_or_items", () => {
             var inventory = new InventorySystem(1); int coins = 1000;
             Require(inventory.Purchase(0, ItemKind.Apparel, 1, true, false, new Point(0, 0), ref coins) == InventoryResult.Success, "Clothes fixture failed.");
-            inventory.CreditMaterial(0, ItemKind.Wood, 320, new Point(0, 0));
+            inventory.CreditMaterial(0, ItemKind.Wood, 16 * InventoryCatalog.MaterialStackLimit, new Point(0, 0));
             var before = InventoryStateCodec.Encode(inventory.Capture());
             Require(inventory.Unequip(0, EquipmentSlot.Clothes, new Point(0, 0)) == InventoryResult.NoSpace, "Full bag accepted clothes.");
             Require(before.SequenceEqual(InventoryStateCodec.Encode(inventory.Capture())), "Failed unequip changed inventory or wallet.");
@@ -74,7 +74,7 @@ internal static partial class Program
             Require(stats.Armor == 20 && CharacterDamage.Resolve(60, stats.Armor, DamageKind.Combat) == 50, "Hat defense is not used in damage rules.");
             var p = s.Players.ToArray(); p[0].X = -4000; p[0].Swimming.InWater = true; game.Restore(WithPlayers(s, p));
             for (int n = 0; n < 30; n++) Step(game);
-            s = game.Capture(); Require(s.Players[0].Vitals.Health == 95 && FishingRules.Attributes(s, s.Players[0]).Armor == 20, "Defense blocked drowning or was consumed.");
+            s = game.Capture(); Require(s.Players[0].Vitals.Health == 99 && FishingRules.Attributes(s, s.Players[0]).Armor == 20, "Defense blocked the one-percent drowning pulse or was consumed.");
             Step(game, EquipCommand(InventoryAction.Unequip, (int)EquipmentSlot.Hat, 1));
             Require(FishingRules.Attributes(game.Capture(), game.Capture().Players[0]).Armor == 0, "Headgear removal did not remove defense.");
         });

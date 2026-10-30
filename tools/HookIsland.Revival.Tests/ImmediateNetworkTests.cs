@@ -14,7 +14,7 @@ internal static partial class Program
         foreach(bool earn in new[]{true,false})yield return ($"network_solo_immediate_{(earn?"earned_auto_respawn":"broke_defeat")}",()=>{
             var basis=CooperativeFishingSmokePilot.CreateMap();
             var map=new IslandMap(basis.Shore,basis.Pier,basis.Spawns,basis.FishSpots,basis.Platform,
-                new FishingConfig(reelSpeed:600,enemies:basis.Fishing!.Enemies,swimming:new SwimmingConfig(healthLossMilliPerSecond:1000000)));
+                new FishingConfig(reelSpeed:600,enemies:basis.Fishing!.Enemies,swimming:new SwimmingConfig(healthLossBasisPointsPerSecond:10000)));
             using var host=new IslandHost(map,0,1);using var client=new IslandClient(map,IPAddress.Loopback,host.Port,0);
             var pilot=new CooperativeFishingSmokePilot();var clock=System.Diagnostics.Stopwatch.StartNew();TimeSpan now=default;
             bool Complete()=>host.Session!=null && (earn?host.Session.InspectState().Players[0].Revival.CoinsSpent>0:host.Session.InspectState().GameOver);

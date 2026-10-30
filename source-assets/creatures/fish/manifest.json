@@ -1,0 +1,960 @@
+{
+  "schema": 2,
+  "art_revision": "reference-anatomy-v2",
+  "blender": "5.2.1 LTS",
+  "source": "FishLibrary.blend",
+  "fps": 30,
+  "units": "meters",
+  "forward_blender": "-Y",
+  "up_blender": "Z",
+  "root_motion": false,
+  "triangle_budget_per_fish": 10000,
+  "species": [
+    {
+      "id": "fish_01",
+      "name": "银背鲻鱼",
+      "slug": "SilverMullet",
+      "rig": "fish_01_Rig",
+      "mesh": "fish_01_Mesh",
+      "length_m": 0.42,
+      "vertices": 2586,
+      "triangles": 5128,
+      "bones": 11,
+      "material_count": 1,
+      "texture": "exports/textures/fish_01_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/fish_01_SilverMullet.fbx",
+      "glb": "exports/fish_01_SilverMullet.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "fish_01_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "fish_01_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "fish_01_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "fish_01_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "fish_01_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "fish_01_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "fish_01_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        }
+      ]
+    },
+    {
+      "id": "fish_02",
+      "name": "蓝纹鲭鱼",
+      "slug": "BlueMackerel",
+      "rig": "fish_02_Rig",
+      "mesh": "fish_02_Mesh",
+      "length_m": 0.46,
+      "vertices": 2602,
+      "triangles": 5156,
+      "bones": 11,
+      "material_count": 1,
+      "texture": "exports/textures/fish_02_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/fish_02_BlueMackerel.fbx",
+      "glb": "exports/fish_02_BlueMackerel.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "fish_02_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "fish_02_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "fish_02_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "fish_02_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "fish_02_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "fish_02_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "fish_02_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        }
+      ]
+    },
+    {
+      "id": "fish_03",
+      "name": "赤尾鲷鱼",
+      "slug": "RedBream",
+      "rig": "fish_03_Rig",
+      "mesh": "fish_03_Mesh",
+      "length_m": 0.38,
+      "vertices": 2636,
+      "triangles": 5232,
+      "bones": 11,
+      "material_count": 1,
+      "texture": "exports/textures/fish_03_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/fish_03_RedBream.fbx",
+      "glb": "exports/fish_03_RedBream.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "fish_03_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "fish_03_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "fish_03_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "fish_03_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "fish_03_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "fish_03_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "fish_03_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        }
+      ]
+    },
+    {
+      "id": "fish_04",
+      "name": "斑点石斑鱼",
+      "slug": "SpottedGrouper",
+      "rig": "fish_04_Rig",
+      "mesh": "fish_04_Mesh",
+      "length_m": 0.48,
+      "vertices": 3504,
+      "triangles": 6968,
+      "bones": 11,
+      "material_count": 1,
+      "texture": "exports/textures/fish_04_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/fish_04_SpottedGrouper.fbx",
+      "glb": "exports/fish_04_SpottedGrouper.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "fish_04_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "fish_04_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "fish_04_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "fish_04_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "fish_04_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "fish_04_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "fish_04_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        }
+      ]
+    },
+    {
+      "id": "fish_05",
+      "name": "刺球河鲀",
+      "slug": "Puffer",
+      "rig": "fish_05_Rig",
+      "mesh": "fish_05_Mesh",
+      "length_m": 0.34,
+      "vertices": 4074,
+      "triangles": 7944,
+      "bones": 11,
+      "material_count": 1,
+      "texture": "exports/textures/fish_05_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/fish_05_Puffer.fbx",
+      "glb": "exports/fish_05_Puffer.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "fish_05_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "fish_05_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "fish_05_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "fish_05_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "fish_05_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "fish_05_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "fish_05_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        }
+      ]
+    },
+    {
+      "id": "fish_06",
+      "name": "翡翠鹦嘴鱼",
+      "slug": "Parrotfish",
+      "rig": "fish_06_Rig",
+      "mesh": "fish_06_Mesh",
+      "length_m": 0.39,
+      "vertices": 2732,
+      "triangles": 5424,
+      "bones": 11,
+      "material_count": 1,
+      "texture": "exports/textures/fish_06_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/fish_06_Parrotfish.fbx",
+      "glb": "exports/fish_06_Parrotfish.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "fish_06_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "fish_06_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "fish_06_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "fish_06_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "fish_06_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "fish_06_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "fish_06_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        }
+      ]
+    },
+    {
+      "id": "fish_07",
+      "name": "月纹鲳鱼",
+      "slug": "MoonPomfret",
+      "rig": "fish_07_Rig",
+      "mesh": "fish_07_Mesh",
+      "length_m": 0.42,
+      "vertices": 2310,
+      "triangles": 4584,
+      "bones": 11,
+      "material_count": 1,
+      "texture": "exports/textures/fish_07_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/fish_07_MoonPomfret.fbx",
+      "glb": "exports/fish_07_MoonPomfret.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "fish_07_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "fish_07_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "fish_07_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "fish_07_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "fish_07_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "fish_07_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "fish_07_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        }
+      ]
+    },
+    {
+      "id": "fish_08",
+      "name": "紫鳍狮子鱼",
+      "slug": "Lionfish",
+      "rig": "fish_08_Rig",
+      "mesh": "fish_08_Mesh",
+      "length_m": 0.42,
+      "vertices": 3022,
+      "triangles": 5980,
+      "bones": 11,
+      "material_count": 1,
+      "texture": "exports/textures/fish_08_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/fish_08_Lionfish.fbx",
+      "glb": "exports/fish_08_Lionfish.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "fish_08_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "fish_08_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "fish_08_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "fish_08_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "fish_08_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "fish_08_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "fish_08_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        }
+      ]
+    },
+    {
+      "id": "fish_09",
+      "name": "金帆旗鱼",
+      "slug": "GoldenSailfish",
+      "rig": "fish_09_Rig",
+      "mesh": "fish_09_Mesh",
+      "length_m": 0.68,
+      "vertices": 2244,
+      "triangles": 4440,
+      "bones": 11,
+      "material_count": 1,
+      "texture": "exports/textures/fish_09_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/fish_09_GoldenSailfish.fbx",
+      "glb": "exports/fish_09_GoldenSailfish.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "fish_09_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "fish_09_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "fish_09_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "fish_09_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "fish_09_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "fish_09_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "fish_09_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        }
+      ]
+    },
+    {
+      "id": "fish_10",
+      "name": "星辉皇带鱼",
+      "slug": "Ribbonfish",
+      "rig": "fish_10_Rig",
+      "mesh": "fish_10_Mesh",
+      "length_m": 0.9,
+      "vertices": 3690,
+      "triangles": 7024,
+      "bones": 16,
+      "material_count": 1,
+      "texture": "exports/textures/fish_10_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/fish_10_Ribbonfish.fbx",
+      "glb": "exports/fish_10_Ribbonfish.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "fish_10_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "fish_10_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "fish_10_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "fish_10_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "fish_10_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "fish_10_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "fish_10_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        }
+      ]
+    },
+    {
+      "id": "piranha",
+      "name": "食人鱼",
+      "slug": "Piranha",
+      "rig": "piranha_Rig",
+      "mesh": "piranha_Mesh",
+      "length_m": 0.43,
+      "vertices": 4350,
+      "triangles": 8608,
+      "bones": 11,
+      "material_count": 1,
+      "texture": "exports/textures/piranha_albedo.png",
+      "texture_size": [
+        1024,
+        512
+      ],
+      "texture_filter": "nearest",
+      "fbx": "exports/piranha_Piranha.fbx",
+      "glb": "exports/piranha_Piranha.glb",
+      "clips": [
+        {
+          "name": "Idle",
+          "action": "piranha_Idle",
+          "frames": 61,
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Swim",
+          "action": "piranha_Swim",
+          "frames": 31,
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Burst",
+          "action": "piranha_Burst",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Leap",
+          "action": "piranha_Leap",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Dive",
+          "action": "piranha_Dive",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        },
+        {
+          "name": "Hooked",
+          "action": "piranha_Hooked",
+          "frames": 25,
+          "fps": 30,
+          "duration_seconds": 0.8,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Flop",
+          "action": "piranha_Flop",
+          "frames": 37,
+          "fps": 30,
+          "duration_seconds": 1.2,
+          "loop": true,
+          "root_motion": false
+        },
+        {
+          "name": "Bite",
+          "action": "piranha_Bite",
+          "frames": 19,
+          "fps": 30,
+          "duration_seconds": 0.6,
+          "loop": false,
+          "root_motion": false
+        }
+      ]
+    }
+  ],
+  "clip_count": 78,
+  "scope": "Source art package. Installed into samples/TacticalGame.Unity via FishArtInstaller; simulation and network authority remain unchanged."
+}

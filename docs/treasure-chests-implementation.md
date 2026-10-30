@@ -16,7 +16,7 @@
 
 ## 配置入口
 
-Unity 资产 `Assets/HookIsland/Data/TreasureSettings.asset` 经 `FishingSettings` 导出到 `PlatformMap.bytes`，所有客户端校验同一份配置。核心配置为 `samples/HookIsland.Simulation/TreasureConfig.cs`；核心未提供配置或 Unity 未绑定宝箱资产时均保持禁用。
+Unity 资产 `Assets/HookIsland/Data/TreasureSettings.asset` 经 `FishingSettings` 导出到 `PlatformMap.bytes`，所有客户端校验同一份配置。核心配置为 `samples/HookIsland.Simulation/Data/Configuration/TreasureConfig.cs`；核心未提供配置或 Unity 未绑定宝箱资产时均保持禁用。
 
 | 项目 | 首版初值 |
 | --- | --- |

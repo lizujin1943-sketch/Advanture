@@ -31,7 +31,7 @@
 
 ### Task 1: 配置与耐力捕鱼
 
-Files: 新建 `samples/HookIsland.Simulation/FishingEquipment.cs`、`FishingCatalog.cs`、`Data/*.csv`；修改 `HookState.cs`、`HookGame.cs`、`IslandMap.cs`；测试 `tools/HookIsland.Tests/RodTests.cs`。
+Files: 新建 `samples/HookIsland.Simulation/Logic/Fishing/FishingEquipment.cs`、`FishingCatalog.cs`、`Data/*.csv`；修改 `HookState.cs`、`HookGame.cs`、`IslandMap.cs`；测试 `tools/HookIsland.Tests/RodTests.cs`。
 
 Interfaces: `FishingConfig` 提供全局参数；`RodCatalog.Get(int)` 提供三项属性和占格；`FishingRules.Range(HookState,Fisher)`、`Speed(...)`、`MaxStamina(...)` 供模拟及 Unity 共用。
 

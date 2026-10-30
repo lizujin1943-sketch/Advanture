@@ -5,7 +5,7 @@
 ## 已实现的玩法
 
 - 每人初始穿戴免费 Lv1 背包，容量 4×4。Lv2～10 的容量、价格由 `samples/HookIsland.Simulation/Data/backpacks.csv` 配置。
-- 木材、鱼骨每格最多 20 个；备用钓竿按目录占格，空背包为 2×2。穿戴中的装备不占包内格子；备用包不会额外增加容量。
+- 木材、鱼骨每格最多 99 个（2026-10-27 更新）；备用钓竿按目录占格，空背包为 2×2。穿戴中的装备不占包内格子；备用包不会额外增加容量。
 - 移动、旋转、合堆、拆分、指定数量丢弃、主动拾取、穿戴和卸下。只能整理自己的物品。
 - 满包仍可直接购买并穿上大包。换包先验证新布局，失败保持金币、货架、装备和内容不变。可明确选择将旧包装备放到平台，否则必须为它保留空间。
 - 收获先补现有堆叠，再放空格，剩余放到平台。地面材料按种类和地块合并，不定时删除；拾取空间不够时只收能容纳的部分。
@@ -49,7 +49,7 @@
 | `EquipmentSystem.cs` | 校验当前角色、距离、钓竿状态、商品批次；去重并记录结果 |
 | `PersonalMaterialInventory.cs` | 捕鱼／浮木发材料和建造扣材料的统一入口 |
 | `InventoryStateCodec.cs`、`FishingStateCodec.cs`、`PlatformStateCodec.cs` | 保存恢复及库存布局、钱包、物品和建造材料守恒校验 |
-| `samples/HookIsland.Network/InventoryRequestBuffer.cs` | 保留同一个操作意图，直到收到确认回执 |
+| `samples/HookIsland.Network/Commands/InventoryRequestBuffer.cs` | 保留同一个操作意图，直到收到确认回执 |
 | Unity `FishingEquipmentController.cs` | 本地按键、面板状态、操作排队；不直接改物品或金币 |
 | Unity `BackpackOverlay.cs` | 背包格子、货架、材料数量、掉落列表和换包预览 |
 | Unity `GroundPickupSelection.cs` | 附近掉落排序和无包恢复选择；不决定交易成功 |
@@ -117,6 +117,8 @@ python3 scripts/run-island-party.py --inventory --players 4
 自动输入只存在于编辑器／开发构建，并且需显式 `-island-inventory-smoke 1` 启用；正式场景不挂验证组件，发布构建不编译 `InventorySmokeDriver` 或 `InventorySmokePilot`。流程通过实际捕鱼挣钱，再购买大包、移动／拆分／丢弃／争抢材料、铺地，并检查角色卸竿与再装备，不注入资源。
 
 ## 本次验收结果（2026-10-21，版本 8 基线）
+
+以下保留当时的验收记录；2026-10-27 的 99 堆叠、56 个物品图标及最新兼容版本见 [本次实现说明](item-icons-and-stack99.md)。
 
 - 完整 `./scripts/verify.sh` 通过：包含背包 26/26、角色 19/19、钓鱼平台 78/78，以及通用框架、可靠 UDP、存档和原战术示例回归。日志：`artifacts/backpack/full-verify.log`。
 - Unity EditMode 36/36 通过。开发版和发布版 macOS 构建均为 0 错误、0 警告。

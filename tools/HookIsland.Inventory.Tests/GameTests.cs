@@ -75,11 +75,12 @@ internal static partial class Program
             new HookGame().Decode(new HookGame().Encode(final)); Console.WriteLine("BACKPACK_ACCEPTANCE_TICKS " + final.Steps);
         });
         yield return ("game_full_backpack_buy_equips_and_replay_preserves_personal_receipts", () => {
-            var a = Game(2, 1000, 320); var s = a.Capture(); int offer = BagOffer(s);
+            int capacity = 16 * InventoryCatalog.MaterialStackLimit;
+            var a = Game(2, 1000, capacity); var s = a.Capture(); int offer = BagOffer(s);
             GameStep(a, Command(InventoryAction.BuyAndEquip, offer, 1, batch: s.Tackle!.Batch), Command(InventoryAction.BuyAndEquip, offer, 1, batch: s.Tackle.Batch));
             s = a.Capture();
             Require(s.Players[0].LastInventoryResult == InventoryResult.Success && s.Players[1].LastInventoryResult == InventoryResult.SoldOut, "Contested bag did not issue one winner and one rejection.");
-            Require(s.Players[0].Coins == 800 && s.Players[1].Coins == 0 && s.Players[0].Wood == 320 && s.Tackle!.Inventory.Size(0).Height == 5, "Purchase lost contents or shared personal money.");
+            Require(s.Players[0].Coins == 800 && s.Players[1].Coins == 0 && s.Players[0].Wood == capacity && s.Tackle!.Inventory.Size(0).Height == 5, "Purchase lost contents or shared personal money.");
             var b = Game(); var codec = new HookGame(); b.Restore(codec.Decode(codec.Encode(s)));
             var duplicate = Command(InventoryAction.BuyAndEquip, offer, 1, batch: s.Tackle!.Batch);
             for (int i = 0; i < 50; i++) { GameStep(a, duplicate); GameStep(b, duplicate); }
@@ -102,11 +103,11 @@ internal static partial class Program
             Require(game.Capture().Players[0].WoodEarned == 45 && game.Capture().Players[1].Wood == 3, "Cross-player material conservation rejected valid save.");
         });
         yield return ("game_failed_request_is_final_and_cannot_replay_after_space_freed", () => {
-            var game = Game(1, 1000, 320); var s = game.Capture();
+            var game = Game(1, 1000, 16 * InventoryCatalog.MaterialStackLimit); var s = game.Capture();
             var failed = Command(InventoryAction.Buy, 0, 1, batch: s.Tackle!.Batch); GameStep(game, failed);
             Require(game.Capture().Players[0].LastInventoryResult == InventoryResult.NoSpace, "Full bag purchase did not fail.");
             s = game.Capture(); var inventory = new InventorySystem(s.Tackle!.Inventory); var p = s.Players.ToArray();
-            inventory.Drop(0, inventory.Capture().Items.First(i => i.Kind == ItemKind.Wood).Id, 20, Ground);
+            inventory.Drop(0, inventory.Capture().Items.First(i => i.Kind == ItemKind.Wood).Id, InventoryCatalog.MaterialStackLimit, Ground);
             PersonalMaterialInventory.Refresh(ref p[0], inventory); game.Restore(WithInventory(s, inventory.Capture(), p));
             GameStep(game, failed); s = game.Capture();
             Require(!s.Tackle!.Stock[0].Sold && s.Players[0].Coins == 1000 && s.Players[0].LastInventoryResult == InventoryResult.NoSpace, "Failed intent replayed after its context changed.");
@@ -133,7 +134,7 @@ internal static partial class Program
             Require(game.Capture().Players[0].Casts == 0 && game.Capture().Players[0].LastInventoryResult == InventoryResult.Success, "An inventory click also cast the hook.");
         });
         yield return ("game_checkpoint_rejects_offshore_ground_and_counter_wallet_tampering", () => {
-            var game = Game(1, 500, 340); var s = game.Capture(); var codec = new HookGame();
+            var game = Game(1, 500, 17 * InventoryCatalog.MaterialStackLimit); var s = game.Capture(); var codec = new HookGame();
             bool Rejected(HookState bad) { try { codec.Decode(codec.Encode(bad)); return false; } catch (InvalidDataException) { return true; } }
             var p = s.Players.ToArray(); p[0].Wood++;
             Require(Rejected(WithInventory(s, s.Tackle!.Inventory, p)), "Summary material counter can disagree with inventory.");

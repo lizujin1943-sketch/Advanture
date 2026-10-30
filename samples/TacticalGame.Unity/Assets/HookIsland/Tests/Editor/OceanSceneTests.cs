@@ -11,9 +11,9 @@ namespace Advanture.HookIsland.Tests
         {
             float scale=HudLayout.Scale(width,height);var layout=new HudLayout(width/scale,height/scale);var panel=layout.CommissionPanel(true);
             var row=new Vector2(panel.center.x,panel.yMax-10);
-            Assert.That(layout.Contains(row,4,true,true,true,true,true),Is.True);
-            Assert.That(layout.Contains(row,4,true,true,true,true,false),Is.False);
-            foreach(var other in new[]{layout.Squad(4),layout.Resources(true),layout.Vitals,layout.Construction})Assert.That(panel.Overlaps(other),Is.False);
+            Assert.That(layout.Contains(row,4,true,true,true),Is.True);
+            Assert.That(layout.Contains(row,4,true,true,false),Is.False);
+            foreach(var other in new[]{layout.Squad(4),layout.Wallet,layout.Construction})Assert.That(panel.Overlaps(other),Is.False);
             Assert.That(panel.yMax,Is.LessThanOrEqualTo(layout.Height));
         }
         [Test] public void MissingOceanConfigurationPreservesAllExistingSchools()

@@ -55,7 +55,7 @@
 
 ### Task 3: 房间席位与同应用恢复
 
-**Files:** 新建 samples/HookIsland.Network/RoomResumeTicket.cs、RoomSeatRegistry.cs；修改 IslandHost.cs、IslandClient.cs、RoomProtocol.cs、proto/hook-island-room.proto；新增 tools/HookIsland.Tests/RecoveryNetworkTests.cs 和 Restart.Tests 对应回归。
+**Files:** 新建 samples/HookIsland.Network/Room/RoomResumeTicket.cs、RoomSeatRegistry.cs；修改 IslandHost.cs、IslandClient.cs、RoomProtocol.cs、proto/hook-island-room.proto；新增 tools/HookIsland.Tests/RecoveryNetworkTests.cs 和 Restart.Tests 对应回归。
 
 **Interfaces:** `RoomResumeTicket` 不可变保存 RoomId/Slot/私有凭据，可安全交回构造器，不含日志格式化。IslandClient 增加可选 ticket 入参和只在激活后可读 `ResumeTicket`。IslandHost `CanStart` / `TryStart()`；Registry 持 1～4 席位的候选/已出场身份、当前连接、凭据，解除临时失败但不释放既有身份。Welcome 增加 epoch/resume_token；Join 增加 room_id/resume_token，原字段不改含义。
 

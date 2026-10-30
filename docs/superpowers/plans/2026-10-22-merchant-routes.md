@@ -30,7 +30,7 @@
 
 ### Task 1: 独立商人配置、状态、位置和时钟
 
-**Files:** 创建 samples/HookIsland.Simulation/MerchantConfig.cs、MerchantState.cs、MerchantRules.cs、MerchantSystem.cs；修改 FishingEquipment.cs、RodShop.cs；创建 tools/HookIsland.Tests/MerchantTests.cs，注册 Program.cs。
+**Files:** 创建 samples/HookIsland.Simulation/Data/Configuration/MerchantConfig.cs、MerchantState.cs、MerchantRules.cs、MerchantSystem.cs；修改 FishingEquipment.cs、RodShop.cs；创建 tools/HookIsland.Tests/MerchantTests.cs，注册 Program.cs。
 
 **Interfaces:** `MerchantDefinition(int id,int level,int cellX,int cellZ)`，X/Z 为格心毫米；`MerchantConfig(IEnumerable<MerchantDefinition>? definitions=null)`，只含外围，Empty/Default。`MerchantState(int id,bool active,ulong activatedAt,uint batch,ulong nextRestock,IEnumerable<RodStock> stock)`。`MerchantRules.Position(FishingConfig,int)`、`Near(IslandMap,IReadOnlyList<PlatformTile>,Fisher,int)`、`Nearest(...)`、`Obstacle(FishingConfig,int,int)`。`MerchantSystem(FishingConfig,IEnumerable<MerchantState>?=null)`，`Capture()`、`Get(int)`、`Advance(IslandMap,tiles,players,ulong)`、`Sell(int,int)`。`RodShop.Generate(FishingConfig,uint,int merchantId=0)`；FishingConfig 末尾 merchants 参数。
 
@@ -51,7 +51,7 @@
 
 ### Task 3: 正式资产、船体与指定店面交互
 
-**Files:** 新建 Unity Runtime/MerchantSettings.cs、MerchantPresentation.cs、MerchantHud.cs、Tests/Editor/MerchantSceneTests.cs；修改 FishingSettings.cs、HookPlatformSceneBuilder.cs、IslandFishingController.cs、FishingEquipmentOverlay.cs、BackpackOverlay.cs、GameplayHud.cs 和正式配置／地图。
+**Files:** 新建 Unity Runtime/Data/Settings/MerchantSettings.cs、MerchantPresentation.cs、MerchantHud.cs、Tests/Editor/MerchantSceneTests.cs；修改 FishingSettings.cs、HookPlatformSceneBuilder.cs、IslandFishingController.cs、FishingEquipmentOverlay.cs、BackpackOverlay.cs、GameplayHud.cs 和正式配置／地图。
 
 **Interfaces:** MerchantSettings.CreateConfig；IslandFishingController.ShopMerchantId 未打开为 -1，打开绑定最近可交互 ID；BackpackOverlay.Draw 追加 merchantId=0，按该 MerchantState 读取选择／标题／货架／倒计时。MerchantHud 相机方向、距离和地标名，只读并避开既有 HUD。MerchantPresentation 创建四个船体、摊位、旗帜，无物理权威。
 

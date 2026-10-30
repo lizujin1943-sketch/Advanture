@@ -41,8 +41,8 @@ namespace Advanture.HookIsland.Tests
         {
             float scale=HudLayout.Scale(width,height);var layout=new HudLayout(width/scale,height/scale);
             var row=new Vector2(layout.Finale.center.x,layout.Finale.yMax-8);
-            Assert.That(layout.Contains(row,4,true,true,false,true,false,true),Is.True);
-            Assert.That(layout.Contains(row,4,true,true,false,true,false,false),Is.False);
+            Assert.That(layout.Contains(row,4,false,true,false,true),Is.True);
+            Assert.That(layout.Contains(row,4,false,true,false,false),Is.False);
             Assert.That(layout.Victory.xMin,Is.GreaterThanOrEqualTo(0));Assert.That(layout.Victory.yMin,Is.GreaterThanOrEqualTo(0));
             Assert.That(layout.Victory.xMax,Is.LessThanOrEqualTo(layout.Width));Assert.That(layout.Victory.yMax,Is.LessThanOrEqualTo(layout.Height));
         }

@@ -15,6 +15,7 @@ namespace Advanture.HookIsland.Tests
             var settings=AssetDatabase.LoadAssetAtPath<PlatformSettings>("Assets/HookIsland/Data/PlatformSettings.asset");
             Assert.That(settings.fishing.enemies,Is.Not.Null);var c=settings.CreateMap().Fishing.Enemies;
             Assert.That(c.PiranhaCount,Is.EqualTo(3));Assert.That(c.MonsterEnabled,Is.True);Assert.That(c.MonsterWeightGrams,Is.EqualTo(50000));
+            Assert.That(c.BiteIntervalTicks,Is.EqualTo(HookGame.Rate));
             Assert.That(c.BiteDamagePerKg,Is.EqualTo(3));Assert.That(c.MonsterLevel,Is.EqualTo(1));Assert.That(c.KnockbackDistance,Is.EqualTo(4000));Assert.That(c.WindupTicks,Is.EqualTo(60));Assert.That(c.AttackIntervalTicks,Is.EqualTo(180));
             var bytes=AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/HookIsland/Data/PlatformMap.bytes").bytes;
             Assert.That(bytes.SequenceEqual(settings.CreateMap().Encode()),Is.True);
@@ -41,12 +42,13 @@ namespace Advanture.HookIsland.Tests
                 var bytes=new HookGame().Encode(state);views.Synchronize(state);
                 Assert.That(views.RenderedPiranhas,Is.EqualTo(3));Assert.That(views.RenderedMonsters,Is.EqualTo(0));
                 Assert.That(root.GetComponentsInChildren<Collider>().Length,Is.EqualTo(0));Assert.That(bytes.SequenceEqual(new HookGame().Encode(state)),Is.True);
-                var mesh=root.GetComponentsInChildren<MeshFilter>().First(f=>f.sharedMesh.name=="Enemy rounded body").sharedMesh;
-                for(int i=0;i<mesh.vertexCount;i++)Assert.That(Vector3.Dot(mesh.vertices[i],mesh.normals[i]),Is.GreaterThanOrEqualTo(0));
+                Assert.That(root.GetComponentsInChildren<SkinnedMeshRenderer>().Length,Is.EqualTo(3));
                 var enemy=new EnemySystem(map.Fishing.Enemies);var players=state.Players.ToArray();
                 for(int tick=0;tick<=map.Fishing.Enemies.InitialDelayTicks;tick++)enemy.Advance(players,_=>{});
                 var surfaced=new HookState(1,players,state.Fish,0,enemies:enemy.Capture());views.Synchronize(surfaced);
                 Assert.That(views.RenderedMonsters,Is.EqualTo(1));Assert.That(views.WindupVisible,Is.True);
+                var mesh=root.GetComponentsInChildren<MeshFilter>().First(f=>f.sharedMesh.name=="Enemy rounded body").sharedMesh;
+                for(int i=0;i<mesh.vertexCount;i++)Assert.That(Vector3.Dot(mesh.vertices[i],mesh.normals[i]),Is.GreaterThanOrEqualTo(0));
                 Assert.That(root.GetComponentsInChildren<TextMesh>().Any(t=>t.text.Contains("Lv1")),Is.True);
                 enemy.TryHook(0,0);enemy.CompleteCapture(0,0);enemy.Interrupt();
                 for(int tick=0;tick<17;tick++)enemy.Advance(players,_=>{});

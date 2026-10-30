@@ -1,0 +1,2 @@
+id,name,tier,range,cosHalfAngle,damage,windupTicks,durationTicks,cooldownTicks,staminaCost,friendlyKnockback,price,width,height
+frying_pan,平底锅,1,1600,500,25,6,18,24,8,1200,60,2,2

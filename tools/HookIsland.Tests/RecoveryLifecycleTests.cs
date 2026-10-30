@@ -38,7 +38,7 @@ internal static partial class Program
         });
         yield return ("recovery_offline_previous_epoch_member_cannot_reverse_current_defeat",()=>{
             var b=IslandMap.CreatePlatform();var map=new IslandMap(b.Shore,b.Pier,b.Spawns,b.FishSpots,b.Platform,
-                new FishingConfig(enemies:EnemyConfig.Disabled,swimming:new SwimmingConfig(1000000),revival:new RevivalConfig(downedTicks:1)));
+                new FishingConfig(enemies:EnemyConfig.Disabled,swimming:new SwimmingConfig(healthLossBasisPointsPerSecond:10000),revival:new RevivalConfig(downedTicks:1)));
             using var p=new RecoveryParty(2,map);var owner=p.Add(0);var guest=p.Add();p.Until(()=>guest.ResumeTicket!=null);
             var ticket=guest.ResumeTicket!;
             p.Until(()=>p.Host.Session!.InspectState().GameOver,(c,t)=>new HookInput(0,-1000));

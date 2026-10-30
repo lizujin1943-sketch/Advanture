@@ -20,7 +20,7 @@ internal static partial class Program
         yield return ("network_four_clients_fail_only_after_final_death_with_empty_wallets",()=>{
             var seed=IslandMap.CreatePlatform();
             var map=new IslandMap(seed.Shore,seed.Pier,seed.Spawns,seed.FishSpots,seed.Platform,
-                new FishingConfig(swimming:new SwimmingConfig(healthLossMilliPerSecond:1000000),revival:new RevivalConfig(downedTicks:30)));
+                new FishingConfig(swimming:new SwimmingConfig(healthLossBasisPointsPerSecond:10000),revival:new RevivalConfig(downedTicks:30)));
             using var host=new IslandHost(map,0,4);
             var clients=Enumerable.Range(0,4).Select(i=>new IslandClient(map,IPAddress.Loopback,host.Port,i==0?(ushort)0:ushort.MaxValue)).ToArray();
             var clock=System.Diagnostics.Stopwatch.StartNew();TimeSpan last=default;bool downedWindow=false;

@@ -10,7 +10,7 @@ internal static partial class Program
     private static IEnumerable<(string,Action)> ImmediateCases()
     {
         yield return ("immediate_solo_lethal_frame_automatically_pays_once_and_restores",()=>{
-            var m=Model(1);Down(m,0,200,true);Change(m,p=>{p[0].Vitals.Health=1;p[0].Swimming.DamageRemainder=25000;});
+            var m=Model(1);Down(m,0,200,true);Change(m,p=>{p[0].Vitals.Health=1;p[0].Swimming.DamageTicks=29;});
             Step(m);var s=m.Capture();var p=s.Players[0];
             Require(!p.Vitals.Downed && !p.Revival.Dead && !p.Swimming.InWater && p.Coins==170 && p.Revival.CoinsSpent==30,"Solo lethal frame must respawn on land and charge exactly 30 G without waiting or input.");
             Require(p.Vitals.Health==100 && p.Stamina==120*30000 && p.Revival.Deaths==1,"Solo respawn must use normal restoration and death accounting.");

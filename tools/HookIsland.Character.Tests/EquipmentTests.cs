@@ -34,7 +34,7 @@ internal static partial class Program
             Require(CharacterEquipment.Slots.Count == 8 && CharacterEquipment.Slots.Distinct().Count() == 8, "Eight independent slots required.");
         });
         yield return ("character_full_bag_and_busy_rod_previews_fail_atomically", () => {
-            var inventory = new InventorySystem(1); inventory.CreditMaterial(0, ItemKind.Wood, 320, new Point(0, 0));
+            var inventory = new InventorySystem(1); inventory.CreditMaterial(0, ItemKind.Wood, 16 * InventoryCatalog.MaterialStackLimit, new Point(0, 0));
             byte[] before = InventoryStateCodec.Encode(inventory.Capture());
             var command = new InventoryCommand(InventoryAction.Unequip, (int)EquipmentSlot.RightHand);
             var result = CharacterEquipment.Preview(new CharacterConfig(), 100, inventory.Capture(), 0, command, false, false, out var stats);

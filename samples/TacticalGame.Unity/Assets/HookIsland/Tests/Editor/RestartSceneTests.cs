@@ -23,8 +23,8 @@ namespace Advanture.HookIsland.Tests
                 var construction=go.AddComponent<PlatformConstruction>();
                 var revival=go.AddComponent<RevivalController>();
                 Set(room,"overlay",overlay);Set(room,"<Equipment>k__BackingField",equipment);Set(room,"<Construction>k__BackingField",construction);Set(room,"<Revival>k__BackingField",revival);
-                Set(room,"moveX",(short)1000);Set(room,"moveZ",(short)-1000);Set(room,"pendingFire",true);Set(room,"pendingCancel",true);
-                Set(room,"pendingPurchaseId",5u);Set(room,"pendingUpgrade",HookUpgrade.Range);Set(room,"aim",new Vector3(12,0,12));Set(room,"<ShopOpen>k__BackingField",true);
+                Set(Get<FishingPlayerInput>(room,"playerInput"),"moveX",(short)1000);Set(Get<FishingPlayerInput>(room,"playerInput"),"moveZ",(short)-1000);Set(Get<FishingPlayerInput>(room,"playerInput"),"pendingFire",true);Set(Get<FishingPlayerInput>(room,"playerInput"),"pendingCancel",true);
+                Set(room,"pendingPurchaseId",5u);Set(room,"pendingUpgrade",HookUpgrade.Range);Set(Get<FishingPlayerInput>(room,"playerInput"),"aim",new Vector3(12,0,12));Set(room,"<ShopOpen>k__BackingField",true);
                 Set(room,"<State>k__BackingField",new HookState(99,System.Array.Empty<Fisher>(),System.Array.Empty<Fish>(),0));
                 overlay.MenuOpen=true;equipmentUi.SelectCharacterPage(false);
                 Set(equipment,"<InventoryOpen>k__BackingField",true);Set(construction,"<Open>k__BackingField",true);

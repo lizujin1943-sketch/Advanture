@@ -94,28 +94,11 @@ namespace Advanture.HookIsland.Tests
             Assert.That(selection.Offer,Is.EqualTo(1));selection.Bind(Shelf(1,1,true));Assert.That(selection.Command(true).Action,Is.EqualTo(InventoryAction.None));
             selection.Bind(Shelf(1,2));Assert.That(selection.Offer,Is.EqualTo(-1));selection.Select(0);selection.Bind(null);Assert.That(selection.Offer,Is.EqualTo(-1));
         }
-        [TestCase(0,"→")] [TestCase(90,"↑")] [TestCase(180,"←")] [TestCase(270,"↓")]
-        public void ShipGuidanceUsesCameraDirectionAndActualDistance(int yaw,string arrow)
-        {
-            var go=new GameObject("Merchant camera");var camera=go.AddComponent<Camera>();
-            try
-            {
-                camera.transform.SetPositionAndRotation(new Vector3(0,20,0),Quaternion.Euler(90,yaw,0));
-                var text=MerchantHud.Guidance(camera,new FishingConfig(merchants:MerchantConfig.Default),1,default);
-                StringAssert.Contains(arrow,text);StringAssert.Contains("10.0 m",text);StringAssert.Contains("东侧补给船",text);
-                StringAssert.DoesNotContain("M2",text);
-            }
-            finally{Object.DestroyImmediate(go);}
-        }
         [TestCase(640,360)] [TestCase(1280,800)] [TestCase(3440,1440)]
-        public void DirectionPanelAvoidsGameplayControlsAndBlocksPointer(int width,int height)
+        public void RemovedShipDirectionsDoNotBlockCasting(int width,int height)
         {
-            float scale=HudLayout.Scale(width,height);var layout=new HudLayout(width/scale,height/scale);var panel=layout.Merchants;
-            Assert.That(panel.Overlaps(layout.Resources(true)) || panel.Overlaps(layout.Menu) || panel.Overlaps(layout.CommissionPanel(true)) ||
-                panel.Overlaps(layout.Vitals) || panel.Overlaps(layout.Tools),Is.False);
-            Assert.That(layout.Contains(panel.center,4,true,true,true,true,true,true,true),Is.True);
-            Assert.That(MerchantHud.LabelFits(panel,layout,4,true,true),Is.False);
-            Assert.That(MerchantHud.LabelFits(new Rect(layout.Width/2-88,layout.Height/2-14,176,28),layout,4,true,true),Is.True);
+            float scale=HudLayout.Scale(width,height);var layout=new HudLayout(width/scale,height/scale);
+            Assert.That(layout.Contains(new Vector2(layout.Width-134,176),4,true,true,true,true),Is.False);
         }
         [Test] public void BoatsStayInReservedFootprintsAndDoNotAddPhysicsAuthority()
         {

@@ -45,7 +45,7 @@ internal static partial class Program
             Require(p.Revival.LastResult==RespawnResult.NoLanding && p.Revival.Dead && p.Coins==200 && total==200 && p.Vitals.Health==0,"Failed respawn partially committed.");
         });
         yield return ("new_zero_health_gets_full_countdown_and_dead_actions_stay_blocked",()=>{
-            var m=Model(revival:new RevivalConfig(downedTicks:2));Change(m,p=>{p[1].X=0;p[1].Z=-4000;p[1].Swimming.InWater=true;p[1].Vitals.Health=1;p[1].Swimming.DamageRemainder=25000;});
+            var m=Model(revival:new RevivalConfig(downedTicks:2));Change(m,p=>{p[1].X=0;p[1].Z=-4000;p[1].Swimming.InWater=true;p[1].Vitals.Health=1;p[1].Swimming.DamageTicks=29;});
             Step(m);Require(m.Capture().Players[1].Vitals.Downed && m.Capture().Players[1].Revival.DownedTicks==0,"Lethal frame shortened rescue window.");
             Step(m);Step(m);int x=m.Capture().Players[1].X;
             Wait(m,30,default,new HookInput(1000,0,1000,-4000,true));Require(m.Capture().Players[1].Revival.Dead && m.Capture().Players[1].X==x && m.Capture().Players[1].Casts==0,"Dead player moved or cast.");

@@ -14,7 +14,7 @@ internal static partial class Program
         foreach(int count in new[]{1,4})yield return ($"network_merchant_purchase_clocks_and_receipts_reset_{count}_players",()=>{
             var source=MerchantSmokePilot.CreateMap();
             var map=new IslandMap(source.Shore,source.Pier,source.Spawns,source.FishSpots,source.Platform,
-                new FishingConfig(swimming:new SwimmingConfig(healthLossMilliPerSecond:1000000),
+                new FishingConfig(swimming:new SwimmingConfig(healthLossBasisPointsPerSecond:10000),
                     revival:new RevivalConfig(downedTicks:30,baseFee:1000000),merchants:source.Fishing!.Merchants));
             using var party=new Party(count,map);party.Until(()=>party.Running,_=>default);
             var pilots=party.Clients.Select(_=>new MerchantSmokePilot()).ToArray();

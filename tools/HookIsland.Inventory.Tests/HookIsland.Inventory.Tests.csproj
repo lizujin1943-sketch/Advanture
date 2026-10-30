@@ -5,9 +5,9 @@
     <ProjectReference Include="../../samples/HookIsland.Network/HookIsland.Network.csproj" />
     <ProjectReference Include="../../framework/src/FrameSync.Runtime/FrameSync.Runtime.csproj" />
   </ItemGroup>
-  <ItemGroup><Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/InventorySmokePilot.cs" Link="InventorySmokePilot.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Development/Pilots/InventorySmokePilot.cs" Link="InventorySmokePilot.cs" /></ItemGroup>
   <ItemGroup>
-    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/GroundPickupSelection.cs" Link="GroundPickupSelection.cs" />
-    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/InventoryEquipmentPreview.cs" Link="InventoryEquipmentPreview.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Application/Commands/GroundPickupSelection.cs" Link="GroundPickupSelection.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Presentation/UI/Inventory/InventoryEquipmentPreview.cs" Link="InventoryEquipmentPreview.cs" />
   </ItemGroup>
 </Project>

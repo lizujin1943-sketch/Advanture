@@ -40,7 +40,7 @@
 
 ### Task 2: 网络请求、重开与菜单入口
 
-**Files:** 新增 `samples/HookIsland.Network/RoomRulesRequestBuffer.cs`；修改 `IslandHost.cs`、`RoomProtocol.cs`、`proto/hook-island-room.proto`、`IslandFishingController.cs`、`FishingOverlay.cs`；新增规则网络测试及显式开发验收入口。
+**Files:** 新增 `samples/HookIsland.Network/Commands/RoomRulesRequestBuffer.cs`；修改 `IslandHost.cs`、`RoomProtocol.cs`、`proto/hook-island-room.proto`、`IslandFishingController.cs`、`FishingOverlay.cs`；新增规则网络测试及显式开发验收入口。
 
 **Interfaces:** `RoomRulesRequestBuffer.TryQueue(RoomRulesState, bool)`、`Observe(RoomRulesState)`、`Compose(HookInput)`、`Reset()`；`IslandFishingController.RequestFriendlyPranks(bool)`、`RoomRulesPending`。规则命令在其他输入组合后加入，确认态更新后清理。
 

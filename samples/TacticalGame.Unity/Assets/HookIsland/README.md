@@ -1,5 +1,7 @@
 # 钩索小岛 · Unity 场景
 
+代码已按职责整理：`Runtime/Data` 配置类型、`Runtime/Input` 输入、`Runtime/Application` 交互与房间/存档、`Runtime/Presentation` 画面与 HUD、`Runtime/Composition` 场景装配、`Runtime/Development` 开发验证。纯 C# 的数据、结算和网络分别在 `samples/HookIsland.Simulation`、`samples/HookIsland.Network` 中继续分类。完整索引见[游戏代码目录](../../../../docs/game-code-organization.md)。
+
 当前钓鱼平台请打开 `HookPlatform.unity`。背包与材料共用格子，每人拥有独立金币；Tab / I 切换角色和背包，E 购物，F 拾取。实现与验收说明见仓库 `docs/backpack-implementation.md`。以下岛屿场景说明保留旧基础版规则。
 
 新增平台入口：**`Assets/HookIsland/Scenes/HookPlatform.unity`**。Play 后按 **B** 进入铺地，**1／2** 选择木板／鱼骨块，左键确认，右键取消预览。配方默认各花费自己的 4 份材料，详见[平台地块实现](../../../../docs/hook-platform-implementation.md)。以下说明保留给原岛屿场景。
@@ -49,7 +51,7 @@ Unity 菜单 **Hook Island → Create or Rebuild Island Scene** 会重建生成�
 - 原始 Blender：`samples/HookIsland/Blender/hook_island_v2.blend`
 - 导出脚本：`samples/HookIsland/Blender/export_unity.py`
 - 资源复制与岸线生成：`samples/HookIsland/Tools/prepare_unity_assets.py`
-- 场景构建：`Assets/HookIsland/Editor/HookIslandSceneBuilder.cs`
+- 场景构建：`Assets/HookIsland/Editor/Scenes/HookIslandSceneBuilder.cs`
 - 核心玩法文档：仓库 `docs/hook-island-game-design.md`
 
 小岛资源与脚本都位于 `Assets/HookIsland/`，有独立程序集。既有 Yard 场景和默认构建场景列表不变。

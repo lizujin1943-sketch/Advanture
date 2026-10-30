@@ -20,9 +20,9 @@
 
 ## 代码入口
 
-- `samples/HookIsland.Simulation/HookGame.RoomRules.cs`：权限、请求去重、关闭时释放岸上拖拽。
+- `samples/HookIsland.Simulation/Logic/Simulation/HookGame.RoomRules.cs`：权限、请求去重、关闭时释放岸上拖拽。
 - `RoomRulesCommand.cs`、`RoomRulesState.cs`、`RoomRulesStateCodec.cs`：命令、确认状态和规范编码。
-- `samples/HookIsland.Network/RoomRulesRequestBuffer.cs`：重发与确认；`IslandHost.CreateSession` 保留重开规则。
+- `samples/HookIsland.Network/Commands/RoomRulesRequestBuffer.cs`：重发与确认；`IslandHost.CreateSession` 保留重开规则。
 - `IslandFishingController`、`FishingOverlay`：请求排队、瞄准辅助过滤、房主按钮及队友只读状态。
 - `RoomRulesSmokePilot`、`RoomRulesSmokeDriver`：显式开发验收，只提交普通输入与菜单请求，不直接修改模拟状态，发布版本不编译。
 

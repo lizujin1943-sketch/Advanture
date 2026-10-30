@@ -1,0 +1,151 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8db4fc1b9f7748eebf95271161c84fb, type: 3}
+  m_Name: FishVisuals
+  m_EditorClassIdentifier: 
+  displayScale: 2
+  shadowShader: {fileID: 4800000, guid: 632d9e037a71b47e393e50b33f341807, type: 3}
+  shadowTint: {r: 0.025, g: 0.19, b: 0.23, a: 0.64}
+  species:
+  - id: fish_01
+    model: {fileID: 451452784250762271, guid: 27a7a26b101d449fdacc54f60b78f830, type: 3}
+    baseLengthMetres: 0.42
+    shadowShape: 0
+    idle: {fileID: -3100369314251171874, guid: cf58e99fe52c24462bc866023a298d21, type: 3}
+    swim: {fileID: 5414490534771693905, guid: cf58e99fe52c24462bc866023a298d21, type: 3}
+    burst: {fileID: 1978524698814839561, guid: cf58e99fe52c24462bc866023a298d21, type: 3}
+    leap: {fileID: -6793031260423558747, guid: cf58e99fe52c24462bc866023a298d21, type: 3}
+    dive: {fileID: -8440137064687722849, guid: cf58e99fe52c24462bc866023a298d21, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: cf58e99fe52c24462bc866023a298d21, type: 3}
+    flop: {fileID: 5084683954112521640, guid: cf58e99fe52c24462bc866023a298d21, type: 3}
+    bite: {fileID: 0}
+  - id: fish_02
+    model: {fileID: 3396632313658170920, guid: 5e77386b282b64e4bba990d274c81de6, type: 3}
+    baseLengthMetres: 0.46
+    shadowShape: 0
+    idle: {fileID: -3100369314251171874, guid: acb00ea41c84c4ed695495ba2e1f8dff, type: 3}
+    swim: {fileID: 5414490534771693905, guid: acb00ea41c84c4ed695495ba2e1f8dff, type: 3}
+    burst: {fileID: 1978524698814839561, guid: acb00ea41c84c4ed695495ba2e1f8dff, type: 3}
+    leap: {fileID: -6793031260423558747, guid: acb00ea41c84c4ed695495ba2e1f8dff, type: 3}
+    dive: {fileID: -8440137064687722849, guid: acb00ea41c84c4ed695495ba2e1f8dff, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: acb00ea41c84c4ed695495ba2e1f8dff, type: 3}
+    flop: {fileID: 5084683954112521640, guid: acb00ea41c84c4ed695495ba2e1f8dff, type: 3}
+    bite: {fileID: 0}
+  - id: fish_03
+    model: {fileID: 6500332385948317346, guid: a9c2bd30dc131491ba336acbc2eaa033, type: 3}
+    baseLengthMetres: 0.38
+    shadowShape: 0
+    idle: {fileID: -3100369314251171874, guid: a6d66740e278c49ffb7cc67e7588cfff, type: 3}
+    swim: {fileID: 5414490534771693905, guid: a6d66740e278c49ffb7cc67e7588cfff, type: 3}
+    burst: {fileID: 1978524698814839561, guid: a6d66740e278c49ffb7cc67e7588cfff, type: 3}
+    leap: {fileID: -6793031260423558747, guid: a6d66740e278c49ffb7cc67e7588cfff, type: 3}
+    dive: {fileID: -8440137064687722849, guid: a6d66740e278c49ffb7cc67e7588cfff, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: a6d66740e278c49ffb7cc67e7588cfff, type: 3}
+    flop: {fileID: 5084683954112521640, guid: a6d66740e278c49ffb7cc67e7588cfff, type: 3}
+    bite: {fileID: 0}
+  - id: fish_04
+    model: {fileID: 4484802870718870288, guid: fef04a278535b4caaa8cb8eec0591011, type: 3}
+    baseLengthMetres: 0.48
+    shadowShape: 1
+    idle: {fileID: -3100369314251171874, guid: 21bd3866749774382b41da8e0bd64e4f, type: 3}
+    swim: {fileID: 5414490534771693905, guid: 21bd3866749774382b41da8e0bd64e4f, type: 3}
+    burst: {fileID: 1978524698814839561, guid: 21bd3866749774382b41da8e0bd64e4f, type: 3}
+    leap: {fileID: -6793031260423558747, guid: 21bd3866749774382b41da8e0bd64e4f, type: 3}
+    dive: {fileID: -8440137064687722849, guid: 21bd3866749774382b41da8e0bd64e4f, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: 21bd3866749774382b41da8e0bd64e4f, type: 3}
+    flop: {fileID: 5084683954112521640, guid: 21bd3866749774382b41da8e0bd64e4f, type: 3}
+    bite: {fileID: 0}
+  - id: fish_05
+    model: {fileID: 3428916569647529252, guid: 5ed95af2abc5243c7a37ef981bfb97b1, type: 3}
+    baseLengthMetres: 0.34
+    shadowShape: 1
+    idle: {fileID: -3100369314251171874, guid: d6295cc95f8b14631954f30652c9224f, type: 3}
+    swim: {fileID: 5414490534771693905, guid: d6295cc95f8b14631954f30652c9224f, type: 3}
+    burst: {fileID: 1978524698814839561, guid: d6295cc95f8b14631954f30652c9224f, type: 3}
+    leap: {fileID: -6793031260423558747, guid: d6295cc95f8b14631954f30652c9224f, type: 3}
+    dive: {fileID: -8440137064687722849, guid: d6295cc95f8b14631954f30652c9224f, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: d6295cc95f8b14631954f30652c9224f, type: 3}
+    flop: {fileID: 5084683954112521640, guid: d6295cc95f8b14631954f30652c9224f, type: 3}
+    bite: {fileID: 0}
+  - id: fish_06
+    model: {fileID: 3107753041113258590, guid: c095bd665bcf84834a6fbe30b685c8a9, type: 3}
+    baseLengthMetres: 0.39
+    shadowShape: 0
+    idle: {fileID: -3100369314251171874, guid: f011409d2bdd64832a54930585017578, type: 3}
+    swim: {fileID: 5414490534771693905, guid: f011409d2bdd64832a54930585017578, type: 3}
+    burst: {fileID: 1978524698814839561, guid: f011409d2bdd64832a54930585017578, type: 3}
+    leap: {fileID: -6793031260423558747, guid: f011409d2bdd64832a54930585017578, type: 3}
+    dive: {fileID: -8440137064687722849, guid: f011409d2bdd64832a54930585017578, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: f011409d2bdd64832a54930585017578, type: 3}
+    flop: {fileID: 5084683954112521640, guid: f011409d2bdd64832a54930585017578, type: 3}
+    bite: {fileID: 0}
+  - id: fish_07
+    model: {fileID: 3026373671215657625, guid: a0428ed6c684241ea9cda94aad050332, type: 3}
+    baseLengthMetres: 0.42
+    shadowShape: 1
+    idle: {fileID: -3100369314251171874, guid: 686086605515b46078ab69024a0019c8, type: 3}
+    swim: {fileID: 5414490534771693905, guid: 686086605515b46078ab69024a0019c8, type: 3}
+    burst: {fileID: 1978524698814839561, guid: 686086605515b46078ab69024a0019c8, type: 3}
+    leap: {fileID: -6793031260423558747, guid: 686086605515b46078ab69024a0019c8, type: 3}
+    dive: {fileID: -8440137064687722849, guid: 686086605515b46078ab69024a0019c8, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: 686086605515b46078ab69024a0019c8, type: 3}
+    flop: {fileID: 5084683954112521640, guid: 686086605515b46078ab69024a0019c8, type: 3}
+    bite: {fileID: 0}
+  - id: fish_08
+    model: {fileID: 2544261479275883196, guid: f217db65eb1e846a5b96fb6f6c8b81f8, type: 3}
+    baseLengthMetres: 0.42
+    shadowShape: 0
+    idle: {fileID: -3100369314251171874, guid: d713bae08650b494aaa50cf6cf626411, type: 3}
+    swim: {fileID: 5414490534771693905, guid: d713bae08650b494aaa50cf6cf626411, type: 3}
+    burst: {fileID: 1978524698814839561, guid: d713bae08650b494aaa50cf6cf626411, type: 3}
+    leap: {fileID: -6793031260423558747, guid: d713bae08650b494aaa50cf6cf626411, type: 3}
+    dive: {fileID: -8440137064687722849, guid: d713bae08650b494aaa50cf6cf626411, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: d713bae08650b494aaa50cf6cf626411, type: 3}
+    flop: {fileID: 5084683954112521640, guid: d713bae08650b494aaa50cf6cf626411, type: 3}
+    bite: {fileID: 0}
+  - id: fish_09
+    model: {fileID: 7735798078462956189, guid: 03dd08786d01248e183dbee383e2a018, type: 3}
+    baseLengthMetres: 0.68
+    shadowShape: 0
+    idle: {fileID: -3100369314251171874, guid: 2f9b5b261f6484ea8bc3264373fd68d0, type: 3}
+    swim: {fileID: 5414490534771693905, guid: 2f9b5b261f6484ea8bc3264373fd68d0, type: 3}
+    burst: {fileID: 1978524698814839561, guid: 2f9b5b261f6484ea8bc3264373fd68d0, type: 3}
+    leap: {fileID: -6793031260423558747, guid: 2f9b5b261f6484ea8bc3264373fd68d0, type: 3}
+    dive: {fileID: -8440137064687722849, guid: 2f9b5b261f6484ea8bc3264373fd68d0, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: 2f9b5b261f6484ea8bc3264373fd68d0, type: 3}
+    flop: {fileID: 5084683954112521640, guid: 2f9b5b261f6484ea8bc3264373fd68d0, type: 3}
+    bite: {fileID: 0}
+  - id: fish_10
+    model: {fileID: 1715949793655803222, guid: eaeaff2b1bfc94a25853854e7a026370, type: 3}
+    baseLengthMetres: 0.9
+    shadowShape: 2
+    idle: {fileID: -3100369314251171874, guid: 396944f371ea74186bd328f4bb19a820, type: 3}
+    swim: {fileID: 5414490534771693905, guid: 396944f371ea74186bd328f4bb19a820, type: 3}
+    burst: {fileID: 1978524698814839561, guid: 396944f371ea74186bd328f4bb19a820, type: 3}
+    leap: {fileID: -6793031260423558747, guid: 396944f371ea74186bd328f4bb19a820, type: 3}
+    dive: {fileID: -8440137064687722849, guid: 396944f371ea74186bd328f4bb19a820, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: 396944f371ea74186bd328f4bb19a820, type: 3}
+    flop: {fileID: 5084683954112521640, guid: 396944f371ea74186bd328f4bb19a820, type: 3}
+    bite: {fileID: 0}
+  piranha:
+    id: piranha
+    model: {fileID: 5588978599018940322, guid: 6b37939a9101942af8766b365b918a68, type: 3}
+    baseLengthMetres: 0.43
+    shadowShape: 0
+    idle: {fileID: -3100369314251171874, guid: 43fb86ea5ceef482b958374e87c6dd2b, type: 3}
+    swim: {fileID: 5414490534771693905, guid: 43fb86ea5ceef482b958374e87c6dd2b, type: 3}
+    burst: {fileID: 1978524698814839561, guid: 43fb86ea5ceef482b958374e87c6dd2b, type: 3}
+    leap: {fileID: -6793031260423558747, guid: 43fb86ea5ceef482b958374e87c6dd2b, type: 3}
+    dive: {fileID: -8440137064687722849, guid: 43fb86ea5ceef482b958374e87c6dd2b, type: 3}
+    hooked: {fileID: 8101284173678297380, guid: 43fb86ea5ceef482b958374e87c6dd2b, type: 3}
+    flop: {fileID: 5084683954112521640, guid: 43fb86ea5ceef482b958374e87c6dd2b, type: 3}
+    bite: {fileID: 1963171540357596104, guid: 43fb86ea5ceef482b958374e87c6dd2b, type: 3}

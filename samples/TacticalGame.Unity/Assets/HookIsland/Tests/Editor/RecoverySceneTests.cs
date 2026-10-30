@@ -47,7 +47,7 @@ namespace Advanture.HookIsland.Tests
                 {var end=clock.Elapsed+TimeSpan.FromSeconds(4);while(!done() && clock.Elapsed<end){poll.Invoke(room,null);Thread.Sleep(1);}Assert.That(done(),Is.True,room.Failure);}
                 room.HostRoom(0,2);Until(()=>room.CanStartRoom);Assert.That(room.StartRoomNow(),Is.True);Until(()=>room.Playing);
                 var original=room.Client.Session;var host=room.Host;
-                Set(room,"pendingPurchaseId",17u);Set(room,"pendingUpgrade",HookUpgrade.Range);Set(room,"pendingFire",true);
+                Set(room,"pendingPurchaseId",17u);Set(room,"pendingUpgrade",HookUpgrade.Range);Set(typeof(IslandFishingController).GetField("playerInput",Private).GetValue(room),"pendingFire",true);
                 using(var guest=new IslandClient(room.Map,IPAddress.Loopback,host.Port,ushort.MaxValue))
                 {
                     Until(()=>{guest.Poll(clock.Elapsed,_=>default);return guest.ResumeTicket!=null;});
@@ -105,10 +105,12 @@ namespace Advanture.HookIsland.Tests
                     var player=new Fisher{Slot=0,Phase=HookPhase.Ready,Catches=4,Coins=20,CoinsEarned=50,Casts=10,FishId=-1,DriftwoodId=-1,HookedPlayer=-1,PulledBy=-1};
                     var fish=map.FishSpots.Select((p,i)=>new Fish{Id=i,X=p.X,Z=p.Z,Owner=-1}).ToArray();
                     var s=new HookState(200,new[]{player},fish,20);view.Present(s,s,0,Vector3.zero,false);
-                    Assert.That(view.Popups.Count,Is.Zero,"Restored earnings were shown as a new reward.");
+                    var feedback=new AcquisitionFeedback();feedback.Advance(0);
+                    Assert.That(feedback.Notices.Count,Is.Zero,"Restored earnings were shown as a new reward.");
                     Assert.That(view.PresentedCatches,Is.Zero);
                     player.Catches++;player.Coins+=10;s=new HookState(201,new[]{player},fish,30);view.Present(s,s,0,Vector3.zero,false);
-                    Assert.That(view.Popups.Count,Is.EqualTo(1));Assert.That(view.Popups[0].Value,Is.EqualTo(10));
+                    feedback.Apply(new HookGameplayEvent(HookGameplayEventKind.CoinsReceived,0,10),.1);
+                    Assert.That(feedback.Notices.Count,Is.EqualTo(1));Assert.That(feedback.Notices[0].Amount,Is.EqualTo(10));
                 }
             }
             finally{UnityEngine.Object.DestroyImmediate(go);}

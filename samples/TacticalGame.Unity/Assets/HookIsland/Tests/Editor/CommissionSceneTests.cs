@@ -30,9 +30,9 @@ namespace Advanture.HookIsland.Tests
         public void CommissionPanelBlocksCastsOnlyWhileVisible(int width,int height)
         {
             float scale=HudLayout.Scale(width,height);var layout=new HudLayout(width/scale,height/scale);var panel=layout.Commissions;
-            Assert.That(layout.Contains(panel.center,4,true,true,true,true),Is.True);
-            Assert.That(layout.Contains(panel.center,4,true,true,true,false),Is.False);
-            foreach(var other in new[]{layout.Squad(4),layout.Resources(true),layout.Vitals,layout.Construction})Assert.That(panel.Overlaps(other),Is.False);
+            Assert.That(layout.Contains(panel.center,4,true,true),Is.True);
+            Assert.That(layout.Contains(panel.center,4,true,false),Is.False);
+            foreach(var other in new[]{layout.Squad(4),layout.Wallet,layout.Construction})Assert.That(panel.Overlaps(other),Is.False);
             Assert.That(panel.xMax,Is.LessThanOrEqualTo(layout.Width));Assert.That(panel.yMax,Is.LessThanOrEqualTo(layout.Height));
         }
     }

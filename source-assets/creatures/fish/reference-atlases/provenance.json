@@ -1,0 +1,33 @@
+{
+  "source": "../Concept-Pixel.png",
+  "method": "Native concept pixel UVs and edge colour dilation; puffer skin redrawn from the reference palette for its frontal 3D eyes. No new concept synthesis.",
+  "atlas_size": [
+    1024,
+    512
+  ],
+  "body_region": [
+    0,
+    0,
+    384,
+    300
+  ],
+  "anatomy_region": [
+    512,
+    0,
+    384,
+    300
+  ],
+  "species": [
+    "fish_01",
+    "fish_02",
+    "fish_03",
+    "fish_04",
+    "fish_05",
+    "fish_06",
+    "fish_07",
+    "fish_08",
+    "fish_09",
+    "fish_10",
+    "piranha"
+  ]
+}

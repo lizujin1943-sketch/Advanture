@@ -48,7 +48,7 @@ internal static partial class Program
                 if(mode=="casting")GiveRing(m,0,1);
                 var s=m.Capture();var p=s.Players.ToArray();var inventory=new InventorySystem(s.Tackle!.Inventory);
                 Require(inventory.CreditMaterial(1,ItemKind.Wood,4,new Point(1400,0))==4,"Fixture wood credit failed.");
-                p[1].Wood=p[1].WoodEarned=4;p[0].Vitals.Health=mode=="downed"?0:91;p[0].Swimming.DamageRemainder=25000;
+                p[1].Wood=p[1].WoodEarned=4;p[0].Vitals.Health=mode=="downed"?0:91;p[0].Swimming.DamageTicks=29;
                 // Keep passing driftwood away from this construction-only boundary fixture.
                 var wood=s.Driftwood.Select(d=>DriftwoodMotion.Create(d.Id,60)).ToArray();
                 m.Restore(new HookState(s.Steps,p,s.Fish,s.Coins,s.Tiles,wood,
@@ -153,7 +153,7 @@ internal static partial class Program
         yield return ("water_no_ring_blocks_cast_and_bag_ring_has_no_effect",()=>{
             var m=Model();GiveRing(m,0,10,false);At(m,0,0,-4500);
             for(int i=0;i<30;i++)Step(m,new HookInput(0,0,0,-9000,true));
-            var p=m.Capture().Players[0];Require(p.Casts==0 && p.Vitals.Health==95 && p.Swimming.InWater,"Bag item granted equipment effects.");
+            var p=m.Capture().Players[0];Require(p.Casts==0 && p.Vitals.Health==99 && p.Swimming.InWater,"Bag item granted equipment effects.");
         });
         yield return ("water_ring_equips_in_water_immediately_without_refill_and_unequip_releases_fish",()=>{
             var m=Model();int id=GiveRing(m,0,1,false);At(m,0,0,-4500);Change(m,p=>{p[0].Vitals.Health=60;p[0].Stamina=30*30000;p[0].RegenDelay=60;});
@@ -162,7 +162,7 @@ internal static partial class Program
             FishOnLine(m);Step(m);Require(m.Capture().Players[0].FishId==0 && m.Capture().Coins==0,"Water fish awarded at swimmer.");
             Step(m,Inventory(InventoryAction.Unequip,(int)EquipmentSlot.SwimRing,2));s=m.Capture();
             Require(s.Players[0].FishId==-1 && s.Fish[0].Owner==-1 && s.Coins==0 && s.Players[0].LastInventoryResult==InventoryResult.Success,"Removing ring did not release target atomically.");
-            for(int i=0;i<6;i++)Step(m);Require(m.Capture().Players[0].Vitals.Health==59,"Unequip did not resume water damage.");
+            for(int i=0;i<29;i++)Step(m);Require(m.Capture().Players[0].Vitals.Health==59,"Unequip did not resume water damage.");
         });
         yield return ("water_swim_budget_and_zero_input_rest_are_exact",()=>{
             var m=Model();GiveRing(m,0,10);At(m,0,0,-4500);Change(m,p=>p[0].Stamina=6750);
@@ -187,7 +187,9 @@ internal static partial class Program
         yield return ("water_zero_stamina_still_casts_with_ring_but_downed_cannot_swim",()=>{
             var m=Model();GiveRing(m,0,1);At(m,0,0,-4500);Change(m,p=>p[0].Stamina=0);Step(m,new HookInput(0,0,0,-8500,true));
             Require(m.Capture().Players[0].Casts==1,"Zero stamina incorrectly blocks empty cast.");
-            Change(m,p=>p[0].Vitals.Health=0);for(int i=0;i<100;i++)Step(m,new HookInput(1000,0,0,-8500,true));
+            // This fixture injects downed health outside the damage step; include the combo reset
+            // that the authoritative downed transition performs before producing a snapshot.
+            Change(m,p=>{p[0].Vitals.Health=0;p[0].Combo=default;});for(int i=0;i<100;i++)Step(m,new HookInput(1000,0,0,-8500,true));
             var p=m.Capture().Players[0];Require(p.X==0 && p.Vitals.Downed && p.Stamina==0 && p.Swimming.InWater && p.Casts==1,"Downed player acted or recovered.");
         });
         yield return ("water_rescue_ignores_protection_and_pulls_downed_zero_stamina_to_free_land",()=>{

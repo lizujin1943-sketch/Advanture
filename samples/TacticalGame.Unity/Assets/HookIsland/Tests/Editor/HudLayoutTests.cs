@@ -14,23 +14,35 @@ namespace Advanture.HookIsland.Tests
         public void VisibleControlsFitAndDoNotOverlapAtSupportedWindowSizes(int width,int height)
         {
             float scale=HudLayout.Scale(width,height);var layout=new HudLayout(width/scale,height/scale);
-            var rects=new[]{layout.Squad(4),layout.Resources(true),layout.Menu,layout.Vitals,layout.Tools,layout.Construction};
+            var rects=new[]{layout.Squad(4),layout.Wallet,layout.Menu,layout.Tools,layout.Construction,layout.Acquisitions,layout.Combo};
             for(int i=0;i<rects.Length;i++)
             {
                 Assert.That(rects[i].xMin,Is.GreaterThanOrEqualTo(0));Assert.That(rects[i].yMin,Is.GreaterThanOrEqualTo(0));
                 Assert.That(rects[i].xMax,Is.LessThanOrEqualTo(layout.Width));Assert.That(rects[i].yMax,Is.LessThanOrEqualTo(layout.Height));
                 for(int j=i+1;j<rects.Length;j++)Assert.That(rects[i].Overlaps(rects[j]),Is.False,$"HUD overlap: {i}, {j}");
             }
-            for(int i=0;i<3;i++)Assert.That(layout.Contains(layout.Tool(i).center,4,true,true,false),Is.True,"Visible button must block casting.");
+            for(int i=0;i<3;i++)Assert.That(layout.Contains(layout.Tool(i).center,4,false),Is.True,"Visible button must block casting.");
+        }
+        [Test] public void CollapsedTaskDrawerOnlyBlocksItsVisibleHandleAndCanBeReversed()
+        {
+            var layout=new HudLayout(1280,720);var motion=new ObjectivePanelMotion();
+            motion.Toggle(1);float middle=motion.Reveal(1.11f);
+            Assert.That(middle,Is.InRange(.45f,.55f));
+            Assert.That(layout.Contains(layout.Commissions.center,1,false,true,true,false,motion.Reveal(2)),Is.False);
+            Assert.That(layout.Contains(layout.ObjectiveTab(0).center,1,false,true,true,false,0),Is.True);
+            Assert.That(layout.Contains(layout.Acquisitions.center,1,false,true,true),Is.False,"Passive notices must not swallow casts.");
+            motion.Toggle(2);Assert.That(motion.Reveal(3),Is.EqualTo(1));
+            Assert.That(layout.Contains(layout.Commissions.center,1,false,true,true,false,motion.Reveal(3)),Is.True);
         }
         [Test] public void HiddenConstructionAndOldInstructionStripDoNotBlockCasting()
         {
             var layout=new HudLayout(1280,720);
-            Assert.That(layout.Contains(layout.Construction.center,4,true,true,false),Is.False);
-            Assert.That(layout.Contains(layout.Construction.center,4,true,true,true),Is.True);
-            Assert.That(layout.Contains(new Vector2(360,680),4,true,true,false),Is.False,"Old bottom instruction strip must be playable.");
-            Assert.That(layout.Contains(new Vector2(220,210),4,true,true,false),Is.False,"Old large left panel must be playable.");
-            Assert.That(layout.Contains(new Vector2(640,360),4,true,true,true),Is.False,"Scene center must stay playable.");
+            Assert.That(layout.Contains(new Vector2(640,650),4,false),Is.False,"Removed vitals panel must not block casting.");
+            Assert.That(layout.Contains(layout.Construction.center,4,false),Is.False);
+            Assert.That(layout.Contains(layout.Construction.center,4,true),Is.True);
+            Assert.That(layout.Contains(new Vector2(360,680),4,false),Is.False,"Old bottom instruction strip must be playable.");
+            Assert.That(layout.Contains(new Vector2(220,210),4,false),Is.False,"Old large left panel must be playable.");
+            Assert.That(layout.Contains(new Vector2(640,360),4,true),Is.False,"Scene center must stay playable.");
         }
         [TestCase(-10,100,0f)]
         [TestCase(150,100,1f)]

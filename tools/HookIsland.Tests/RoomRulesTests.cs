@@ -157,7 +157,10 @@ internal static partial class Program
             var invalid=new HookState(state.Steps,state.Players,state.Fish,state.Coins,state.Tiles,state.Driftwood,state.Tackle,state.Enemies,new RoomRulesState(false,1));
             bool bad=false;try{new HookGame().Decode(new HookGame().Encode(invalid));}catch(InvalidDataException){bad=true;}
             Require(bad,"Disabled-room checkpoint accepted a land pull.");
-            var bytes=new HookGame().Encode(state);bytes[bytes.Length-5]=2;bad=false;
+            var bytes=new HookGame().Encode(state);
+            // Mutate the RUL1 payload, not a tail offset that moves when another codec is appended.
+            int policy=Enumerable.Range(0,bytes.Length-8).Single(i=>BitConverter.ToInt32(bytes,i)==0x314C5552);
+            bytes[policy+4]=2;bad=false;
             try{new HookGame().Decode(bytes);}catch(InvalidDataException){bad=true;}Require(bad,"Invalid policy flag accepted.");
         });
     }

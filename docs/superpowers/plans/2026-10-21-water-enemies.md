@@ -31,7 +31,7 @@
 
 ## Task 1: 敌人规则与独立状态
 
-**Files:** 新增 `samples/HookIsland.Simulation/EnemyConfig.cs`、`EnemyState.cs`、`EnemySystem.cs`、`EnemyStateCodec.cs`、`KnockbackSystem.cs`；新增 `tools/HookIsland.Enemy.Tests`。
+**Files:** 新增 `samples/HookIsland.Simulation/Data/Configuration/EnemyConfig.cs`、`EnemyState.cs`、`EnemySystem.cs`、`EnemyStateCodec.cs`、`KnockbackSystem.cs`；新增 `tools/HookIsland.Enemy.Tests`。
 
 **Interfaces:** EnemyConfig 为不可变房间规则；EnemySystem 创建／捕获／恢复敌人状态、推进一帧并返回命中事件；KnockbackSystem 处理连续位移；EnemyStateCodec 保存并验证全部进度。
 

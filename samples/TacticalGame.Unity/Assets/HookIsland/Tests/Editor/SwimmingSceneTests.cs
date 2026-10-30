@@ -13,7 +13,7 @@ namespace Advanture.HookIsland.Tests
             var settings=AssetDatabase.LoadAssetAtPath<PlatformSettings>("Assets/HookIsland/Data/PlatformSettings.asset");
             Assert.That(settings.fishing.swimming,Is.Not.Null);
             var config=settings.fishing.swimming.CreateConfig();
-            Assert.That(config.HealthLossMilliPerSecond,Is.EqualTo(5000));
+            Assert.That(config.HealthLossBasisPointsPerSecond,Is.EqualTo(100));
             Assert.That(config.Speed,Is.EqualTo(1000));Assert.That(config.StaminaMilliPerSecond,Is.EqualTo(10000));
             var map=settings.CreateMap();var saved=AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/HookIsland/Data/PlatformMap.bytes");
             Assert.That(saved.bytes.SequenceEqual(map.Encode()),Is.True);

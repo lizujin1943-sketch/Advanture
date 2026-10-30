@@ -28,7 +28,7 @@
 
 ### Task 1: 确定性委托与捕获事务
 
-**Files:** 新建 samples/HookIsland.Simulation/CommissionConfig.cs、CommissionState.cs、CommissionSystem.cs、CommissionStateCodec.cs；修改 FishingEquipment、FishingCatalog、Data/fish.csv、HookState、HookGame、HookGame.Cooperative、IslandMap、RoomProtocol 及 proto 注释；新增 tools/HookIsland.Tests/CommissionTests.cs。
+**Files:** 新建 samples/HookIsland.Simulation/Data/Configuration/CommissionConfig.cs、CommissionState.cs、CommissionSystem.cs、CommissionStateCodec.cs；修改 FishingEquipment、FishingCatalog、Data/fish.csv、HookState、HookGame、HookGame.Cooperative、IslandMap、RoomProtocol 及 proto 注释；新增 tools/HookIsland.Tests/CommissionTests.cs。
 
 **Interfaces:** CommissionDefinition(int fish,int rare,int bait=1)；CommissionConfig(IEnumerable<CommissionDefinition>? definitions=null,bool enabled=true)；CommissionState(int completed,int bait,IEnumerable<CommissionProgress> entries)；CommissionSystem.Create(config)、RecordCatch(config,state,bool rare)；HookState.Commissions；FishingConfig.Commissions。
 

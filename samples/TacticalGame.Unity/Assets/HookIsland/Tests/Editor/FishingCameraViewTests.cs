@@ -38,18 +38,23 @@ namespace Advanture.HookIsland.Tests
         {
             var previous=Mouse.current;
             var mouse=InputSystem.AddDevice<Mouse>();
+            var input=new FishingCameraInput();
             try
             {
                 view.Toggle(Vector3.forward,Vector3.zero);
+                InputSystem.QueueStateEvent(mouse,new UnityEngine.InputSystem.LowLevel.MouseState {position=new Vector2(100,100)});
+                InputSystem.Update();
+                view.Look(input.ReadLookDelta(true));
                 InputSystem.QueueDeltaStateEvent(mouse.delta,new Vector2(120,80));
                 InputSystem.Update();
-                Assert.That(mouse.delta.ReadValue().sqrMagnitude,Is.GreaterThan(0),"The test must deliver an actual device event.");
-                view.Look(FishingCameraInput.ReadLookDelta());
+                Assert.That(mouse.position.ReadValue(),Is.EqualTo(new Vector2(100,100)),"A captured mouse can stay centered while delivering motion.");
+                Assert.That(mouse.delta.ReadValue(),Is.EqualTo(new Vector2(120,80)),"Deliver an actual relative mouse event.");
+                view.Look(input.ReadLookDelta(true));
                 Assert.That(camera.transform.forward.x,Is.GreaterThan(.1f),"Mouse movement must reach the camera input adapter.");
                 Assert.That(camera.transform.eulerAngles.x,Is.LessThan(24),"Moving the mouse up must raise the view.");
                 var rotated=camera.transform.rotation;
                 InputSystem.Update();
-                view.Look(FishingCameraInput.ReadLookDelta());
+                view.Look(input.ReadLookDelta(true));
                 Assert.That(Quaternion.Angle(camera.transform.rotation,rotated),Is.LessThan(.01f),"No mouse movement must not replay the last delta.");
             }
             finally
@@ -59,10 +64,36 @@ namespace Advanture.HookIsland.Tests
             }
         }
 
+        [Test] public void ResumingLookDiscardsMouseMotionMadeOverUiOrWhileUnfocused()
+        {
+            var previous=Mouse.current;var mouse=InputSystem.AddDevice<Mouse>();var input=new FishingCameraInput();
+            try
+            {
+                view.Toggle(Vector3.forward,Vector3.zero);
+                view.Look(input.ReadLookDelta(true));var initial=camera.transform.rotation;
+                InputSystem.QueueDeltaStateEvent(mouse.delta,new Vector2(900,700));InputSystem.Update();
+                view.Look(input.ReadLookDelta(false));
+                InputSystem.QueueDeltaStateEvent(mouse.delta,new Vector2(400,200));InputSystem.Update();
+                view.Look(input.ReadLookDelta(true));
+                Assert.That(Quaternion.Angle(initial,camera.transform.rotation),Is.LessThan(.01f),"Resuming must discard motion from before capture.");
+                InputSystem.QueueDeltaStateEvent(mouse.delta,new Vector2(20,0));InputSystem.Update();
+                view.Look(input.ReadLookDelta(true));
+                Assert.That(camera.transform.eulerAngles.y,Is.EqualTo(6).Within(.01f),"Only the new 20-pixel motion may turn the camera.");
+                input.Reset();var beforeReset=camera.transform.rotation;
+                InputSystem.QueueDeltaStateEvent(mouse.delta,new Vector2(50,50));InputSystem.Update();
+                view.Look(input.ReadLookDelta(true));
+                Assert.That(Quaternion.Angle(beforeReset,camera.transform.rotation),Is.LessThan(.01f),"A new session must discard the old device motion.");
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(mouse);if(previous!=null && previous.added)previous.MakeCurrent();
+            }
+        }
+
         [Test] public void FreeLookTurnsPastAFullCircleAndCanLookUpAndDownWithoutRecentering()
         {
             var feet=new Vector3(0,.465f,0);view.Toggle(Vector3.forward,feet);
-            view.Look(new Vector2(675,1000));
+            view.Look(new Vector2(270,1000));
             Assert.That(camera.transform.forward.y,Is.GreaterThan(.99f),"Looking up must not stop at the horizon.");
             Assert.That(Vector2.Distance(view.Movement(Vector2.up),Vector2.right),Is.LessThan(.001f));
             Assert.That(camera.transform.position.y,Is.GreaterThan(feet.y+.1f),"Upward orbit must stay above the platform.");
@@ -83,8 +114,8 @@ namespace Advanture.HookIsland.Tests
             Assert.That(camera.nearClipPlane, Is.LessThan(.1f));
             view.Follow(new Vector3(5,.2f,6), new Vector3(4,.2f,5), .02f);
             var offset=camera.transform.position-new Vector3(5,.2f,6);
-            Assert.That(offset.x,Is.EqualTo(.6f).Within(.001f));
-            Assert.That(offset.y,Is.InRange(2.2f,2.4f));
+            Assert.That(offset.x,Is.EqualTo(.45f).Within(.001f));
+            Assert.That(offset.y,Is.InRange(3.2f,3.4f));
             Assert.That(offset.z,Is.InRange(-2.9f,-2.7f));
             view.Toggle(Vector3.forward, new Vector3(5,.2f,6));
             Assert.That(camera.orthographic, Is.True);
@@ -107,6 +138,27 @@ namespace Advanture.HookIsland.Tests
             Assert.That(Vector3.Angle(Vector3.up,camera.transform.forward),Is.GreaterThan(.5f),"Stop short of the pole so the view cannot flip over.");
         }
 
+        [Test] public void ReturningFromOverheadKeepsThePreviousOrbitAndZoom()
+        {
+            var feet=new Vector3(3,.465f,4);view.Toggle(Vector3.forward,feet);
+            view.Look(new Vector2(31,-8));view.Zoom(-2);
+            var position=camera.transform.position;var rotation=camera.transform.rotation;
+            view.Toggle(Vector3.forward,feet);
+            view.Toggle(Vector3.left,feet);
+            Assert.That(Quaternion.Angle(camera.transform.rotation,rotation),Is.LessThan(.01f),"Returning to third person must not discard the chosen view angle.");
+            Assert.That(Vector3.Distance(camera.transform.position,position),Is.LessThan(.001f),"Returning to third person must retain its distance and shoulder framing.");
+        }
+
+        [Test] public void ResetStartsTheNextRoundWithTheConfiguredOrbitAndZoom()
+        {
+            var feet=new Vector3(3,.465f,4);view.Toggle(Vector3.forward,feet);
+            var initialPosition=camera.transform.position;var initialRotation=camera.transform.rotation;
+            view.Look(new Vector2(31,-8));view.Zoom(-2);view.Reset();
+            view.Toggle(Vector3.forward,feet);
+            Assert.That(Quaternion.Angle(camera.transform.rotation,initialRotation),Is.LessThan(.01f));
+            Assert.That(Vector3.Distance(camera.transform.position,initialPosition),Is.LessThan(.001f),"A new round must not inherit the old round's zoom distance.");
+        }
+
         [Test] public void HorizonAndUpwardAimUseFreshForwardRangeInsteadOfPreviousTarget()
         {
             view.Toggle(Vector3.forward, Vector3.zero);
@@ -124,7 +176,15 @@ namespace Advanture.HookIsland.Tests
         [Test] public void ResetRestoresProjectionAndMouseAfterThirdPerson()
         {
             view.Toggle(Vector3.left,Vector3.zero);
-            view.SetPointerCapture(true);
+            Assert.That(view.SetLookInputActive(true),Is.True);
+            Assert.That(Cursor.lockState,Is.EqualTo(CursorLockMode.Locked));
+            Assert.That(Cursor.visible,Is.False);
+            Assert.That(view.SetLookInputActive(true),Is.False,"Continuous play must not reapply cursor capture each frame.");
+            view.SetLookInputActive(false);
+            Assert.That(Cursor.lockState,Is.EqualTo(CursorLockMode.None));
+            Assert.That(Cursor.visible,Is.True);
+            Assert.That(view.LookInputActive,Is.False);
+            Assert.That(view.SetLookInputActive(true),Is.True,"Closing a UI or regaining focus must report a fresh capture.");
             view.Reset();
             Assert.That(view.ThirdPerson,Is.False);
             Assert.That(camera.orthographic,Is.True);
@@ -193,9 +253,9 @@ namespace Advanture.HookIsland.Tests
         [Test] public void TurningUpdatesOrbitBeforeSamplingAimAndDoesNotMoveThePivot()
         {
             var feet=new Vector3(3,.465f,4);view.Toggle(Vector3.forward,feet);
-            view.Look(new Vector2(75,0));
+            view.Look(new Vector2(30,0));
             Assert.That(camera.transform.position.x,Is.LessThan(feet.x-2.7f));
-            Assert.That(camera.transform.position.z,Is.EqualTo(feet.z-.6f).Within(.001f));
+            Assert.That(camera.transform.position.z,Is.EqualTo(feet.z-.45f).Within(.001f));
             var target=view.Aim(camera.ViewportPointToRay(new Vector3(.5f,.5f)),feet,12);
             Assert.That(target.x,Is.GreaterThan(feet.x));
             var before=camera.transform.position;view.Follow(feet,Vector3.zero,.02f);

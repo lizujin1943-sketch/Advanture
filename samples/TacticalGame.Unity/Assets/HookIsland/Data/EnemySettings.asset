@@ -16,8 +16,8 @@ MonoBehaviour:
   minWeightKg: 1
   maxWeightKg: 4
   damagePerKg: 3
-  biteIntervalSeconds: 1.5
-  swimMetresPerSecond: 2.4
+  biteIntervalSeconds: 1
+  swimMetresPerSecond: 1.92
   aggroMetres: 20
   biteMetres: 0.8
   monsterEnabled: 1
@@ -31,7 +31,7 @@ MonoBehaviour:
   waterballMetresPerSecond: 8
   waterballRadiusMetres: 0.3
   waterballRangeMetres: 24
-  patrolMetresPerSecond: 1.2
+  patrolMetresPerSecond: 0.96
   piranhaRespawnSeconds: 10
   piranhaCoinsPerKg: 6
   piranhaStaminaPerKgSecond: 1.2

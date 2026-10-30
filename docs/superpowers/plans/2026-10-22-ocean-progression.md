@@ -29,7 +29,7 @@
 
 ### Task 1: 确定性鱼群与事件
 
-**Files:** 创建 samples/HookIsland.Simulation/OceanConfig.cs、OceanState.cs、OceanRules.cs、OceanPlacement.cs、OceanSystem.cs、OceanStateCodec.cs、HookGame.Ocean.cs；修改 FishingEquipment.cs、HookState.cs、HookGame.cs、HookGame.Cooperative.cs、EnemySystem.cs、IslandMap.cs、RoomProtocol.cs、proto/hook-island-room.proto；创建 tools/HookIsland.Tests/OceanProgressionTests.cs 并接入 Program.cs。
+**Files:** 创建 samples/HookIsland.Simulation/Data/Configuration/OceanConfig.cs、OceanState.cs、OceanRules.cs、OceanPlacement.cs、OceanSystem.cs、OceanStateCodec.cs、HookGame.Ocean.cs；修改 FishingEquipment.cs、HookState.cs、HookGame.cs、HookGame.Cooperative.cs、EnemySystem.cs、IslandMap.cs、RoomProtocol.cs、proto/hook-island-room.proto；创建 tools/HookIsland.Tests/OceanProgressionTests.cs 并接入 Program.cs。
 
 **Interfaces:**
 - `FishSchoolProfile(FishRarity minRarity, FishRarity maxRarity, int minWeightGrams, int maxWeightGrams, int maxGrade=1)`。
@@ -46,7 +46,7 @@
 
 ### Task 2: 配置、HUD 与真实输入
 
-**Files:** 创建 Unity Runtime/OceanSettings.cs、OceanSmokePilot.cs、OceanSmokeDriver.cs、Editor/OceanSceneTests.cs；修改 FishingSettings.cs、PlatformSettings.cs、HookPlatformSceneBuilder.cs、CommissionHud.cs、HudLayout.cs、FishingPresentation.cs、IslandFishingController.cs、PlatformSmokeDriver.cs；创建 tools/HookIsland.Tests/OceanProgressionNetworkTests.cs；修改测试工程、Program.cs、scripts/run-island-party.py、正式配置资产和 PlatformMap.bytes。
+**Files:** 创建 Unity Runtime/Data/Settings/OceanSettings.cs、OceanSmokePilot.cs、OceanSmokeDriver.cs、Editor/OceanSceneTests.cs；修改 FishingSettings.cs、PlatformSettings.cs、HookPlatformSceneBuilder.cs、CommissionHud.cs、HudLayout.cs、FishingPresentation.cs、IslandFishingController.cs、PlatformSmokeDriver.cs；创建 tools/HookIsland.Tests/OceanProgressionNetworkTests.cs；修改测试工程、Program.cs、scripts/run-island-party.py、正式配置资产和 PlatformMap.bytes。
 
 **Interfaces:** `OceanSettings.CreateConfig()`；`OceanSmokePilot.CreateMap(bool defaults=false)`、`Sample(map,state,slot,tick)`、`Complete(state)`；`--ocean` 只显式启用开发驱动，其他驱动互斥。`OceanRules.Home` 用于鱼方向和水纹，锁定与空闲槽显示为规范 Waiting，不可命中。
 

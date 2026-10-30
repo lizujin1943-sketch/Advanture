@@ -44,10 +44,11 @@ internal static partial class Program
         });
         yield return ("piranha_selects_water_only_and_stable_slot_then_bite_interval",()=>{
             var c=new EnemyConfig(piranhaCount:1,monsterEnabled:false);var e=new EnemySystem(c);
+            Require(c.BiteIntervalTicks==HookGame.Rate,"Default bite interval is not one second.");
             var f=e.Capture().Piranhas[0];var players=new[]{Player(0,f.X,f.Z),Player(1,f.X+100,f.Z,true),Player(2,f.X-100,f.Z,true)};
             var hits=new List<EnemyHit>();e.Advance(players,hits.Add);
             Require(hits.Count==1 && hits[0].Slot==1,"Wrong water target/tie break");
-            for(int i=0;i<c.BiteIntervalTicks-1;i++)e.Advance(players,hits.Add);
+            for(int i=0;i<HookGame.Rate-1;i++)e.Advance(players,hits.Add);
             Require(hits.Count==1,"Bite cooldown ignored");e.Advance(players,hits.Add);Require(hits.Count==2,"Bite did not resume");
             players[1].Vitals.Health=players[2].Vitals.Health=0;
             for(int i=0;i<100;i++)e.Advance(players,hits.Add);Require(hits.Count==2,"Attacked land/downed players");

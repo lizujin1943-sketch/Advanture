@@ -12,7 +12,7 @@ internal static partial class Program
         foreach(int count in new[]{1,4})yield return ($"network_ocean_progress_and_visits_reset_{count}_players",()=>{
             var source=OceanSmokePilot.CreateMap();
             var map=new IslandMap(source.Shore,source.Pier,source.Spawns,source.FishSpots,source.Platform,
-                new FishingConfig(swimming:new SwimmingConfig(healthLossMilliPerSecond:1000000),
+                new FishingConfig(swimming:new SwimmingConfig(healthLossBasisPointsPerSecond:10000),
                     revival:new RevivalConfig(downedTicks:30,baseFee:1000000),
                     commissions:source.Fishing!.Commissions,ocean:source.Fishing.Ocean));
             using var party=new Party(count,map);party.Until(()=>party.Running,_=>default);
@@ -42,7 +42,7 @@ internal static partial class Program
             // Valid authored-rule overrides keep this acceptance short without granting resources or editing live state.
             var map=new IslandMap(source.Shore,source.Pier,source.Spawns,source.FishSpots,
                 new PlatformConfig(fishboneTileCost:2),new FishingConfig(
-                    swimming:new SwimmingConfig(healthLossMilliPerSecond:1000000),
+                    swimming:new SwimmingConfig(healthLossBasisPointsPerSecond:10000),
                     revival:new RevivalConfig(downedTicks:30,baseFee:1000000),
                     commissions:new CommissionConfig(new[]{new CommissionDefinition(1,1),new CommissionDefinition(3,1)})));
             using var party=new Party(1,map);party.Until(()=>party.Running,_=>default);

@@ -21,6 +21,7 @@ MonoBehaviour:
   ocean: {fileID: 11400000, guid: e55ac20fb2fb946e48bd29c42f809ebe, type: 2}
   finale: {fileID: 11400000, guid: 572a2ad7497d84281bd6d0b3ff8066fc, type: 2}
   merchants: {fileID: 11400000, guid: 5e8ff500481794127baa3b38ddcab46a, type: 2}
+  combo: {fileID: 11400000, guid: a829978f5b844422fa5c8aa39bc8f332, type: 2}
   characterBaseStamina: 100
   recoveryDelaySeconds: 2
   recoveryPointsPerSecond: 5
@@ -29,3 +30,7 @@ MonoBehaviour:
   merchantLevel: 1
   restockSeconds: 600
   worldSeed: 7381
+  enableMelee: 1
+  startWithFryingPan: 1
+  piranhaHealth: 50
+  meleeStunSeconds: 0.5

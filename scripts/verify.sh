@@ -60,6 +60,9 @@ done
 # 食人鱼、水怪、打断和击退，含单人及四客户端完整 checkpoint 一致性。
 ./scripts/verify-hook-enemies.sh
 
+# 平底锅、扇形近战、状态恢复及四客户端一致性。
+./scripts/verify-hook-melee.sh
+
 # 倒地、免费救援、个人付费复活与四客户端一致性。
 ./scripts/verify-hook-revival.sh
 
