@@ -10,7 +10,7 @@ import shutil
 import bpy
 from mathutils import Vector
 from mathutils.geometry import tessellate_polygon
-from fish_geometry import Surface, body_weights, v
+from fish_geometry import Surface, body_weights
 
 ROOT=Path(__file__).resolve().parents[2]
 P=200
@@ -179,10 +179,9 @@ def solid_polygon(surface,spec,points,bone,thickness=2,center_y=0,color=None):
             surface.face((front[i],back[i],back[j],front[j]),color=color)
 
 
-def add_puffer_face(surface,spec):
+def add_puffer_face(surface):
     # Both eyes sit on the front hemisphere, so this fish has two eyes in 3D,
     # not a duplicated two-eye picture on each side of its spherical body.
-    art=spec['_reference']
     for sign in (-1,1):
         center=(.47,sign*.30,.22)
         surface.ellipsoid(center,(.18,.145,.23),'Head',2,20,12)
@@ -326,7 +325,7 @@ def create_mesh(spec,collection,material,rig):
             y=(i-1)*.080
             surface.cone((.74,y,-.20),(.76,y,-.115),.028,'Jaw',7,5)
     if art.get('puffer'):
-        add_puffer_face(surface,spec)
+        add_puffer_face(surface)
     obj=surface.object(spec['id']+'_Mesh',collection,material,rig)
     obj['reference_method']='Traced volumetric anatomy; native concept UV; mirrored complete 3D mesh'
     return obj

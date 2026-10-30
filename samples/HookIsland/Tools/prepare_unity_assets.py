@@ -16,8 +16,7 @@ def main():
     models.mkdir(parents=True, exist_ok=True)
     for path in EXPORT.glob("*.png"):
         shutil.copy2(path, textures / path.name)
-    for name in ("hook_island_v2.fbx", "export_manifest.json"):
-        shutil.copy2(EXPORT / name, models / name)
+    shutil.copy2(EXPORT / "hook_island_v2.fbx", models / "hook_island_v2.fbx")
     outline = np.asarray(json.loads((EXPORT / "export_manifest.json").read_text())
                          ["shoreline_blender_xy"], dtype=np.float32)
     if len(outline) < 3:

@@ -36,7 +36,7 @@ namespace Advanture.HookIsland.Tests
             FishingPresentation view=null;
             try
             {
-                view=new FishingPresentation(go.transform,camera,Shader.Find("Sprites/Default"),map);
+                view=new FishingPresentation(go.transform,Shader.Find("Sprites/Default"),map);
                 Set(room,"map",map);Set(room,"viewCamera",camera);Set(room,"presentation",view);Set(room,"saves",new IslandSaveCoordinator(directory));
                 Get<FishingPlayerInput>(room,"playerInput").Initialize(camera,new FishingCameraView(camera,true));
                 var clock=Get<Stopwatch>(room,"clock");clock.Start();

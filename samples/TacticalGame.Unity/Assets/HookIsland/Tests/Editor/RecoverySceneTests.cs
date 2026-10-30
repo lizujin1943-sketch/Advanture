@@ -78,13 +78,13 @@ namespace Advanture.HookIsland.Tests
         }
         [Test] public void ReservedPlayersAreHiddenWhileDisconnectedBodiesRemainVisible()
         {
-            var go=new GameObject("recovery-visibility");var camera=go.AddComponent<Camera>();var map=IslandMap.CreatePlatform();
+            var go=new GameObject("recovery-visibility");var map=IslandMap.CreatePlatform();
             var players=new[]{new Participant(0,Guid.NewGuid()),new Participant(1,Guid.NewGuid(),isActive:false)};
             var simulation=new HookGame().Create();
             simulation.Initialize(new SimulationInitialization(new SessionDescriptor(Guid.NewGuid(),1,30,players),new ByteString(map.Encode())));
             try
             {
-                using(var view=new FishingPresentation(go.transform,camera,Shader.Find("Sprites/Default"),map))
+                using(var view=new FishingPresentation(go.transform,Shader.Find("Sprites/Default"),map))
                 {
                     var s=simulation.Capture();view.Present(s,s,0,Vector3.zero,false);
                     Assert.That(view.RenderedPlayers,Is.EqualTo(1),"Unused reserved seat has an avatar.");
@@ -97,10 +97,10 @@ namespace Advanture.HookIsland.Tests
         }
         [Test] public void InitialRecoverySnapshotDoesNotReplayOldCatchPopups()
         {
-            var go=new GameObject("recovery-catch-feedback");var camera=go.AddComponent<Camera>();var map=IslandMap.CreatePlatform();
+            var go=new GameObject("recovery-catch-feedback");var map=IslandMap.CreatePlatform();
             try
             {
-                using(var view=new FishingPresentation(go.transform,camera,Shader.Find("Sprites/Default"),map))
+                using(var view=new FishingPresentation(go.transform,Shader.Find("Sprites/Default"),map))
                 {
                     var player=new Fisher{Slot=0,Phase=HookPhase.Ready,Catches=4,Coins=20,CoinsEarned=50,Casts=10,FishId=-1,DriftwoodId=-1,HookedPlayer=-1,PulledBy=-1};
                     var fish=map.FishSpots.Select((p,i)=>new Fish{Id=i,X=p.X,Z=p.Z,Owner=-1}).ToArray();

@@ -11,7 +11,6 @@ namespace Advanture.HookIsland
     {
         public static readonly Color[] PlayerColors={new Color(.12f,.57f,1),new Color(1,.33f,.18f),new Color(.22f,.8f,.36f),new Color(.8f,.35f,1)};
         private readonly Transform root;
-        private readonly Camera camera;
         private readonly IslandMap map;
         private readonly FisherCharacterDefinition character;
         private readonly FishVisualCatalog fishArt;
@@ -21,7 +20,7 @@ namespace Advanture.HookIsland
         private readonly FishShadowView[] fishShadows;
         private readonly FishWaterEffects fishWater;
         private readonly Mesh shape,cube,cone;
-        private readonly Material skin,boots,white,dark,wood,metal,gold,line;
+        private readonly Material skin,boots,dark,wood,metal,gold,line;
         private readonly Material[] coats,rodMaterials;
         private readonly int[] shownSpecies;
         private readonly FishModelView[] fishViews;
@@ -50,9 +49,9 @@ namespace Advanture.HookIsland
             public bool Placed;
             public Vector3 Previous;
         }
-        public FishingPresentation(Transform parent,Camera camera,Shader lineShader,IslandMap map)
+        public FishingPresentation(Transform parent,Shader lineShader,IslandMap map)
         {
-            this.camera=camera;this.map=map;fishArt=FishVisualCatalog.LoadRequired();
+            this.map=map;fishArt=FishVisualCatalog.LoadRequired();
             if(map.Fishing!=null)
             {
                 character=Resources.Load<FisherCharacterDefinition>(FisherCharacterDefinition.ResourcePath);
@@ -64,7 +63,7 @@ namespace Advanture.HookIsland
             pier=GameObject.Find("Pier Walk Surface")?.GetComponent<Collider>()??GameObject.Find("Island_Pier")?.GetComponent<Collider>();
             shape=MakeShape();cube=MakeCube();cone=MakeCone();
             skin=Mat("Skin",new Color(1,.72f,.42f));boots=Mat("Boots",new Color(.16f,.19f,.23f));
-            white=Mat("Cream",new Color(1,.96f,.78f));dark=Mat("Eyes",new Color(.035f,.08f,.1f));
+            dark=Mat("Eyes",new Color(.035f,.08f,.1f));
             wood=Mat("Leather",new Color(.42f,.2f,.07f));metal=Mat("Hook",new Color(.75f,.88f,.94f));gold=Mat("Gold",new Color(1,.72f,.06f));
             coats=new Material[4];for(int i=0;i<4;i++)coats[i]=Mat("Player "+(i+1),PlayerColors[i]);
             rodMaterials=new[]{wood,coats[2],coats[0],coats[3],gold,metal};

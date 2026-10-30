@@ -8,7 +8,7 @@ namespace Advanture.HookIsland
     {
         private object identity;
         private ulong epoch,tick;
-        private int observed,displayCount,bonus;
+        private int displayCount,bonus;
         private float increasedAt=-100,brokenAt=-100,strength,colorProgress;
         private bool initialized,visible;
         public void Observe(object session,ulong round,ulong confirmedTick,int count,ComboConfig config,float now)
@@ -27,7 +27,7 @@ namespace Advanture.HookIsland
                 int first=config.BonusPercent(config.DisplayStartCount);
                 colorProgress=maximum>first?Mathf.InverseLerp(first,maximum,bonus):maximum>0?1:0;
             }
-            observed=count;visible=show;
+            visible=show;
         }
         public void ConfirmIncrease(int count,float now)
         {
@@ -36,7 +36,7 @@ namespace Advanture.HookIsland
             if(visible && count==displayCount)increasedAt=now;
         }
         public void Reset()
-        {identity=null;initialized=visible=false;observed=displayCount=bonus=0;increasedAt=brokenAt=-100;strength=colorProgress=0;}
+        {identity=null;initialized=visible=false;displayCount=bonus=0;increasedAt=brokenAt=-100;strength=colorProgress=0;}
         public ComboHudFrame Sample(float now)
         {
             float alpha=visible?1:Mathf.Clamp01(1-(now-brokenAt)/.24f);

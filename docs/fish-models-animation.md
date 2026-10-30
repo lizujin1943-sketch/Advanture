@@ -28,7 +28,7 @@
 - `scripts/blender/fish_reference_layout.py`：各鱼种的参考图造型标记与轮廓。
 - `scripts/blender/prepare_fish_reference.py`：原图像素图集、边缘颜色扩展和河鲀鱼皮制作。
 - `scripts/blender/fish_reference_geometry.py`：依照参考图构成立体网格、UV、眼部起伏、厚嘴唇、牙齿与鱼鳍。
-- `scripts/blender/fish_geometry.py`：共用网格构造与蒙皮权重工具；其第一版鱼身与贴图生成入口已不由资源构建器调用。
+- `scripts/blender/fish_geometry.py`：供新版鱼资源共用的网格构造、坐标转换与蒙皮权重工具；未使用的第一版鱼身与贴图生成器已移除。
 - `scripts/blender/fish_animation.py`：骨架及姿态曲线制作。
 - `scripts/blender/create_fish_library.py`：独立后台 Blender 制作、保存与导出入口。
 - `scripts/blender/verify_fish_library.py`：源文件与导出文件检查入口。

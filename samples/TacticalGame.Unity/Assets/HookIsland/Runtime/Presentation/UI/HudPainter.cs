@@ -52,7 +52,6 @@ namespace Advanture.HookIsland
         public void Text(Rect rect,string text,int size=15,Color? color=null,TextAnchor alignment=TextAnchor.MiddleLeft,bool bold=false)
         {var style=Style(size,alignment,bold);style.normal.textColor=color??White;GUI.Label(rect,text,style);}
         public static float Fraction(int value,int maximum) => maximum<=0?0:Mathf.Clamp01((float)value/maximum);
-        public static Color StaminaColor(float fraction) => fraction<=.2f?Coral:fraction<=.5f?Gold:Mint;
         public void Bar(Rect rect,float progress,Color color,bool ticks=false)
         {
             progress=Mathf.Clamp01(progress);Surface(rect,Track);

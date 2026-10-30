@@ -103,7 +103,7 @@ namespace Advanture.HookIsland
                 if(LaunchValue("-island-cooperative-smoke")=="1")map=CooperativeFishingSmokePilot.CreateMap();
                 if(LaunchValue("-island-room-rules-smoke")=="1")map=RoomRulesSmokePilot.CreateMap();
 #endif
-                presentation=new FishingPresentation(transform,viewCamera,lineShader,map);
+                presentation=new FishingPresentation(transform,lineShader,map);
                 playerInput.Initialize(viewCamera,new FishingCameraView(viewCamera,map.Platform!=null,thirdPersonFieldOfView,mouseLookSensitivity,
                     thirdPersonPivotHeight,verticalLookSensitivityMultiplier,thirdPersonDistance,thirdPersonShoulderOffset,thirdPersonInitialPitch));
                 EnsureRoomSession();

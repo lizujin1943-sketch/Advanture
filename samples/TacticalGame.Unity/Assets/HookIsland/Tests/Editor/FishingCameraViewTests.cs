@@ -209,7 +209,7 @@ namespace Advanture.HookIsland.Tests
             var players=new[]{new Participant(0,Guid.NewGuid()),new Participant(1,Guid.NewGuid())};
             simulation.Initialize(new SimulationInitialization(new SessionDescriptor(Guid.NewGuid(),1,30,players),new ByteString(map.Encode())));
             var state=simulation.Capture();var before=game.Encode(state);
-            using(var presentation=new FishingPresentation(root.transform,camera,Shader.Find("Hook Island/Fishing Line"),map))
+            using(var presentation=new FishingPresentation(root.transform,Shader.Find("Hook Island/Fishing Line"),map))
             {
                 presentation.Present(state,state,0,Vector3.forward,false);
                 view.Toggle(Vector3.forward,presentation.PlayerPosition(0));

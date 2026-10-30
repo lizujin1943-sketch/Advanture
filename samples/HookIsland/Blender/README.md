@@ -1,43 +1,35 @@
 # 钩索小岛 · Blender 场景
 
-打开 **`hook_island_v1.blend`**，当前场景为 **`Hook Island | v1`**。
+当前批准的源文件是 **[hook_island_v2.blend](hook_island_v2.blend)**，场景为 **`Hook Island | v2`**。Unity 的固定小岛原型继续使用这一版的烘焙导出资源。
 
-已按多视角概念图搭建不规则岛屿、中央圆形商店、椰子树和西南码头。没有海水、海底或海中石头。岛面只保留矮草、小花和贴地碎石，四周沙岸可以继续用于出钩玩法。
+场景包含不规则岛屿、中央圆形商店、椰子树和与岸边衔接的木码头，没有海水、海底或海中石头。矮草、小花和贴地碎石作为可编辑部件保留，四周沙岸可用于出钩。
 
 ## 编辑结构
 
 | Collection | 内容 |
 | --- | --- |
 | 01 · Island terrain | 可编辑三角网格地面、独立沙岸底座 |
-| 02 · Round hook shop | 圆形木墙、弧形柜台、分面橙色屋顶、挂钩、灯笼、木桶 |
-| 03 · Coconut tree | 弯曲树干、10 片叶子、2 个小椰果 |
-| 04 · Shore-connected pier | 13 块栈桥板、5 块接岸引桥板、支柱、横梁和绳索 |
+| 02 · Round hook shop | 圆形木墙、柜台、橙色屋顶、挂钩、灯笼、木桶 |
+| 03 · Coconut tree | 弯曲树干、8 片叶子、2 个小椰果 |
+| 04 · Shore-connected pier | 8 块栈桥板、5 块接岸引桥板、支柱、横梁和绳索 |
 | 05 · Flowers grass and gravel | 低矮花草和少量嵌地碎石 |
-| 06 · Lighting and cameras | 日光、补光和 7 个正交相机 |
-| 07 · Reference (hidden) | 预留参考层；原参考图已打包到文件的 Images 数据中 |
+| 06 · Lighting and cameras | 灯光、整体与局部正交相机 |
+| 07 · Reference (hidden) | 参考层；参考图片打包在源文件内 |
 
-商店、树、木板和装饰分别保留为可选取的模型部件。地面草沙过渡使用 `GrassDistance` 属性和程序化材质；未叠加悬浮草皮。
+草地分布根据参考图描绘，使用 `reference_data/grass_distribution.png` 和 `Reference_Plan` UV。`reference_data/` 中的参考输入、全部建模脚本及正式导出资源继续保留。
 
-场景比例根据图片估算：岛面约 **31.9 × 26.7 米**。码头宽 **2.4 米**，引桥向岛内搭接 **2.1 米**。引桥首边每 10 厘米采样一次实际地形高程，入口高差约 **5.5–7.2 毫米**；下部梁和靠岸支柱嵌入岸坡。
+## 当前预览与几何记录
 
-## 实际模型渲染
+- [整体效果](renders/v2/hero_pass02.png)
+- [参考俯视](renders/v2/reference_top_pass02.png)
+- [v2 几何检查记录](scene_validation_v2.json)
 
-- [整体透视效果](renders/island_hero.png)
-- [垂直俯视](renders/island_top.png)
-- [正面](renders/island_front.png)
-- [左侧](renders/island_left.png)
-- [右侧](renders/island_right.png)
-- [码头衔接近景](renders/pier_connection.png)
-- [商店近景](renders/shop_detail.png)
+记录中的岛面约 **31.922 × 26.702 米**，码头净宽 **2.95 米**，向岛内搭接 **1.4 米**。入口横向 41 个采样点的高差为 **−0.7～8.24 毫米**，另有 527 个引桥采样。场景包含 266 个网格对象、12,422 个多边形；这些是源模型统计，不是 Unity 导出后的三角形数。
 
-对应相机分别为 `Camera_Hero`、`Camera_Top`、`Camera_Front`、`Camera_Left`、`Camera_Right`、`Camera_Dock_Detail` 和 `Camera_Shop_Detail`。
+## 重建与导出
 
-渲染分辨率：整体 1600 × 1100，俯视 1400 × 1400，三张立面 1600 × 520，两个局部 1400 × 1050。切换相机重新渲染时，应同时使用对应画幅。灰蓝色背景来自 World 节点，不是海水模型。
+日常修改从 `hook_island_v2.blend` 开始。需要从脚本重新搭建时，在新的 Blender 文件中执行 `rebuild_scene.py` 生成基础场景，再通过 `refine_fidelity.py` 的修整步骤得到 v2。基础脚本生成的 v1 文件、旧预览及旧检查记录已从仓库移除并忽略，避免与当前批准版本混淆；脚本本身仍是重建管线的一部分。
 
-## 构建与检查
+`export_unity.py` 仅导出 `Hook Island | v2`，在临时场景中应用修改器并烘焙材质，不保存或覆盖源文件。导出到 `../Exports/` 后，使用 `../Tools/prepare_unity_assets.py` 将模型和贴图送入 Unity。`export_manifest.json` 留在 `Exports/` 作为岸线与地图生成输入，无需复制进 Unity 资源目录。
 
-脚本按地形、建筑树木、码头点缀、材质灯光分开保存。需要从头生成时，在新的 Blender 文件中通过 Text Editor 打开并执行 `rebuild_scene.py`。脚本检测到已有同名场景时会停止，不覆盖手工编辑。
-
-`scene_validation.json` 记录实际几何检查结果，包括入口 41 个横向采样、引桥 527 个采样、椰果数量和无海水对象检查。当前约 1.35 万个多边形面，不包括修改器求值后的增量。
-
-已检查模型几何和渲染；尚未接入 Unity 的角色移动、碰撞或联机玩法。材质是 Blender 节点材质，后续用于游戏引擎时需烘焙或重建对应材质。
+详细导出步骤与既有 Unity 验证范围见[小岛说明](../README.md)。本目录的几何记录只描述 Blender 模型，不替代 Unity 碰撞、角色行走和联机验证。

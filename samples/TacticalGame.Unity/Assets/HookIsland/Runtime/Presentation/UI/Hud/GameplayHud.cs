@@ -16,7 +16,6 @@ namespace Advanture.HookIsland
         private readonly ObjectivePanelMotion objectives = new ObjectivePanelMotion();
         private readonly HealthBarFeedback squadHealth = new HealthBarFeedback();
         public float ObjectiveReveal => objectives.Reveal(Time.unscaledTime);
-        public bool ObjectivesCollapsed => objectives.Collapsed;
         public void ToggleObjectives() => objectives.Toggle(Time.unscaledTime);
         public void Hide() => squadHealth.Reset();
         public GameplayHud(IslandFishingController room,FishingOverlay overlay,HudPainter painter)

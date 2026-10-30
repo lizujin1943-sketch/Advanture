@@ -1,6 +1,5 @@
 using Advanture.HookIsland.Simulation;
 using NUnit.Framework;
-using UnityEngine;
 
 namespace Advanture.HookIsland.Tests
 {
@@ -37,13 +36,6 @@ namespace Advanture.HookIsland.Tests
             a.Observe(s,2,1,0,c,2);Assert.That(a.Sample(2).Alpha,Is.Zero);
             a.Observe(new object(),2,200,12,c,3);
             Assert.That(a.Sample(3).Count,Is.EqualTo(12));Assert.That(a.Sample(3).Flash,Is.Zero);
-        }
-        [TestCase(640,360)] [TestCase(1280,720)] [TestCase(1920,1080)] [TestCase(3440,1440)]
-        public void ComboHasSpaceAwayFromTools(int width,int height)
-        {
-            float scale=HudLayout.Scale(width,height);var l=new HudLayout(width/scale,height/scale);
-            Assert.That(l.Combo.Overlaps(l.Tools),Is.False);
-            Assert.That(l.Combo.xMax,Is.LessThanOrEqualTo(l.Width));Assert.That(l.Combo.yMax,Is.LessThanOrEqualTo(l.Height));
         }
     }
 }

@@ -25,7 +25,6 @@ namespace Advanture.HookIsland
         {
             Observe(state);return VisitedMask==15 && PurchaseTier>=2 && ReturnedMask==(1<<state.Players.Count)-1;
         }
-        public ulong Arrival(int slot,int id)=>arrival[slot,id];
         private void Observe(HookState state)
         {
             if(state.Tackle==null)return;

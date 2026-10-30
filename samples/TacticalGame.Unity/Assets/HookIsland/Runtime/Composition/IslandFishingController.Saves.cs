@@ -12,7 +12,6 @@ namespace Advanture.HookIsland
         public string SaveMessage=>saves?.Message(Time.unscaledTime);
         public bool HasManualSave=>saves?.HasManualSave==true;
         public bool HasAutoSave=>saves?.HasAutoSave==true;
-        public string SaveDirectory=>saves?.DirectoryPath;
         private void InitializeSaves()
         {
             var directory=Application.isEditor?Path.GetFullPath(Path.Combine(Application.dataPath,"../../../artifacts/game-saves/editor")):

@@ -17,7 +17,7 @@ namespace Advanture.HookIsland.Tests
             var camera = new GameObject("Hooked fish facing camera").AddComponent<Camera>();
             try
             {
-                using (var view = new FishingPresentation(root.transform, camera, Shader.Find("Hook Island/Fishing Line"), map))
+                using (var view = new FishingPresentation(root.transform, Shader.Find("Hook Island/Fishing Line"), map))
                 using (var enemies = new EnemyPresentation(root.transform, camera, Shader.Find("Hook Island/Fishing Line"), map.Fishing.Enemies))
                 {
                     var fish = Enumerable.Range(0, map.FishSpots.Count).Select(i => new Fish
@@ -58,10 +58,9 @@ namespace Advanture.HookIsland.Tests
             var settings = UnityEditor.AssetDatabase.LoadAssetAtPath<PlatformSettings>("Assets/HookIsland/Data/PlatformSettings.asset");
             var map = settings.CreateMap();
             var root = new GameObject("Fish integration test");
-            var camera = new GameObject("Fish integration camera").AddComponent<Camera>();
             try
             {
-                using (var view = new FishingPresentation(root.transform, camera, Shader.Find("Hook Island/Fishing Line"), map))
+                using (var view = new FishingPresentation(root.transform, Shader.Find("Hook Island/Fishing Line"), map))
                 {
                     var fish = Enumerable.Range(0, map.FishSpots.Count).Select(i => new Fish
                     {
@@ -94,7 +93,7 @@ namespace Advanture.HookIsland.Tests
                     Assert.That(shown.gameObject.activeSelf, Is.False);
                 }
             }
-            finally { Object.DestroyImmediate(root); Object.DestroyImmediate(camera.gameObject); }
+            finally { Object.DestroyImmediate(root); }
         }
 
         [Test] public void PiranhaUsesAuthoredSkinAndConfirmedBiteMovesJawWithoutMovingWorldRoot()

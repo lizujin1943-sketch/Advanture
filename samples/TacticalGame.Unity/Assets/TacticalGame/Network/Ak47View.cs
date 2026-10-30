@@ -21,7 +21,6 @@ namespace Advanture.TacticalGame.NetworkView
         private float effectTime, kick;
         public int PresentedShots { get; private set; }
         public bool IsVisible => rifle!=null && rifle.gameObject.activeSelf;
-        public bool IsFlashing => flash!=null && flash.activeSelf;
 
         public static Ak47View Create(Transform parent,bool firstPerson)
         {

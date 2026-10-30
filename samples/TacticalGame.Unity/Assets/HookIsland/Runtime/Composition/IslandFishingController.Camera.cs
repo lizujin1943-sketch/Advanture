@@ -13,7 +13,6 @@ namespace Advanture.HookIsland
         [SerializeField,Range(.1f,1)] private float verticalLookSensitivityMultiplier=.85f;
         public bool ThirdPerson=>playerInput.ThirdPerson;
         public bool CameraPointerCaptured=>playerInput.CameraPointerCaptured;
-        public void TogglePerspective()=>playerInput.TogglePerspective(this);
         private void LateUpdate()=>playerInput.EndFrame(this);
         private void OnDisable()=>playerInput.Reset();
     }

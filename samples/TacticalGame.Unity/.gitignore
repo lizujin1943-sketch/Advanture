@@ -1,9 +1,19 @@
-/Library/
-/Temp/
-/Obj/
-/Logs/
-/UserSettings/
-/Builds/
+# Unity-generated caches, editor state and build output.
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Bb]uild/
+/[Bb]uilds/
+
+# Local verification output, screenshots and recordings.
+/[Cc]aptures/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/UIElementsSchema/
+
+# Generated IDE projects; shared Assets, Packages and ProjectSettings stay tracked.
 /.vs/
 /.vscode/
 *.csproj

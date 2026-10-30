@@ -26,8 +26,6 @@ namespace Advanture.TacticalGame
         private float verticalSpeed;
         private bool initialized;
 
-        public Transform View => view;
-
         private void Awake() => InitializeIfNeeded();
 
         /// <summary>场景构建器在编辑时指定相机；运行时也可由角色生成代码调用。</summary>

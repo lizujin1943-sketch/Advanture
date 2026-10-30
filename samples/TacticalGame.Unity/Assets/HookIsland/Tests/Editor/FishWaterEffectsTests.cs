@@ -18,7 +18,8 @@ namespace Advanture.HookIsland.Tests
         {
             map = UnityEditor.AssetDatabase.LoadAssetAtPath<PlatformSettings>("Assets/HookIsland/Data/PlatformSettings.asset").CreateMap();
             root = new GameObject("Fish water integration test"); cameraObject = new GameObject("Fish water camera");
-            view = new FishingPresentation(root.transform, cameraObject.AddComponent<Camera>(), Shader.Find("Hook Island/Fishing Line"), map);
+            cameraObject.AddComponent<Camera>();
+            view = new FishingPresentation(root.transform, Shader.Find("Hook Island/Fishing Line"), map);
             fish = Enumerable.Range(0, map.FishSpots.Count).Select(i => FishMotion.Create(i, map.FishSpots[i], 300)).ToArray();
             for (int i = 0; i < fish.Length; i++) { fish[i].Species = 0; fish[i].WeightGrams = 2000; fish[i].Grade = 1; }
         }

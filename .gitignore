@@ -115,6 +115,24 @@ InitTestScene*.unity*
 artifacts/
 .DS_Store
 
+# Python bytecode is generated locally from the authored scripts.
+__pycache__/
+*.pyc
+*.pyo
+
+# Local tool state, Python environments and analysis caches.
+/.superpowers/
+.cache/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated test and coverage reports.
+[Tt]est[Rr]esults/
+htmlcov/
+
 # These are authored .NET project files, not Unity-generated files.
 !/Advanture.sln
 !framework/**/*.csproj
@@ -129,3 +147,15 @@ artifacts/
 /samples/TacticalGame.Unity/Assets/TacticalGame/Plugins/Generated.meta
 /samples/TacticalGame.Unity/Assets/HookIsland/Plugins/Generated/
 /samples/TacticalGame.Unity/Assets/HookIsland/Plugins/Generated.meta
+
+# Superseded island authoring outputs; the approved v2 source and previews stay tracked.
+/samples/HookIsland/Blender/hook_island_v1.blend
+/samples/HookIsland/Blender/scene_validation.json
+/samples/HookIsland/Blender/renders/island_front.png
+/samples/HookIsland/Blender/renders/island_hero.png
+/samples/HookIsland/Blender/renders/island_left.png
+/samples/HookIsland/Blender/renders/island_right.png
+/samples/HookIsland/Blender/renders/island_top.png
+/samples/HookIsland/Blender/renders/pier_connection.png
+/samples/HookIsland/Blender/renders/shop_detail.png
+/samples/HookIsland/Blender/renders/v2/hero_pass01.png

@@ -1,4 +1,3 @@
-using System.Linq;
 using Advanture.HookIsland.Simulation;
 using UnityEngine;
 
@@ -11,7 +10,7 @@ namespace Advanture.HookIsland
         private FishingEquipmentController input;
         private Font font;
         private PlayerVitalsOverlay vitals;
-        private GUIStyle title,body,small,button;
+        private GUIStyle title,small,button;
         private readonly Color gold=new Color(1,.79f,.32f),mint=new Color(.35f,.88f,.73f);
         private void Awake()
         {
@@ -25,7 +24,7 @@ namespace Advanture.HookIsland
         public void Draw()
         {
             if(room.State?.Tackle==null || !room.TryGetLocalPlayer(out var p) || !room.Playing){vitals?.Reset();return;}
-            if(title==null){title=Text(24,gold);body=Text(17,Color.white);small=Text(14,new Color(.7f,.85f,.86f));button=new GUIStyle(GUI.skin.button){font=font,fontSize=17,wordWrap=true};}
+            if(title==null){title=Text(24,gold);small=Text(14,new Color(.7f,.85f,.86f));button=new GUIStyle(GUI.skin.button){font=font,fontSize=17,wordWrap=true};}
             float scale=Mathf.Clamp(Mathf.Min(Screen.width/1280f,Screen.height/720f),.45f,2);
             var previous=GUI.matrix;GUI.matrix=Matrix4x4.Scale(new Vector3(scale,scale,1));
             float w=Screen.width/scale,h=Screen.height/scale;
