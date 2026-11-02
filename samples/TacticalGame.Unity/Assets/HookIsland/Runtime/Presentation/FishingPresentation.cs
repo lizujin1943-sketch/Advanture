@@ -25,6 +25,7 @@ namespace Advanture.HookIsland
         private readonly int[] shownSpecies;
         private readonly FishModelView[] fishViews;
         private readonly LineRenderer aimRing,aimLine;
+        private readonly LocalPlayerGroundMarker localPlayerMarker;
         // 出钩期间冻结的预瞄落点；只有重新变为 Ready 才重新跟随鼠标。
         private Vector3 lockedAim;
         private bool aimTargetLocked;
@@ -70,6 +71,7 @@ namespace Advanture.HookIsland
             coats=new Material[4];for(int i=0;i<4;i++)coats[i]=Mat("Player "+(i+1),PlayerColors[i]);
             rodMaterials=new[]{wood,coats[2],coats[0],coats[3],gold,metal};
             line=new Material(lineShader){name="Fishing lines"};resources.Add(line);
+            localPlayerMarker=new LocalPlayerGroundMarker(root,line);
             escapes=new CatchEscapePresentation(root,lineShader);
             fishes=new Transform[map.FishSpots.Count];shownSpecies=new int[fishes.Length];fishViews=new FishModelView[fishes.Length];
             for(int i=0;i<shownSpecies.Length;i++)shownSpecies[i]=-1;
@@ -103,6 +105,7 @@ namespace Advanture.HookIsland
         public void Present(HookState state,HookState predicted,ushort local,Vector3 aim,bool showAim)
         {
             float dt=Mathf.Min(Time.unscaledDeltaTime,.1f);
+            bool localMarkerVisible=false;
             foreach(var confirmed in state.Players)
             {
                 if(confirmed.WaitingToJoin)
@@ -120,7 +123,7 @@ namespace Advanture.HookIsland
                     // A late/restored snapshot contains history; only subsequent changes play feedback.
 
                 }
-                a.Root.gameObject.SetActive(true);a.Ring.enabled=true;
+                a.Root.gameObject.SetActive(true);a.Ring.enabled=p.Slot!=local;
                 Vector3 target=new Vector3(p.X/1000f,p.Swimming.InWater?SwimmingAppearance.FeetInWater:Height(p.X/1000f,p.Z/1000f),p.Z/1000f);
                 a.Root.position=a.Placed?Vector3.Lerp(a.Root.position,target,1-Mathf.Exp(-22*dt)):target;
                 a.Placed=true;
@@ -154,7 +157,15 @@ namespace Advanture.HookIsland
                     // confirmed observations. Hook ownership and all rewards below stay confirmed.
                     a.Animation.Present(dt,p.Casts,moving,reeling,interrupted);
                 }
-                Ring(a.Ring,new Vector3(a.Root.position.x,p.Swimming.InWater?.075f:a.Root.position.y+.045f,a.Root.position.z),(p.Slot==local?.65f:.48f)*(map.Platform==null?1:.55f));
+                var markerPosition=new Vector3(a.Root.position.x,p.Swimming.InWater?.075f:a.Root.position.y+.045f,a.Root.position.z);
+                if(p.Slot==local)
+                {
+                    // Reuse the displayed body's heading: local prediction is responsive,
+                    // while casting and hook rescue retain the direction selected above.
+                    localPlayerMarker.Present(markerPosition,a.Body.forward,map.Platform==null?1/.55f:1);
+                    localMarkerVisible=true;
+                }
+                else Ring(a.Ring,markerPosition,.48f*(map.Platform==null?1:.55f));
                 // Hook and ownership use confirmed state; speculative catches never play a reward.
                 bool active=confirmed.Phase!=HookPhase.Ready;
                 a.Rope.enabled=active;a.Hook.gameObject.SetActive(active);
@@ -188,6 +199,7 @@ namespace Advanture.HookIsland
                 }
 
             }
+            if(!localMarkerVisible)localPlayerMarker.Hide();
             for(int i=0;i<fishes.Length;i++)
             {
                 var f=state.Fish[i];bool visible=f.Phase==FishPhase.Jumping || f.Phase==FishPhase.Hooked || f.Escape.Active;
@@ -390,6 +402,7 @@ namespace Advanture.HookIsland
         }
         public void ClearPlayers()
         {
+            localPlayerMarker.Hide();
             foreach(var a in avatars.Values){a.Animation?.Dispose();a.Swimming?.Dispose();Release(a.Root.gameObject);Release(a.Rope.gameObject);Release(a.Ring.gameObject);Release(a.Hook.gameObject);}
             audioFeedback.Reset();
             escapes.Clear();
@@ -399,7 +412,7 @@ namespace Advanture.HookIsland
             aimRing.enabled=aimLine.enabled=false;
             aimTargetLocked=false;
         }
-        public void Dispose(){audioFeedback.Dispose();foodArt?.Dispose();meleeArt?.Dispose();fishWater.Dispose();escapes.Dispose();foreach(var f in fishViews)f?.Dispose();foreach(var a in avatars.Values){a.Animation?.Dispose();a.Swimming?.Dispose();}Release(root.gameObject);foreach(var r in resources)Release(r);}
+        public void Dispose(){audioFeedback.Dispose();foodArt?.Dispose();meleeArt?.Dispose();fishWater.Dispose();escapes.Dispose();localPlayerMarker.Dispose();foreach(var f in fishViews)f?.Dispose();foreach(var a in avatars.Values){a.Animation?.Dispose();a.Swimming?.Dispose();}Release(root.gameObject);foreach(var r in resources)Release(r);}
         private static void Release(Object value){if(Application.isPlaying)Object.Destroy(value);else Object.DestroyImmediate(value);}
     }
 }

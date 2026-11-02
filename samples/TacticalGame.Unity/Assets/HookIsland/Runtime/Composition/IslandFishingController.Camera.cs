@@ -11,6 +11,7 @@ namespace Advanture.HookIsland
         [SerializeField,Range(10,70)] private float thirdPersonInitialPitch=40;
         [SerializeField,Range(.1f,10)] private float mouseLookSensitivity=3;
         [SerializeField,Range(.1f,1)] private float verticalLookSensitivityMultiplier=.85f;
+        [SerializeField] private FishingOverheadSettings overheadCamera=new FishingOverheadSettings();
         public bool ThirdPerson=>playerInput.ThirdPerson;
         public bool CameraPointerCaptured=>playerInput.CameraPointerCaptured;
         private void LateUpdate()=>playerInput.EndFrame(this);

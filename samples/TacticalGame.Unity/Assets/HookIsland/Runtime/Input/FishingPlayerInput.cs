@@ -28,13 +28,14 @@ namespace Advanture.HookIsland
             cameraView.Toggle(facing,feet);skipPointerFrame=true;
             cameraView.SetLookInputActive(CameraControlsActive(room));
         }
-        public void Follow(IslandFishingController room,Fisher local,float deltaTime)
+        public void Follow(IslandFishingController room,Fisher local)
         {
             if(cameraView==null || local.WaitingToJoin)return;
             if(entryPerspectivePending && room.Playing)
             {if(!ThirdPerson)TogglePerspective(room);if(ThirdPerson)entryPerspectivePending=false;}
-            // Local prediction moves the rendered avatar. Overhead retains its confirmed follow target.
-            cameraView.Follow(room.Presentation.PlayerPosition(room.LocalSlot),new Vector3(local.X/1000f,0,local.Z/1000f),deltaTime);
+            // Follow the same smoothed/predicted avatar that is rendered this frame, including
+            // while a UI is open, swimming or being towed. Never feed camera position into authority.
+            cameraView.Follow(room.Presentation.PlayerPosition(room.LocalSlot));
         }
         private void CaptureCameraInput(IslandFishingController room)
         {
@@ -54,18 +55,19 @@ namespace Advanture.HookIsland
             Vector2 move=new Vector2((Input.GetKey(KeyCode.D)?1:0)-(Input.GetKey(KeyCode.A)?1:0),
                 (Input.GetKey(KeyCode.W)?1:0)-(Input.GetKey(KeyCode.S)?1:0));
             move=cameraView.Movement(move);moveX=(short)(move.x*1000);moveZ=(short)(move.y*1000);
+            bool overUi=!CameraPointerCaptured && room.Overlay!=null && room.Overlay.PointerOverHud;
+            // Apply zoom before ray sampling; do not move a grid out from under an active drag.
+            if(!ThirdPerson && !overUi && room.Construction?.Dragging!=true && Mathf.Abs(Input.mouseScrollDelta.y)>.01f)
+                cameraView.Zoom(Input.mouseScrollDelta.y);
             var pointer=ThirdPerson?(Vector3)viewCamera.pixelRect.center:Input.mousePosition;
             var ray=viewCamera.ScreenPointToRay(pointer);
             // room.Equipment IDs and their inventory must come from the same confirmed timeline.
             if(room.TryGetLocalPlayer(out var shooter))aim=cameraView.Aim(ray,room.Presentation.PlayerPosition(room.LocalSlot),(MeleeRules.Equipped(room.State,shooter)?.Range??FishingRules.Range(room.Map,room.State,shooter))/1000f);
             aim=FishingAimAssist.Resolve(room,viewCamera,pointer,aim);
             aim.x=Mathf.Clamp(aim.x,-90,90);aim.z=Mathf.Clamp(aim.z,-90,90);
-            bool overUi=!CameraPointerCaptured && room.Overlay!=null && room.Overlay.PointerOverHud;
             if(!skipPointerFrame && !overUi && room.Construction?.Open!=true && Input.GetMouseButtonDown(0))
             {if(room.Equipment?.UseSelected()!=true && room.CanCast)pendingFire=true;}
             if(!skipPointerFrame && !overUi && room.Construction?.Open!=true && Input.GetMouseButtonDown(1))pendingCancel=true;
-            float scroll=Input.mouseScrollDelta.y;
-            if(!ThirdPerson && !overUi && Mathf.Abs(scroll)>.01f)viewCamera.orthographicSize=Mathf.Clamp(viewCamera.orthographicSize-scroll*.7f,room.Map.Platform==null?12:5,28);
         }
         public HookInput Consume(ulong tick,Func<ulong,HookInput> provider,bool won)
         {

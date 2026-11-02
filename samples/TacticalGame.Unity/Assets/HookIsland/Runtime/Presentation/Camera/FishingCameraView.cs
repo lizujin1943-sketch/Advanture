@@ -7,7 +7,8 @@ namespace Advanture.HookIsland
     public sealed class FishingCameraView : IDisposable
     {
         private readonly Camera camera;
-        private readonly bool platform, overheadOrthographic;
+        private readonly bool overheadOrthographic;
+        private readonly FishingOverheadCamera stageCamera;
         private readonly float fieldOfView, sensitivity, verticalSensitivityMultiplier, pivotHeight, shoulderOffset, overheadNear, overheadFov, initialPitch, initialDistance;
         private readonly Vector3 overheadPosition;
         private readonly Quaternion overheadRotation;
@@ -19,9 +20,9 @@ namespace Advanture.HookIsland
         public bool PointerCaptured => Cursor.lockState == CursorLockMode.Locked;
         public FishingCameraView(Camera camera, bool platform, float fieldOfView = 75, float sensitivity = 3,
             float pivotHeight = 1, float verticalSensitivityMultiplier = .85f, float distance = 3.6f, float shoulderOffset = .45f,
-            float initialPitch = 40)
+            float initialPitch = 40, FishingOverheadSettings overheadSettings = null)
         {
-            this.camera=camera;this.platform=platform;
+            this.camera=camera;
             this.fieldOfView=Mathf.Clamp(fieldOfView,50,100);this.sensitivity=Mathf.Clamp(sensitivity,.1f,10);
             this.pivotHeight=Mathf.Clamp(pivotHeight,.5f,2);
             this.distance=Mathf.Clamp(distance,2,5);this.shoulderOffset=Mathf.Clamp(shoulderOffset,0,1);
@@ -30,16 +31,18 @@ namespace Advanture.HookIsland
             overheadOrthographic=camera.orthographic;overheadZoom=camera.orthographicSize;
             overheadNear=camera.nearClipPlane;overheadFov=camera.fieldOfView;
             overheadPosition=camera.transform.position;overheadRotation=camera.transform.rotation;
+            if(platform)stageCamera=new FishingOverheadCamera(camera,overheadSettings??new FishingOverheadSettings());
         }
         public void Toggle(Vector3 facing, Vector3 feet)
         {
             if(ThirdPerson)
             {
                 RestoreOverhead();
-                camera.transform.position=OverheadPosition(feet);
+                if(stageCamera!=null)stageCamera.Follow(feet);
+                else camera.transform.position=overheadPosition;
                 return;
             }
-            overheadZoom=camera.orthographicSize;
+            if(stageCamera==null)overheadZoom=camera.orthographicSize;
             if(!orbitInitialized)
             {
                 facing.y=0;
@@ -48,7 +51,7 @@ namespace Advanture.HookIsland
             }
             ThirdPerson=true;
             camera.orthographic=false;camera.fieldOfView=fieldOfView;camera.nearClipPlane=.04f;
-            Follow(feet,feet,0);
+            Follow(feet);
         }
         public void Look(Vector2 delta)
         {
@@ -60,7 +63,12 @@ namespace Advanture.HookIsland
         }
         public void Zoom(float scroll)
         {
-            if(!ThirdPerson)return;
+            if(!ThirdPerson)
+            {
+                if(stageCamera!=null)stageCamera.Zoom(scroll);
+                else camera.orthographicSize=Mathf.Clamp(camera.orthographicSize-scroll*.7f,12,28);
+                return;
+            }
             distance=Mathf.Clamp(distance-scroll*.35f,2,5);
             UpdateThirdPersonPose();
         }
@@ -90,13 +98,12 @@ namespace Advanture.HookIsland
             if(forward.sqrMagnitude<.001f)forward=Quaternion.Euler(0,yaw,0)*Vector3.forward;
             return feet+forward*Mathf.Max(0,range);
         }
-        public void Follow(Vector3 renderedFeet, Vector3 confirmedFeet, float dt)
+        public void Follow(Vector3 renderedFeet)
         {
             this.renderedFeet=renderedFeet;
             if(ThirdPerson)
                 UpdateThirdPersonPose();
-            else if(platform)
-                camera.transform.position=Vector3.Lerp(camera.transform.position,OverheadPosition(confirmedFeet),1-Mathf.Exp(-4*dt));
+            else stageCamera?.Follow(renderedFeet);
         }
         private void UpdateThirdPersonPose()
         {
@@ -109,7 +116,6 @@ namespace Advanture.HookIsland
             position.y=Mathf.Max(position.y,Mathf.Max(.35f,renderedFeet.y+.3f));
             camera.transform.SetPositionAndRotation(position,rotation);
         }
-        private Vector3 OverheadPosition(Vector3 feet)=>platform?new Vector3(feet.x,24,feet.z-20):overheadPosition;
         public bool SetLookInputActive(bool active)
         {
             active&=ThirdPerson;
@@ -132,7 +138,11 @@ namespace Advanture.HookIsland
         public void Reset()
         {
             RestoreOverhead();orbitInitialized=false;distance=initialDistance;
-            if(camera!=null)camera.transform.position=overheadPosition;
+            if(camera!=null)
+            {
+                if(stageCamera!=null)stageCamera.Reset();
+                else camera.transform.position=overheadPosition;
+            }
         }
         public void Dispose() { Reset(); }
     }

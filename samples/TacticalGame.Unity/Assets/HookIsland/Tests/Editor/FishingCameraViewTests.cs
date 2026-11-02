@@ -98,32 +98,104 @@ namespace Advanture.HookIsland.Tests
             Assert.That(Vector2.Distance(view.Movement(Vector2.up),Vector2.right),Is.LessThan(.001f));
             Assert.That(camera.transform.position.y,Is.GreaterThan(feet.y+.1f),"Upward orbit must stay above the platform.");
             var rotation=camera.transform.rotation;
-            view.Follow(feet+Vector3.right,feet,.1f);
+            view.Follow(feet+Vector3.right);
             Assert.That(Quaternion.Angle(camera.transform.rotation,rotation),Is.LessThan(.01f),"Following a moving character must not recenter the view.");
             view.Look(new Vector2(0,-2000));
             Assert.That(camera.transform.forward.y,Is.LessThan(-.99f),"The player must be able to look almost straight down.");
             Assert.That(Vector2.Distance(view.Movement(Vector2.up),Vector2.right),Is.LessThan(.001f));
         }
 
-        [Test] public void ToggleRestoresOverheadZoomAndFollowsCurrentPlayer()
+        [Test] public void ToggleRestoresOverheadZoomAndLocksCurrentPlayer()
         {
+            view.Zoom(-1);
+            float zoom=camera.orthographicSize;
+            var stageRotation=camera.transform.rotation;
             view.Toggle(Vector3.forward, new Vector3(3,.2f,4));
             Assert.That(view.ThirdPerson, Is.True);
             Assert.That(camera.orthographic, Is.False);
             Assert.That(camera.fieldOfView, Is.EqualTo(75));
             Assert.That(camera.nearClipPlane, Is.LessThan(.1f));
-            view.Follow(new Vector3(5,.2f,6), new Vector3(4,.2f,5), .02f);
+            view.Follow(new Vector3(5,.2f,6));
             var offset=camera.transform.position-new Vector3(5,.2f,6);
             Assert.That(offset.x,Is.EqualTo(.45f).Within(.001f));
             Assert.That(offset.y,Is.InRange(3.2f,3.4f));
             Assert.That(offset.z,Is.InRange(-2.9f,-2.7f));
-            view.Toggle(Vector3.forward, new Vector3(5,.2f,6));
+            view.Toggle(Vector3.forward, new Vector3(2,.2f,2));
             Assert.That(camera.orthographic, Is.True);
-            Assert.That(camera.orthographicSize, Is.EqualTo(13));
+            Assert.That(camera.orthographicSize, Is.EqualTo(zoom));
             Assert.That(camera.fieldOfView, Is.EqualTo(60));
-            Assert.That(camera.nearClipPlane, Is.EqualTo(.3f));
-            Assert.That(Vector3.Distance(camera.transform.position,new Vector3(5,24,-14)),Is.LessThan(.001f));
-            Assert.That(Quaternion.Angle(camera.transform.rotation,Quaternion.Euler(50,0,0)),Is.LessThan(.001f));
+            Assert.That(camera.nearClipPlane, Is.EqualTo(.1f));
+            var centred=camera.WorldToViewportPoint(new Vector3(2,.2f,2));
+            Assert.That(Vector2.Distance(new Vector2(centred.x,centred.y),new Vector2(.5f,.5f)),Is.LessThan(.001f));
+            Assert.That(Quaternion.Angle(camera.transform.rotation,stageRotation),Is.LessThan(.001f));
+        }
+
+        [TestCase(16f/9)] [TestCase(4f/3)] [TestCase(9f/16)]
+        public void StageFramesPlatformAndNearbyFishingWaterAtDifferentAspectRatios(float aspect)
+        {
+            camera.aspect=aspect;view.Follow(new Vector3(0,.465f,0));
+            foreach(float x in new[]{-6f,6f})foreach(float z in new[]{-6f,6f})
+            {
+                // Keep the six-metre platform plus three metres of near water on every side,
+                // with an inset so fish do not sit against the screen edge at the closer zoom.
+                var point=camera.WorldToViewportPoint(new Vector3(x,.12f,z));
+                Assert.That(point.x,Is.InRange(.05f,.95f));
+                Assert.That(point.y,Is.InRange(.05f,.95f));
+                Assert.That(point.z,Is.GreaterThan(camera.nearClipPlane));
+            }
+            var rotation=camera.transform.rotation;
+            foreach(float x in new[]{-2.8f,2.8f})foreach(float z in new[]{-2.8f,2.8f})
+            {
+                var feet=new Vector3(x,.465f,z);view.Follow(feet);
+                var point=camera.WorldToViewportPoint(feet);
+                Assert.That(Vector2.Distance(new Vector2(point.x,point.y),new Vector2(.5f,.5f)),Is.LessThan(.001f));
+            }
+            view.Look(new Vector2(500,500));
+            Assert.That(Quaternion.Angle(rotation,camera.transform.rotation),Is.LessThan(.001f));
+        }
+
+        [Test] public void OverheadLocksEveryRenderedStepIncludingSwimmingAndLongTravel()
+        {
+            var rotation=camera.transform.rotation;float zoom=camera.orthographicSize;
+            foreach(var feet in new[]{new Vector3(.03f,.465f,.04f),new Vector3(2,.465f,-1),
+                new Vector3(18,SwimmingAppearance.FeetInWater,18),new Vector3(-4,.465f,6),Vector3.zero})
+            {
+                view.Follow(feet);
+                var point=camera.WorldToViewportPoint(feet);
+                Assert.That(Vector2.Distance(new Vector2(point.x,point.y),new Vector2(.5f,.5f)),Is.LessThan(.001f),
+                    "Follow every rendered position immediately, without a dead zone or extra camera lag.");
+                Assert.That(Quaternion.Angle(rotation,camera.transform.rotation),Is.LessThan(.001f));
+                Assert.That(camera.orthographicSize,Is.EqualTo(zoom));
+            }
+        }
+
+        [Test] public void FollowingPlayerKeepsConstructionRayAlignedWithWorldTiles()
+        {
+            var tile=new Vector3(4,.45f,2);
+            foreach(var feet in new[]{Vector3.zero,new Vector3(2,.465f,1),new Vector3(6,.465f,-2)})
+            {
+                view.Follow(feet);
+                var pointer=camera.WorldToScreenPoint(tile);var ray=camera.ScreenPointToRay(pointer);
+                Assert.That(new Plane(Vector3.up,tile).Raycast(ray,out float hit),Is.True);
+                Assert.That(Vector3.Distance(ray.GetPoint(hit),tile),Is.LessThan(.001f));
+            }
+        }
+
+        [Test] public void StageZoomKeepsAimAtCursorAndResetRestoresInitialFraming()
+        {
+            var initial=camera.transform.position;float size=camera.orthographicSize;
+            foreach(float scroll in new[]{1000f,-1000f})
+            {
+                view.Zoom(scroll);
+                Assert.That(camera.orthographicSize,Is.InRange(4.8f,18));
+                var target=new Vector3(3,.75f,4);var pointer=camera.WorldToScreenPoint(target);
+                var aim=view.Aim(camera.ScreenPointToRay(pointer),Vector3.zero,4);
+                Assert.That(Vector3.Distance(target,aim),Is.LessThan(.001f));
+            }
+            view.Follow(Vector3.one*20);
+            view.Reset();
+            Assert.That(camera.orthographicSize,Is.EqualTo(size));
+            Assert.That(Vector3.Distance(initial,camera.transform.position),Is.LessThan(.001f));
         }
 
         [Test] public void ThirdPersonMovementUsesYawWithoutDiagonalOrPitchSpeedBoost()
@@ -175,6 +247,7 @@ namespace Advanture.HookIsland.Tests
 
         [Test] public void ResetRestoresProjectionAndMouseAfterThirdPerson()
         {
+            if(Application.isBatchMode)Assert.Ignore("OS cursor capture requires an interactive Game window; batchmode does not lock the cursor.");
             view.Toggle(Vector3.left,Vector3.zero);
             Assert.That(view.SetLookInputActive(true),Is.True);
             Assert.That(Cursor.lockState,Is.EqualTo(CursorLockMode.Locked));
@@ -258,7 +331,7 @@ namespace Advanture.HookIsland.Tests
             Assert.That(camera.transform.position.z,Is.EqualTo(feet.z-.45f).Within(.001f));
             var target=view.Aim(camera.ViewportPointToRay(new Vector3(.5f,.5f)),feet,12);
             Assert.That(target.x,Is.GreaterThan(feet.x));
-            var before=camera.transform.position;view.Follow(feet,Vector3.zero,.02f);
+            var before=camera.transform.position;view.Follow(feet);
             Assert.That(Vector3.Distance(camera.transform.position,before),Is.LessThan(.001f));
         }
 

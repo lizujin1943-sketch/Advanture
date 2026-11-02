@@ -40,8 +40,7 @@ namespace Advanture.HookIsland.Editor
             RenderSettings.sun=sun;RenderSettings.skybox=null;RenderSettings.ambientMode=AmbientMode.Flat;
             RenderSettings.ambientLight=new Color(.25f,.28f,.3f);RenderSettings.fog=false;
             var camera=new GameObject("Platform Camera").AddComponent<Camera>();camera.tag="MainCamera";
-            camera.transform.position=new Vector3(0,24,-20);camera.transform.LookAt(new Vector3(0,.45f,0));
-            camera.orthographic=true;camera.orthographicSize=9;camera.nearClipPlane=.1f;camera.farClipPlane=180;
+            new FishingOverheadCamera(camera,new FishingOverheadSettings());camera.farClipPlane=180;
             camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.57f,.82f,.82f);
             camera.allowHDR=false;camera.allowMSAA=true;camera.gameObject.AddComponent<AudioListener>();
             camera.gameObject.AddComponent<IslandCameraShadows>();

@@ -105,7 +105,7 @@ namespace Advanture.HookIsland
 #endif
                 presentation=new FishingPresentation(transform,lineShader,map);
                 playerInput.Initialize(viewCamera,new FishingCameraView(viewCamera,map.Platform!=null,thirdPersonFieldOfView,mouseLookSensitivity,
-                    thirdPersonPivotHeight,verticalLookSensitivityMultiplier,thirdPersonDistance,thirdPersonShoulderOffset,thirdPersonInitialPitch));
+                    thirdPersonPivotHeight,verticalLookSensitivityMultiplier,thirdPersonDistance,thirdPersonShoulderOffset,thirdPersonInitialPitch,overheadCamera));
                 EnsureRoomSession();
                 if(map.Fishing!=null)groundItems=new GroundItemPresentation(transform);
                 if(map.Fishing?.Treasure.Enabled==true)Treasures=new TreasureController(this,viewCamera);
@@ -149,7 +149,7 @@ namespace Advanture.HookIsland
                     Playing && CanCast && !HoldingMelee && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null);
                 Feedback.Update(Client,Client.RoundEpoch,Client.Session.ConfirmedTick,State,LocalSlot,Client.ConfirmedEvents,Time.unscaledTime,
                     overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true,PresentConfirmedEvent);
-                if(TryGetLocalPlayer(out var local))playerInput.Follow(this,local,Time.unscaledDeltaTime);
+                if(TryGetLocalPlayer(out var local))playerInput.Follow(this,local);
             }
             catch(Exception e)
             {
