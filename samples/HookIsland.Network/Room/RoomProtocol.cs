@@ -18,7 +18,7 @@ namespace Advanture.HookIsland.Network;
 internal static class RoomProtocol
 {
     // Persistent seat ownership and restored-presence reconciliation require the same build.
-    internal const uint Version = 29;
+    internal const uint Version = 30;
     internal const int MaxMessageBytes = 1024;
     internal const uint Rate = 30;
     internal static readonly RuntimeLimits Limits = new RuntimeLimits(maxParticipants: 4, maxInputBytes: HookInput.ByteCount, maxCheckpointBytes: HookGame.MaximumStateBytes + 65536);

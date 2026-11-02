@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><DefineConstants>$(DefineConstants);HOOK_ISLAND_TESTS</DefineConstants></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Development/Pilots/InventorySmokePilot.cs" Link="InventorySmokePilot.cs" />
     <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Development/Pilots/MerchantSmokePilot.cs" Link="MerchantSmokePilot.cs" />
     <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Development/Pilots/FinaleSmokePilot.cs" Link="FinaleSmokePilot.cs" />
     <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Development/Pilots/OceanSmokePilot.cs" Link="OceanSmokePilot.cs" />

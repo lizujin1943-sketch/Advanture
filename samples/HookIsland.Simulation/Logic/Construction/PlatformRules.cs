@@ -59,7 +59,14 @@ public static class PlatformRules
         return true;
     }
     public static BuildResult Check(IslandMap map,HookState state,Fisher player,TileKind kind,int x,int z)
-        => state.Won || map.Fishing!=null && player.Vitals.Downed?BuildResult.Busy:Check(map.Platform,state.Tiles,state.Players,state.Fish,state.Driftwood,player,kind,x,z,state.Treasure.Chests,map.Fishing?.Finale,state.Finale);
+        => CheckPreview(map,state,player,state.Tiles,kind,x,z);
+
+    /// <summary>Read-only projection: callers may supply planned tiles and a copied material balance.
+    /// Authority still validates and charges each real placement against its current state.</summary>
+    public static BuildResult CheckPreview(IslandMap map,HookState state,Fisher previewPlayer,
+        IReadOnlyList<PlatformTile> previewTiles,TileKind kind,int x,int z)
+        => state.Won || map.Fishing!=null && previewPlayer.Vitals.Downed?BuildResult.Busy:
+            Check(map.Platform,previewTiles,state.Players,state.Fish,state.Driftwood,previewPlayer,kind,x,z,state.Treasure.Chests,map.Fishing?.Finale,state.Finale);
 
     internal static BuildResult Check(PlatformConfig? config,IReadOnlyList<PlatformTile> tiles,
         IReadOnlyList<Fisher> players,IReadOnlyList<Fish> fish,IReadOnlyList<Driftwood> driftwood,

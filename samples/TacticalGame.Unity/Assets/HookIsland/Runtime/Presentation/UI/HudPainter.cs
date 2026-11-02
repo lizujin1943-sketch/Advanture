@@ -16,7 +16,7 @@ namespace Advanture.HookIsland
         // IMGUI tints are converted to sRGB by the Linear project. Author semantic colors in display space.
         public static Color DisplayColor(Color srgb) => QualitySettings.activeColorSpace==ColorSpace.Linear?srgb.linear:srgb;
         private readonly Font font;
-        private readonly Texture2D atlas;
+        private readonly Texture2D atlas, coin;
         private readonly Dictionary<int,GUIStyle> styles=new Dictionary<int,GUIStyle>();
         private string tooltip;
         private Rect tooltipAnchor;
@@ -24,6 +24,7 @@ namespace Advanture.HookIsland
         public HudPainter(Font font)
         {
             this.font=font;atlas=UnityEngine.Resources.Load<Texture2D>("UI/HudIcons");
+            coin=UnityEngine.Resources.Load<Texture2D>("UI/CoinIcon");
         }
         public void BeginFrame() { tooltip=null; }
         public void Surface(Rect rect,Color? color=null)
@@ -38,9 +39,15 @@ namespace Advanture.HookIsland
         { var old=GUI.color;GUI.color=color;GUI.DrawTexture(rect,Texture2D.whiteTexture);GUI.color=old; }
         public void Icon(Rect rect,HudIcon icon,Color? color=null)
         {
-            if(atlas==null)return;
-            int index=(int)icon;var old=GUI.color;var tint=color??White;if(!GUI.enabled)tint.a*=.45f;GUI.color=tint;
-            GUI.DrawTextureWithTexCoords(rect,atlas,new Rect(index%8/8f,1-(index/8+1)/3f,1/8f,1/3f));GUI.color=old;
+            bool fullColor=icon==HudIcon.Coin && coin!=null;
+            if(!fullColor && atlas==null)return;
+            int index=(int)icon;var old=GUI.color;var tint=color??White;
+            // The coin carries its own gold palette; retain alpha for reward fades and disabled buttons.
+            if(fullColor)tint=new Color(1,1,1,tint.a);
+            if(!GUI.enabled)tint.a*=.45f;GUI.color=tint;
+            if(fullColor)GUI.DrawTexture(rect,coin,ScaleMode.ScaleToFit,true);
+            else GUI.DrawTextureWithTexCoords(rect,atlas,new Rect(index%8/8f,1-(index/8+1)/3f,1/8f,1/3f));
+            GUI.color=old;
         }
         private GUIStyle Style(int size,TextAnchor alignment,bool bold)
         {

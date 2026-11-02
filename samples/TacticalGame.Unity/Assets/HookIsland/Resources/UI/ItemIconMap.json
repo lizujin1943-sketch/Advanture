@@ -1,6 +1,6 @@
 {
   "width": 1024,
-  "height": 896,
+  "height": 1024,
   "entries": [
     {
       "id": "material_wood",
@@ -393,6 +393,27 @@
       "y": 794,
       "width": 104,
       "height": 81
+    },
+    {
+      "id": "food_coconut",
+      "x": 15,
+      "y": 904,
+      "width": 95,
+      "height": 108
+    },
+    {
+      "id": "food_grilled_fish",
+      "x": 132,
+      "y": 918,
+      "width": 122,
+      "height": 92
+    },
+    {
+      "id": "food_seafood_meal",
+      "x": 263,
+      "y": 920,
+      "width": 114,
+      "height": 95
     }
   ]
 }

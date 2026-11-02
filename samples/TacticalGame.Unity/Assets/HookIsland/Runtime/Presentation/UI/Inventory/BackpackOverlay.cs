@@ -6,9 +6,9 @@ using UnityEngine;
 namespace Advanture.HookIsland
 {
     /// <summary>背包和货架的只读视图。所有按钮只产生操作意图；预览使用库存副本，不修改房间状态。</summary>
-    internal sealed class BackpackOverlay
+    internal sealed partial class BackpackOverlay
     {
-        private readonly GUIStyle title, text, small, button, quantity, badge;
+        private readonly GUIStyle title, text, small, button, quantity, priceText;
         private readonly ItemIconPainter icons = new ItemIconPainter();
         private int itemId, placing, amount = 1;
         private readonly MerchantOfferSelection selection=new MerchantOfferSelection();
@@ -17,14 +17,17 @@ namespace Advanture.HookIsland
         private bool rotated, dropOld;
         private int groundPage;
         private readonly InventoryEquipmentPreview equipmentPreview = new InventoryEquipmentPreview();
+        private readonly bool[,] shopOccupied = new bool[8, 8];
         private readonly Color accent = new Color(.38f, .88f, .75f), gold = new Color(1, .8f, .38f);
         internal BackpackOverlay(Font font)
         {
             GUIStyle Label(int size, Color color) => new GUIStyle(GUI.skin.label) { font = font, fontSize = size, wordWrap = true, normal = { textColor = color } };
             title = Label(23, gold); text = Label(16, Color.white); small = Label(13, new Color(.73f, .86f, .85f));
             button = new GUIStyle(GUI.skin.button) { font = font, fontSize = 15, wordWrap = true };
-            quantity = Label(13, Color.white); quantity.alignment = TextAnchor.MiddleRight; quantity.fontStyle = FontStyle.Bold;
-            badge = Label(10, Color.white); badge.alignment = TextAnchor.MiddleCenter; badge.wordWrap = false;
+            quantity = new GUIStyle(GUI.skin.label) { font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"),
+                fontSize = 16, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleRight,
+                wordWrap = false, richText = false, padding = new RectOffset(), clipping = TextClipping.Clip };
+            priceText = new GUIStyle(quantity) { fontSize = 15 };
         }
         private static void Fill(Rect rect, Color color)
         { var previous = GUI.color; GUI.color = color; GUI.DrawTexture(rect, Texture2D.whiteTexture); GUI.color = previous; }
@@ -38,14 +41,15 @@ namespace Advanture.HookIsland
             { if (placing == 1) rotated = !rotated; Event.current.Use(); }
             float x = (width - 1100) / 2, y = Mathf.Max(120, (height - 560) / 2);
             Fill(new Rect(x, y, 1100, 560), new Color(.026f, .082f, .11f, .99f)); Fill(new Rect(x, y, 1100, 3), accent);
-            GUI.Label(new Rect(x + 24, y + 16, 760, 38), shop ? MerchantHud.Name(state.Tackle.Config,merchantId)+" · 装备与背包" : "我的背包", title);
+            GUI.Label(new Rect(x + 24, y + 16, 760, 38), shop ? MerchantHud.Name(state.Tackle.Config,merchantId) : "我的背包", title);
             if (GUI.Button(new Rect(x + 982, y + 18, 92, 31), "关闭", button)) { placing = 0; close(); }
             ulong remaining=shelf!=null && shelf.NextRestock>state.Steps?(shelf.NextRestock-state.Steps)/(ulong)HookGame.Rate:0;
             string clock = !shop?" · 已穿戴装备不占背包格子":shelf?.Active==true?$" · {remaining/60:00}:{remaining%60:00} 后整批换货":" · 正在准备货架";
             GUI.Label(new Rect(x + 24, y + 60, 1040, 28), $"我的金币  {player.Coins:N0} G{clock}", text);
-            if (shop) DrawShop(state, x + 24, y + 105);
+            // The overlay receives the confirmed local player; prices follow that player's settled wallet.
+            if (shop) DrawShop(player.Coins, x + 24, y + 105);
             else DrawSlots(inventory, player, x + 24, y + 105);
-            DrawNearby(inventory, player, x + 24, y + 364, pending, request);
+            if (!shop) DrawNearby(inventory, player, x + 24, y + 364, pending, request);
 
             var size = inventory.Size(player.Slot); var bag = inventory.Equipped(player.Slot, EquipmentSlot.Backpack);
             GUI.Label(new Rect(x + 330, y + 104, 300, 30), bag.HasValue ? $"Lv.{bag.Value.Type}  {size.Width} × {size.Height} · {size.Width * size.Height} 格" : "未装备背包 · 0 格", text);
@@ -58,18 +62,45 @@ namespace Advanture.HookIsland
             DrawDetails(state, player, x + 658, y + 104, shop, pending, request);
             GUI.Label(new Rect(x + 24, y + 521, 1050, 28), message ?? "物品只在确认后转移 · Tab / I 关闭背包 · 金币各自所有", small);
         }
-        private void DrawShop(HookState state, float x, float y)
+        private void DrawShop(int coins, float x, float y)
         {
-            GUI.Label(new Rect(x, y, 286, 28), "共享货架  8 × 6", text); y += 37;
-            for (int row = 0; row < 6; row++) for (int col = 0; col < 8; col++) Fill(new Rect(x + col * 34 + 1, y + row * 34 + 1, 32, 32), new Color(.08f, .17f, .2f));
+            GUI.Label(new Rect(x, y, 286, 28), "共享货架", text); y += 37;
+            Array.Clear(shopOccupied, 0, shopOccupied.Length);
+            for (int row = 0; row < 8; row++) for (int col = 0; col < 8; col++) Fill(new Rect(x + col * 34 + 1, y + row * 34 + 1, 32, 32), new Color(.08f, .17f, .2f));
             if(shelf==null)return;
             for (int n = 0; n < shelf.Stock.Count; n++)
             {
                 var stock = shelf.Stock[n]; var def = InventoryCatalog.Get(stock.Kind, stock.Type);
+                // Keep sold positions occupied so buying never moves the remaining offers.
+                for (int row = stock.Y; row < stock.Y + def.Height; row++)
+                    for (int col = stock.X; col < stock.X + def.Width; col++) shopOccupied[col, row] = true;
                 var rect = new Rect(x + stock.X * 34 + 2, y + stock.Y * 34 + 2, def.Width * 34 - 4, def.Height * 34 - 4);
-                if (DrawItem(rect, stock.Kind, stock.Type, def.Name, 1, itemId == 0 && offer == n, stock.Sold))
+                if (DrawItem(rect, stock.Kind, stock.Type, def.Name, stock.Sold ? 0 : 1, itemId == 0 && offer == n, stock.Sold, price: def.Price, coins: coins))
                 { offer = n; itemId = 0; placing = 0; dropOld = false; }
             }
+            for (int type = 0; type < shelf.FoodStock.Count; type++)
+            {
+                // A readable display card uses 2 x 2 shelf cells; backpack footprint remains 1 x 1.
+                // Fit into the same shelf without changing authoritative stock positions or offer IDs.
+                var cell = FindShopSpace();
+                var rect = new Rect(x + cell.x * 34 + 2, y + cell.y * 34 + 2, 64, 64);
+                var food = FoodCatalog.Get(type); int index = FoodCatalog.OfferOffset + type;
+                if (DrawItem(rect, ItemKind.Food, type, food.Name, shelf.FoodStock[type], itemId == 0 && offer == index,
+                    shelf.FoodStock[type] == 0, price: food.Price, coins: coins))
+                { offer = index; itemId = 0; placing = 0; dropOld = false; }
+            }
+        }
+        private Vector2Int FindShopSpace()
+        {
+            // Equipment occupies at most the original 8 x 6 area. The two extra rows guarantee
+            // space for all three food offers even when no earlier 2 x 2 gap is available.
+            for (int row = 0; row < 7; row++) for (int col = 0; col < 7; col++)
+            {
+                if (shopOccupied[col, row] || shopOccupied[col + 1, row] || shopOccupied[col, row + 1] || shopOccupied[col + 1, row + 1]) continue;
+                shopOccupied[col, row] = shopOccupied[col + 1, row] = shopOccupied[col, row + 1] = shopOccupied[col + 1, row + 1] = true;
+                return new Vector2Int(col, row);
+            }
+            throw new InvalidOperationException("The merchant display shelf has no free offer space.");
         }
         private void DrawSlots(InventoryState state, Fisher player, float x, float y)
         {
@@ -141,14 +172,16 @@ namespace Advanture.HookIsland
         private void DrawDetails(HookState state, Fisher player, float x, float y, bool shop, bool pending, Func<InventoryCommand, bool> request)
         {
             var inventory = state.Tackle.Inventory;
-            bool buying = shop && shelf!=null && itemId == 0 && offer >= 0 && offer < shelf.Stock.Count;
+            bool buying = shop && shelf!=null && itemId == 0 && offer >= 0 && (offer < shelf.Stock.Count || offer>=FoodCatalog.OfferOffset && offer<FoodCatalog.OfferOffset+shelf.FoodStock.Count);
             var item = inventory.Items.FirstOrDefault(i => i.Id == itemId && i.Owner == player.Slot);
             if (!buying && item.Id == 0) { GUI.Label(new Rect(x, y + 30, 410, 110), "选择物品或商店商品\n查看属性、数量及操作。\n材料与备用装备共用背包格子。", text); return; }
-            ItemKind kind = buying ? shelf.Stock[offer].Kind : item.Kind; int type = buying ? shelf.Stock[offer].Type : item.Type;
+            bool foodOffer=buying && offer>=FoodCatalog.OfferOffset;
+            ItemKind kind = buying ? foodOffer?ItemKind.Food:shelf.Stock[offer].Kind : item.Kind; int type = buying ? foodOffer?offer-FoodCatalog.OfferOffset:shelf.Stock[offer].Type : item.Type;
             var definition = InventoryCatalog.Get(kind, type);
             icons.Draw(new Rect(x, y, 52, 52), kind, type);
             GUI.Label(new Rect(x + 64, y, 346, 55), definition.Name, title);
             GUI.Label(new Rect(x, y + 53, 410, 28), $"占格 {definition.Width} × {definition.Height}" + (buying ? $"    售价 {definition.Price:N0} G" : $"    数量 {item.Count}"), text);
+            if(kind==ItemKind.Food){DrawFoodDetails(state,player,item,type,buying,x,y,pending,request);return;}
             if (kind == ItemKind.Rod)
             {
                 var rod = RodCatalog.Get(type); var current = FishingRules.Equipped(state, player);
@@ -222,42 +255,71 @@ namespace Advanture.HookIsland
             GUI.enabled = enabled;
             if (busyRod) GUI.Label(new Rect(x, y + 281, 408, 30), "请先结束挥击或收回钓竿再换装", small);
             else if (!equipped) GUI.Label(new Rect(x, y + 281, 408, 46), previewResult == InventoryResult.Success ? "换装预览：原有物品均可保留" : "换装预览：" + FishingEquipmentController.Explain(previewResult), small);
-            if (kind == ItemKind.Backpack && previewState != null) DrawPreview(previewState, player.Slot, x, y + 335);
+            if (kind == ItemKind.Backpack && previewState != null) DrawPreview(previewState, player.Slot, x, y + 316);
+            if(!buying)DrawQuickBindings(inventory,player.Slot,item,x,y+372,pending,request);
         }
         private static void DrawPreview(InventoryState state, int owner, float x, float y)
         {
-            var size = state.Size(owner); const int cell = 8;
+            var size = state.Size(owner); const int cell = 5;
             Fill(new Rect(x, y, size.Width * cell, size.Height * cell), new Color(.08f, .2f, .23f));
             foreach (var item in state.Items.Where(i => i.Owner == owner && i.Location == ItemLocation.Backpack))
                 Fill(new Rect(x + item.X * cell + 1, y + item.Y * cell + 1, item.Width * cell - 2, item.Height * cell - 2), ColorFor(item.Kind));
         }
         private static Color ColorFor(ItemKind kind) => kind == ItemKind.Apparel ? new Color(.35f,.37f,.55f) : kind == ItemKind.SwimRing ? new Color(.68f,.38f,.15f) : kind == ItemKind.Wood ? new Color(.48f, .3f, .16f) : kind == ItemKind.Fishbone ? new Color(.65f, .68f, .56f) : kind == ItemKind.Backpack ? new Color(.24f, .42f, .39f) : new Color(.27f, .34f, .48f);
-        private bool DrawItem(Rect rect, ItemKind kind, int type, string name, int count, bool selected, bool sold, bool rotated = false)
+        private bool DrawItem(Rect rect, ItemKind kind, int type, string name, int count, bool selected, bool sold, bool rotated = false, int? price = null, int coins = 0)
         {
             var rim = selected ? accent : ItemIconPainter.Accent(kind, type);
             Fill(rect, rim * new Color(1, 1, 1, selected ? 1 : .45f));
             Fill(new Rect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2), selected ? new Color(.12f, .28f, .29f) : new Color(.06f, .14f, .18f));
-            int level = ItemIconPainter.Level(kind, type);
-            float top = level > 0 ? 15 : 3;
+            var priceTag = new Rect(); GUIContent priceContent = null;
+            if (price.HasValue)
+            {
+                priceContent = new GUIContent(price.Value.ToString()); priceText.fontSize = 15;
+                while (priceText.fontSize > 11 && priceText.CalcSize(priceContent).x > rect.width - 4) priceText.fontSize--;
+                float priceWidth = Mathf.Min(rect.width - 4, priceText.CalcSize(priceContent).x);
+                priceTag = new Rect(rect.xMax - priceWidth - 2, rect.y + 2, priceWidth, 19);
+            }
+            float top = price.HasValue ? 23 : 3;
             icons.Draw(new Rect(rect.x + 3, rect.y + top, rect.width - 6, rect.height - top - 4), kind, type, rotated);
-            if (level > 0)
-            {
-                var tag = new Rect(rect.x + 3, rect.y + 2, 24, 13);
-                Fill(tag, new Color(.025f, .08f, .1f, .9f));
-                GUI.Label(tag, level.ToString(), badge);
-            }
-            if (count > 1)
-            {
-                var tag = new Rect(rect.xMax - 27, rect.yMax - 18, 25, 16);
-                Fill(tag, new Color(.025f, .08f, .1f, .92f));
-                GUI.Label(tag, count.ToString(), quantity);
-            }
             if (sold)
             {
                 Fill(rect, new Color(0, 0, 0, .62f));
                 GUI.Label(new Rect(rect.x, rect.center.y - 12, rect.width, 24), "售罄", small);
             }
-            return GUI.Button(rect, new GUIContent("", name), GUIStyle.none);
+            if (count != 1)
+            {
+                var tag = new Rect(rect.x + 3, rect.yMax - 22, rect.width - 6, 20);
+                DrawItemNumber(tag, new GUIContent(count.ToString()), quantity, Color.white);
+            }
+            if (price.HasValue)
+            {
+                var color = coins >= price.Value ? new Color(.62f, 1, .62f) : new Color(1, .57f, .47f);
+                DrawItemNumber(priceTag, priceContent, priceText, color);
+            }
+            return GUI.Button(rect, new GUIContent("", price.HasValue ? $"{name} · {price.Value:N0} G" : name), GUIStyle.none);
+        }
+        private static void DrawItemNumber(Rect rect, GUIContent content, GUIStyle style, Color color)
+        {
+            // Rasterize at the displayed pixel size instead of scaling already-small glyphs.
+            var matrix = GUI.matrix; int size = style.fontSize; var previousColor = style.normal.textColor;
+            var position = matrix.MultiplyPoint3x4(new Vector3(rect.x, rect.y, 0));
+            var end = matrix.MultiplyPoint3x4(new Vector3(rect.xMax, rect.yMax, 0));
+            var pixels = Rect.MinMaxRect(Mathf.Round(position.x), Mathf.Round(position.y), Mathf.Round(end.x), Mathf.Round(end.y));
+            try
+            {
+                GUI.matrix = Matrix4x4.identity;
+                style.fontSize = Mathf.Max(1, Mathf.RoundToInt(size * Mathf.Abs(matrix.m11)));
+                while (style.fontSize > 1 && style.CalcSize(content).x > pixels.width) style.fontSize--;
+                style.normal.textColor = HudPainter.DisplayColor(new Color(.025f, .06f, .07f, .95f));
+                // A one-pixel glyph outline leaves the space around the digits transparent.
+                GUI.Label(new Rect(pixels.x - 1, pixels.y, pixels.width, pixels.height), content, style);
+                GUI.Label(new Rect(pixels.x + 1, pixels.y, pixels.width, pixels.height), content, style);
+                GUI.Label(new Rect(pixels.x, pixels.y - 1, pixels.width, pixels.height), content, style);
+                GUI.Label(new Rect(pixels.x, pixels.y + 1, pixels.width, pixels.height), content, style);
+                style.normal.textColor = HudPainter.DisplayColor(color);
+                GUI.Label(pixels, content, style);
+            }
+            finally { GUI.matrix = matrix; style.fontSize = size; style.normal.textColor = previousColor; }
         }
     }
 }

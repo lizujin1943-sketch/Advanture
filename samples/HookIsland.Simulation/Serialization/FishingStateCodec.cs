@@ -16,7 +16,7 @@ internal static class FishingStateCodec
         {
             w.Write(p.EquippedRod);w.Write(p.Stamina);w.Write(p.RegenDelay);w.Write(p.HookTravelRemainder);w.Write(p.ReelRemainder);
             w.Write(p.CoinsEarned);w.Write(p.Escapes);w.Write(p.LastRodRequest);w.Write((byte)p.LastRodResult);
-            w.Write(p.LastInventoryRequest);w.Write((byte)p.LastInventoryResult);
+            w.Write(p.LastInventoryRequest);w.Write((byte)p.LastInventoryResult);w.Write(p.FoodCooldownTicks);w.Write(p.SelectedQuickSlot);
             CharacterStateCodec.Write(w,p.Vitals,p.MoveRemainderX,p.MoveRemainderZ);SwimmingStateCodec.Write(w,p.Swimming);RevivalStateCodec.Write(w,p.Revival);
         }
         foreach(var f in state.Fish){w.Write(f.Species);w.Write(f.WeightGrams);w.Write(f.Grade);w.Write(f.Generation);}
@@ -37,7 +37,7 @@ internal static class FishingStateCodec
             var p=players[n];p.EquippedRod=r.ReadInt32();p.Stamina=r.ReadInt32();p.RegenDelay=r.ReadInt32();
             p.HookTravelRemainder=r.ReadInt32();p.ReelRemainder=r.ReadInt32();p.CoinsEarned=r.ReadInt32();p.Escapes=r.ReadInt32();
             p.LastRodRequest=r.ReadUInt32();p.LastRodResult=(RodResult)r.ReadByte();
-            p.LastInventoryRequest=r.ReadUInt32();p.LastInventoryResult=(InventoryResult)r.ReadByte();
+            p.LastInventoryRequest=r.ReadUInt32();p.LastInventoryResult=(InventoryResult)r.ReadByte();p.FoodCooldownTicks=r.ReadInt32();p.SelectedQuickSlot=r.ReadInt32();
             p.Vitals=CharacterStateCodec.Read(r,out p.MoveRemainderX,out p.MoveRemainderZ);p.Swimming=SwimmingStateCodec.Read(r);p.Revival=RevivalStateCodec.Read(r);players[n]=p;
         }
         var fish=state.Fish.ToArray();
@@ -61,7 +61,7 @@ internal static class FishingStateCodec
                 throw new InvalidDataException("Missing or altered starter equipment.");
         }
         if(inventory.Items.Any(i=>i.Kind==ItemKind.Rod && i.Type==0 && i.Id>players) ||
-            inventory.Items.Where(i=>!InventoryCatalog.IsMaterial(i.Kind) && i.Id>starterCount).Sum(i=>(long)i.Definition.Price)!=inventory.SpentCoins.Sum(i=>(long)i))
+            inventory.Items.Where(i=>!InventoryCatalog.IsMaterial(i.Kind) && i.Id>starterCount).Sum(i=>(long)i.Definition.Price*i.Count)+inventory.ConsumedFoods.Select((count,type)=>(long)count*FoodCatalog.Get(type).Price).Sum()!=inventory.SpentCoins.Sum(i=>(long)i))
             throw new InvalidDataException("Equipment purchase ledger differs from surviving items.");
         foreach(var i in inventory.Items.Where(i=>i.Location==ItemLocation.Ground))
             if(!PlatformRules.CanStand(state.Tiles,i.WorldX,i.WorldZ))throw new InvalidDataException("Ground item is outside the platform.");
@@ -77,7 +77,8 @@ internal static class FishingStateCodec
                 p.HookTravelRemainder<0 || p.HookTravelRemainder>=HookGame.Rate || p.ReelRemainder<0 || p.ReelRemainder>=HookGame.Rate ||
                 p.CoinsEarned<0 || p.CoinsEarned-(long)inventory.SpentCoins[p.Slot]-p.Revival.CoinsSpent!=p.Coins || p.Escapes<0 ||
                 p.LastRodResult>RodResult.NotOwned || (p.LastRodRequest==0)!=(p.LastRodResult==RodResult.None) ||
-                p.LastInventoryResult>InventoryResult.LayoutTooComplex || (p.LastInventoryRequest==0)!=(p.LastInventoryResult==InventoryResult.None) ||
+                p.FoodCooldownTicks<0 || p.FoodCooldownTicks>t.Config.FoodCooldownTicks || p.SelectedQuickSlot< -1 || p.SelectedQuickSlot>=QuickbarRules.SlotCount ||
+                p.LastInventoryResult>InventoryResult.CoolingDown || (p.LastInventoryRequest==0)!=(p.LastInventoryResult==InventoryResult.None) ||
                 p.RangeLevel!=0 || p.SpeedLevel!=0 || (p.Phase!=HookPhase.Ready && (p.EquippedRod==0 || p.Distance>FishingRules.Equipped(state,p)!.Range)))
                 throw new InvalidDataException("Invalid equipment, stamina, personal wallet or receipt.");
         }

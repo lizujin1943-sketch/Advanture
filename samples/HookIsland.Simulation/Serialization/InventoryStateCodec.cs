@@ -23,8 +23,10 @@ public static class InventoryStateCodec
     }
     internal static void Write(BinaryWriter w, InventoryState state)
     {
-        w.Write(0x31474142); w.Write(state.PlayerCount); w.Write(state.NextId);
+        w.Write(0x32474142); w.Write(state.PlayerCount); w.Write(state.NextId);
         foreach (int spent in state.SpentCoins) w.Write(spent);
+        foreach(int consumed in state.ConsumedFoods)w.Write(consumed);
+        foreach(var binding in state.Quickbar){w.Write((byte)binding.Kind);w.Write(binding.Type);w.Write(binding.ItemId);}
         w.Write(state.Items.Count);
         foreach (var item in state.Items.OrderBy(i => i.Id))
         {
@@ -34,10 +36,13 @@ public static class InventoryStateCodec
     }
     internal static InventoryState Read(BinaryReader r)
     {
-        if (r.ReadInt32() != 0x31474142) throw new InvalidDataException("Inventory version mismatch.");
+        if (r.ReadInt32() != 0x32474142) throw new InvalidDataException("Inventory version mismatch.");
         int players = r.ReadInt32(), nextId = r.ReadInt32();
         if (players < 1 || players > 4) throw new InvalidDataException("Invalid inventory participants.");
         var spent = new int[players]; for (int i = 0; i < players; i++) spent[i] = r.ReadInt32();
+        var consumed=new int[FoodCatalog.All.Count];for(int n=0;n<consumed.Length;n++)consumed[n]=r.ReadInt32();
+        var quickbar=new QuickbarBinding[players*QuickbarRules.SlotCount];
+        for(int n=0;n<quickbar.Length;n++)quickbar[n]=new QuickbarBinding((ItemKind)r.ReadByte(),r.ReadInt32(),r.ReadInt32());
         int count = r.ReadInt32(); if (count < 0 || count > InventoryCatalog.MaxItems) throw new InvalidDataException("Invalid inventory count.");
         var items = new InventoryItem[count]; int previousId = 0;
         for (int i = 0; i < count; i++)
@@ -47,12 +52,23 @@ public static class InventoryStateCodec
             byte rotated = r.ReadByte(); if (rotated > 1 || item.Id <= previousId) throw new InvalidDataException("Noncanonical inventory item.");
             item.Rotated = rotated != 0; item.WorldX = r.ReadInt32(); item.WorldZ = r.ReadInt32(); items[i] = item; previousId = item.Id;
         }
-        var state = new InventoryState(players, items, nextId, spent); Validate(state); return state;
+        var state = new InventoryState(players, items, nextId, spent, consumed, quickbar); Validate(state); return state;
     }
     public static void Validate(InventoryState state)
     {
         if (state.PlayerCount < 1 || state.PlayerCount > 4 || state.SpentCoins.Count != state.PlayerCount || state.SpentCoins.Any(v => v < 0) ||
             state.NextId < 1 || state.Items.Count > InventoryCatalog.MaxItems) throw new InvalidDataException("Invalid inventory header.");
+        if(state.ConsumedFoods.Count!=FoodCatalog.All.Count || state.ConsumedFoods.Any(c=>c<0) || state.Quickbar.Count!=state.PlayerCount*QuickbarRules.SlotCount)
+            throw new InvalidDataException("Invalid consumption ledger or quickbar size.");
+        for(int n=0;n<state.Quickbar.Count;n++)
+        {
+            var b=state.Quickbar[n];
+            if(b.Empty) {if(b.Type!=0 || b.ItemId!=0)throw new InvalidDataException("Noncanonical empty quick slot.");continue;}
+            if(!InventoryCatalog.IsValid(b.Kind,b.Type))throw new InvalidDataException("Invalid quickbar type.");
+            if(b.Kind==ItemKind.Food) {if(b.ItemId!=0)throw new InvalidDataException("Food quick slot must bind type.");}
+            else if(!state.Items.Any(i=>i.Id==b.ItemId && i.Owner==n/QuickbarRules.SlotCount && i.Location!=ItemLocation.Ground && i.Kind==b.Kind && i.Type==b.Type && QuickbarRules.CanBind(i)))
+                throw new InvalidDataException("Quick slot references unowned equipment.");
+        }
         var groundMaterials = new HashSet<(ItemKind, int, int)>();
         var ids = new HashSet<int>(); var slots = new HashSet<(int, EquipmentSlot)>(); int gearCount = 0;
         foreach (var item in state.Items)
@@ -60,7 +76,8 @@ public static class InventoryStateCodec
             if (item.Id < 1 || item.Id >= state.NextId || !ids.Add(item.Id) || !InventoryCatalog.IsValid(item.Kind, item.Type) ||
                 item.Count < 1 || item.Location > ItemLocation.Ground || (item.Rotated && item.Definition.Width == item.Definition.Height))
                 throw new InvalidDataException("Invalid inventory item.");
-            if (!InventoryCatalog.IsMaterial(item.Kind)) { gearCount++; if (item.Count != 1) throw new InvalidDataException("Stacked equipment."); }
+            if (!InventoryCatalog.IsStackable(item.Kind)) { gearCount++; if (item.Count != 1) throw new InvalidDataException("Stacked equipment."); }
+            if(item.Kind==ItemKind.Food && item.Count>item.Definition.StackLimit)throw new InvalidDataException("Food stack overflow.");
             if (item.Location == ItemLocation.Ground)
             {
                 if (item.Owner != -1 || item.X != -1 || item.Y != -1 || item.Rotated || Math.Abs((long)item.WorldX) > 50000 || Math.Abs((long)item.WorldZ) > 50000)

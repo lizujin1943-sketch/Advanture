@@ -18,7 +18,7 @@ public readonly struct MaterialCredit
 /// 个人库存的事务边界。先在候选集合检查数量、空间和归属，成功才替换实际状态。
 /// 这里不采样输入、不查商店距离、不改耐力；调用方负责动作时机、商品批次和回执去重。
 /// </summary>
-public sealed class InventorySystem
+public sealed partial class InventorySystem
 {
     // A transient simulation sink; never captured, restored or exposed as mutable game state.
     internal Action<HookGameplayEvent>? Events { get; set; }
@@ -26,6 +26,8 @@ public sealed class InventorySystem
     private List<InventoryItem> items;
     private int nextId;
     private int[] spent;
+    private int[] consumedFoods;
+    private QuickbarBinding[] quickbar;
 
     public InventorySystem(int players,bool starterPan=false)
     {
@@ -35,13 +37,15 @@ public sealed class InventorySystem
         for (int owner = 0; owner < players; owner++) items.Add(EquippedItem(nextId++, owner, ItemKind.Rod, 0));
         for (int owner = 0; owner < players; owner++) items.Add(EquippedItem(nextId++, owner, ItemKind.Backpack, 1));
         if(starterPan)for(int owner=0;owner<players;owner++)items.Add(new InventoryItem{Id=nextId++,Owner=owner,Kind=ItemKind.Weapon,Type=0,Count=1,Location=ItemLocation.Backpack});
+        consumedFoods=new int[FoodCatalog.All.Count];quickbar=QuickbarRules.Defaults(players,items);
     }
     public InventorySystem(InventoryState state)
     {
         InventoryStateCodec.Validate(state);
         playerCount = state.PlayerCount; items = state.Items.ToList(); nextId = state.NextId; spent = state.SpentCoins.ToArray();
+        consumedFoods=state.ConsumedFoods.ToArray();quickbar=state.Quickbar.ToArray();
     }
-    public InventoryState Capture() => new InventoryState(playerCount, items.OrderBy(i => i.Id), nextId, spent);
+    public InventoryState Capture() => new InventoryState(playerCount, items.OrderBy(i => i.Id), nextId, spent, consumedFoods, quickbar);
     /// <summary>按槽位读取当前穿戴项；避免玩法每帧为查询单件装备创建完整快照。</summary>
     public InventoryItem? Equipped(int owner, EquipmentSlot slot)
     {
@@ -96,12 +100,12 @@ public sealed class InventorySystem
         if (item.Location != ItemLocation.Backpack) return InventoryResult.InvalidItem;
         if (!InventoryLayout.Fits(Size(items, owner), item, x, y, rotated)) return InventoryResult.InvalidPlacement;
         var draft = Draft();
-        if (InventoryCatalog.IsMaterial(item.Kind))
+        if (InventoryCatalog.IsStackable(item.Kind))
         {
-            int targetIndex = draft.Items.FindIndex(i => i.Owner == owner && i.Id != id && i.Location == ItemLocation.Backpack && i.X == x && i.Y == y && i.Kind == item.Kind);
+            int targetIndex = draft.Items.FindIndex(i => i.Owner == owner && i.Id != id && i.Location == ItemLocation.Backpack && i.X == x && i.Y == y && i.Kind == item.Kind && i.Type == item.Type);
             if (targetIndex >= 0)
             {
-                var target = draft.Items[targetIndex]; int amount = Math.Min(item.Count, InventoryCatalog.MaterialStackLimit - target.Count);
+                var target = draft.Items[targetIndex]; int amount = Math.Min(item.Count, item.Definition.StackLimit - target.Count);
                 if (amount == 0) return InventoryResult.NoSpace;
                 target.Count += amount; item.Count -= amount; draft.Items[targetIndex] = target; ReplaceOrRemove(draft.Items, item);
                 Commit(draft); return InventoryResult.Success;
@@ -115,7 +119,7 @@ public sealed class InventorySystem
     public InventoryResult Split(int owner, int id, int amount, int x, int y)
     {
         if (!TryOwned(owner, id, out var item)) return InventoryResult.NotOwned;
-        if (item.Location != ItemLocation.Backpack || !InventoryCatalog.IsMaterial(item.Kind)) return InventoryResult.InvalidItem;
+        if (item.Location != ItemLocation.Backpack || !InventoryCatalog.IsStackable(item.Kind)) return InventoryResult.InvalidItem;
         if (amount <= 0 || amount >= item.Count) return InventoryResult.InvalidQuantity;
         if (!InventoryLayout.Fits(Size(items, owner), item, x, y, false)) return InventoryResult.InvalidPlacement;
         var draft = Draft(); var split = item;
@@ -137,6 +141,12 @@ public sealed class InventorySystem
             item.Count -= amount; ReplaceOrRemove(draft.Items, item);
             if (!AddGroundMaterial(draft, item.Kind, amount, ground)) return InventoryResult.LimitReached;
         }
+        else if(item.Kind==ItemKind.Food && amount<item.Count)
+        {
+            var dropped=item;if(!TryAllocate(draft,out dropped.Id))return InventoryResult.LimitReached;
+            dropped.Count=amount;ToGround(ref dropped,ground);draft.Items.Add(dropped);
+            item.Count-=amount;ReplaceOrRemove(draft.Items,item);
+        }
         else { ToGround(ref item, ground); ReplaceOrRemove(draft.Items, item); }
         Commit(draft); return InventoryResult.Success;
     }
@@ -146,9 +156,9 @@ public sealed class InventorySystem
         taken = 0; var check = GroundItem(owner, id, playerPosition, out var item);
         if (check != InventoryResult.Success) return check;
         var draft = Draft();
-        if (InventoryCatalog.IsMaterial(item.Kind))
+        if (InventoryCatalog.IsStackable(item.Kind))
         {
-            int remaining = PutMaterial(draft, owner, item.Kind, item.Count); taken = item.Count - remaining;
+            int remaining = PutStack(draft, owner, item.Kind, item.Type, item.Count); taken = item.Count - remaining;
             if (taken == 0) return CanAllocate(draft) ? InventoryResult.NoSpace : InventoryResult.LimitReached;
             item.Count = remaining; ReplaceOrRemove(draft.Items, item);
         }
@@ -163,7 +173,7 @@ public sealed class InventorySystem
     public InventoryResult PickupAndEquip(int owner, int id, Point playerPosition, bool dropOld)
     {
         var check = GroundItem(owner, id, playerPosition, out var item); if (check != InventoryResult.Success) return check;
-        if (InventoryCatalog.IsMaterial(item.Kind)) return InventoryResult.InvalidItem;
+        if (item.Definition.Slot==EquipmentSlot.None) return InventoryResult.InvalidItem;
         var draft = Draft(); item.Owner = owner; ReplaceOrRemove(draft.Items, item);
         var result = Equip(draft, owner, item, dropOld, playerPosition);
         if (result == InventoryResult.Success) { Commit(draft); Received(owner,item.Kind,item.Type,1,id,playerPosition); } return result;
@@ -171,7 +181,7 @@ public sealed class InventorySystem
     public InventoryResult Equip(int owner, int id, bool dropOld, Point ground)
     {
         if (!TryOwned(owner, id, out var item)) return InventoryResult.NotOwned;
-        if (InventoryCatalog.IsMaterial(item.Kind)) return InventoryResult.InvalidItem;
+        if (item.Definition.Slot==EquipmentSlot.None) return InventoryResult.InvalidItem;
         if (item.Location == ItemLocation.Equipped) return InventoryResult.Success;
         var draft = Draft(); var result = Equip(draft, owner, item, dropOld, ground);
         if (result == InventoryResult.Success) Commit(draft); return result;
@@ -200,7 +210,8 @@ public sealed class InventorySystem
         if (!InventoryCatalog.IsValid(kind, type) || InventoryCatalog.IsMaterial(kind) || (kind == ItemKind.Rod && type == 0)) return InventoryResult.InvalidItem;
         int price = InventoryCatalog.Get(kind, type).Price;
         if (personalCoins < price) return InventoryResult.InsufficientCoins;
-        if (items.Count(i => !InventoryCatalog.IsMaterial(i.Kind)) >= InventoryCatalog.MaxEquipmentItems || nextId == int.MaxValue || spent[owner] > int.MaxValue - price)
+        if(kind==ItemKind.Food)return PurchaseFood(owner,type,equip,ground,ref personalCoins);
+        if (items.Count(i => !InventoryCatalog.IsStackable(i.Kind)) >= InventoryCatalog.MaxEquipmentItems || nextId == int.MaxValue || spent[owner] > int.MaxValue - price)
             return InventoryResult.LimitReached;
         var draft = Draft(); if (!TryAllocate(draft, out int id)) return InventoryResult.LimitReached;
         var incoming = new InventoryItem { Id = id, Owner = owner, Kind = kind, Type = type, Count = 1, X = -1, Y = -1 };
@@ -247,18 +258,20 @@ public sealed class InventorySystem
         }
         return InventoryResult.Success;
     }
-    private static int PutMaterial(Candidate draft, int owner, ItemKind kind, int remaining)
+    private static int PutMaterial(Candidate draft, int owner, ItemKind kind, int remaining)=>PutStack(draft,owner,kind,0,remaining);
+    private static int PutStack(Candidate draft,int owner,ItemKind kind,int type,int remaining)
     {
-        foreach (var original in draft.Items.Where(i => i.Owner == owner && i.Kind == kind && i.Location == ItemLocation.Backpack).OrderBy(i => i.Id).ToArray())
+        int limit=InventoryCatalog.Get(kind,type).StackLimit;
+        foreach (var original in draft.Items.Where(i => i.Owner == owner && i.Kind == kind && i.Type == type && i.Location == ItemLocation.Backpack).OrderBy(i => i.Id).ToArray())
         {
-            var item = original; int amount = Math.Min(remaining, InventoryCatalog.MaterialStackLimit - item.Count);
+            var item = original; int amount = Math.Min(remaining, limit - item.Count);
             item.Count += amount; remaining -= amount; ReplaceOrRemove(draft.Items, item);
             if (remaining == 0) return 0;
         }
         var size = Size(draft.Items, owner);
         while (remaining > 0)
         {
-            var item = new InventoryItem { Id = draft.NextId, Owner = owner, Kind = kind, Count = Math.Min(remaining, InventoryCatalog.MaterialStackLimit) };
+            var item = new InventoryItem { Id = draft.NextId, Owner = owner, Kind = kind, Type = type, Count = Math.Min(remaining, limit) };
             if (!InventoryLayout.Place(draft.Items, owner, size, ref item)) break;
             if (!TryAllocate(draft, out item.Id)) break;
             draft.Items.Add(item); remaining -= item.Count;
@@ -328,6 +341,8 @@ public sealed class InventorySystem
     {
         if (draft.Items.Count > InventoryCatalog.MaxItems) throw new InvalidOperationException("Inventory item limit exceeded.");
         items = draft.Items; nextId = draft.NextId; spent = draft.Spent;
+        for(int n=0;n<quickbar.Length;n++)
+            if(quickbar[n].ItemId!=0 && !items.Any(i=>i.Id==quickbar[n].ItemId && i.Owner==n/QuickbarRules.SlotCount && i.Location!=ItemLocation.Ground))quickbar[n]=default;
     }
     private sealed class Candidate
     {

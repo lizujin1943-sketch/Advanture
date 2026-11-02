@@ -6,7 +6,7 @@ namespace Advanture.HookIsland.Simulation;
 public enum HookGameplayEventKind : byte
 {
     CoinsReceived = 1, MaterialReceived, EquipmentReceived, Damaged, HookCast,
-    FishCaught, PlayerHooked, ComboIncreased, Upgraded, MeleeSwing, MeleeHit
+    FishCaught, PlayerHooked, ComboIncreased, Upgraded, MeleeSwing, MeleeHit, FoodConsumed
 }
 
 /// <summary>One committed result, independent of engine objects and persistent game state.
@@ -55,8 +55,8 @@ public static class HookGameplayEventCodec
     }
     private static void Validate(HookGameplayEvent value)
     {
-        if(value.Kind<HookGameplayEventKind.CoinsReceived || value.Kind>HookGameplayEventKind.MeleeHit ||
-            value.Slot>=4 || value.Amount<0 || value.Value<0 || value.ItemKind>ItemKind.Weapon || value.ItemType<0)
+        if(value.Kind<HookGameplayEventKind.CoinsReceived || value.Kind>HookGameplayEventKind.FoodConsumed ||
+            value.Slot>=4 || value.Amount<0 || value.Value<0 || value.ItemKind>ItemKind.Food || value.ItemType<0)
             throw new InvalidDataException("Invalid gameplay event.");
     }
 }

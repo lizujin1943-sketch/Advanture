@@ -14,6 +14,7 @@ internal static class MerchantStateCodec
         {
             w.Write(s.Id);w.Write(s.Active);w.Write(s.ActivatedAt);w.Write(s.Batch);w.Write(s.NextRestock);w.Write(s.Stock.Count);
             foreach(var i in s.Stock){w.Write((byte)i.Kind);w.Write(i.Type);w.Write(i.X);w.Write(i.Y);w.Write(i.Sold);}
+            foreach(int count in s.FoodStock)w.Write(count);
         }
     }
     internal static MerchantState[] Read(BinaryReader r)
@@ -26,7 +27,8 @@ internal static class MerchantStateCodec
             int countStock=r.ReadInt32();if(countStock<0 || countStock>RodShop.Capacity)throw new InvalidDataException("Invalid merchant stock count.");
             var stock=new RodStock[countStock];
             for(int i=0;i<countStock;i++)stock[i]=new RodStock{Kind=(ItemKind)r.ReadByte(),Type=r.ReadInt32(),X=r.ReadInt32(),Y=r.ReadInt32(),Sold=ReadBoolean(r)};
-            states[n]=new MerchantState(id,active,at,batch,next,stock);
+            var food=new int[FoodCatalog.All.Count];for(int i=0;i<food.Length;i++)food[i]=r.ReadInt32();
+            states[n]=new MerchantState(id,active,at,batch,next,stock,food);
         }
         return states;
     }
@@ -39,6 +41,8 @@ internal static class MerchantStateCodec
         for(int id=0;id<states.Count;id++)
         {
             var s=states[id];
+            if(s.FoodStock.Count!=FoodCatalog.All.Count || s.FoodStock.Where((count,type)=>count<0 || count>(s.Active?FoodCatalog.Get(type).Stock:0)).Any())
+                throw new InvalidDataException("Invalid food stock.");
             if(s.Id!=id || id==0 && (!s.Active || s.ActivatedAt!=0))throw new InvalidDataException("Invalid merchant identity or initial activation.");
             if(!s.Active)
             {

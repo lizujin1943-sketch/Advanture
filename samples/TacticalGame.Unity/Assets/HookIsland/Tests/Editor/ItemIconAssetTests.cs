@@ -19,6 +19,7 @@ namespace Advanture.HookIsland.Tests
                 Assert.That(region.Uv.xMax, Is.LessThanOrEqualTo(1)); Assert.That(region.Uv.yMax, Is.LessThanOrEqualTo(1));
                 Assert.That(region.Aspect, Is.GreaterThan(0)); count++;
             }
+            for(int i=0;i<FoodCatalog.All.Count;i++)Check(ItemKind.Food,i);
             Check(ItemKind.Wood, 0); Check(ItemKind.Fishbone, 0);
             for (int i = 0; i < RodCatalog.All.Count; i++) Check(ItemKind.Rod, i);
             for (int i = 1; i <= InventoryCatalog.Backpacks.Count; i++) Check(ItemKind.Backpack, i);
@@ -34,7 +35,7 @@ namespace Advanture.HookIsland.Tests
             Assert.That(importer, Is.Not.Null); Assert.That(importer.alphaIsTransparency, Is.True);
             Assert.That(importer.mipmapEnabled, Is.False); Assert.That(importer.npotScale, Is.EqualTo(TextureImporterNPOTScale.None));
             var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-            Assert.That(texture.width, Is.EqualTo(1024)); Assert.That(texture.height, Is.EqualTo(896));
+            Assert.That(texture.width, Is.EqualTo(1024)); Assert.That(texture.height, Is.EqualTo(1024));
             Assert.That(texture.wrapMode, Is.EqualTo(TextureWrapMode.Clamp));
         }
     }

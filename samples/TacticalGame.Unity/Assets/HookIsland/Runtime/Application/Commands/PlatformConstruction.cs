@@ -15,8 +15,10 @@ namespace Advanture.HookIsland
         private IslandFishingController room;
         private FishingOverlay overlay;
         private PlatformPresentation platform;
+        private PlatformBuildPreviewPresentation preview;
         private DriftwoodPresentation driftwood;
-        private readonly PlatformBuildRequestBuffer requests = new PlatformBuildRequestBuffer();
+        private readonly PlatformBuildBatch requests = new PlatformBuildBatch();
+        private readonly PlatformBuildDraft draft = new PlatformBuildDraft();
         private readonly PlatformTile[] initialTiles = PlatformRules.InitialTiles();
         private string message;
         private float messageUntil;
@@ -28,7 +30,10 @@ namespace Advanture.HookIsland
         public int CellZ { get; private set; }
         public BuildResult PreviewResult { get; private set; } = BuildResult.Disabled;
         public int RenderedTiles => platform?.TileCount ?? 0;
-        public string Message => Pending ? "铺设请求已提交…" : Time.unscaledTime < messageUntil ? message : null;
+        public bool Dragging => draft.Active;
+        public IReadOnlyList<PlatformBuildPreview> PreviewCells => draft.Cells;
+        public string Message => draft.Active ? $"可建 {draft.ValidCount} · 不可建 {draft.Cells.Count-draft.ValidCount}\n松开铺设 · 共 {draft.MaterialCost} 材料" :
+            Pending ? $"铺设中 · 余 {requests.Remaining} 块" : Time.unscaledTime < messageUntil ? message : null;
 
         public void Configure(GameObject wood, GameObject bone, Transform preview, PlatformShoreline waterContact)
         {
@@ -52,6 +57,7 @@ namespace Advanture.HookIsland
             {
                 { TileKind.Wood, woodPrefab }, { TileKind.Fishbone, bonePrefab }
             }, shoreline);
+            preview = new PlatformBuildPreviewPresentation(transform);
             driftwood = new DriftwoodPresentation(transform);
             platform.Synchronize(initialTiles);
         }
@@ -72,12 +78,16 @@ namespace Advanture.HookIsland
         {
             Open = false;
             pointerValid = false;
-            platform?.HidePreview();
+            CancelStroke();
+            requests.CancelUnsent();
+            platform?.ShowFrontier(false);
+            preview?.Hide();
         }
 
         public void Select(TileKind kind)
         {
-            if (kind == TileKind.Wood || kind == TileKind.Fishbone) Selected = kind;
+            if ((kind == TileKind.Wood || kind == TileKind.Fishbone) && Selected != kind)
+            { CancelStroke(); Selected = kind; }
         }
 
         public void ResetSession()
@@ -89,40 +99,105 @@ namespace Advanture.HookIsland
 
         private void Update()
         {
-            if (room.Map?.Platform == null || !room.Playing) return;
+            if (room.Map?.Platform == null) return;
+            if (!room.Playing) { CancelStroke(); return; }
+            bool interrupted = !Application.isFocused || overlay.MenuOpen || room.Incapacitated || room.BeingPulled;
+            if (interrupted) { CancelStroke(); requests.CancelUnsent(); }
             // Process acknowledgements even while the window is unfocused or a menu is open.
-            if (room.TryGetLocalPlayer(out var player) && requests.Observe(player, out var result))
-                ShowMessage(result == BuildResult.Success ? "铺设完成 · 全员可通行" : Explain(result), 4);
+            if (!room.TryGetLocalPlayer(out var player)) return;
+            AdvanceBatch(player);
             pointerValid = false;
-            if (!Application.isFocused || overlay.MenuOpen) return;
+            if (interrupted) return;
             if (Input.GetKeyDown(KeyCode.B)) Toggle();
             if (!Open) return;
             if (Input.GetKeyDown(KeyCode.Alpha1)) Select(TileKind.Wood);
             if (Input.GetKeyDown(KeyCode.Alpha2)) Select(TileKind.Fishbone);
-            if (Input.GetMouseButtonDown(1)) { Close(); return; }
+            if (Input.GetMouseButtonDown(1))
+            {
+                if (draft.Active) { CancelStroke(); ShowMessage("已取消预览", 2); }
+                else Close();
+                return;
+            }
+            if (Pending) return;
             var ray = room.ViewCamera.ScreenPointToRay(Input.mousePosition);
             var plane = new Plane(Vector3.up, Vector3.up * PlatformGeometry.DeckHeight);
-            if (overlay.PointerOverHud || !plane.Raycast(ray, out float distance)) return;
-            pointerValid = true;
-            // Re-evaluate the shared rule against confirmed state each frame, including moving blockers.
-            var point = ray.GetPoint(distance);
-            CellX = PlatformRules.CellAt(Mathf.RoundToInt(point.x * 1000));
-            CellZ = PlatformRules.CellAt(Mathf.RoundToInt(point.z * 1000));
-            if (room.TryGetLocalPlayer(out player))
-                PreviewResult = PlatformRules.Check(room.Map, room.State, player, Selected, CellX, CellZ);
-            if (Input.GetMouseButtonDown(0)) RequestPlacement(Selected, CellX, CellZ);
+            if (!overlay.PointerOverHud && plane.Raycast(ray, out float distance))
+            {
+                pointerValid = true;
+                var point = ray.GetPoint(distance);
+                CellX = PlatformRules.CellAt(Mathf.RoundToInt(point.x * 1000));
+                CellZ = PlatformRules.CellAt(Mathf.RoundToInt(point.z * 1000));
+                if (Input.GetMouseButtonDown(0)) BeginStroke(CellX, CellZ);
+                else if (draft.Active && (Input.GetMouseButton(0) || Input.GetMouseButtonUp(0))) draft.Visit(CellX, CellZ);
+            }
+            else draft.BreakStroke();
+            // Update the whole draft, including budget and moving blockers, from confirmed state.
+            if (draft.Active)
+            {
+                draft.Evaluate(room.Map, room.State, player);
+                PreviewResult = draft.ResultAt(CellX, CellZ);
+                // Releasing over HUD commits the existing draft; HUD never adds a world cell.
+                if (Input.GetMouseButtonUp(0)) CommitStroke();
+                else if (!Input.GetMouseButton(0)) CancelStroke();
+            }
+            else if (pointerValid)
+                PreviewResult = CanRequest ? PlatformRules.Check(room.Map, room.State, player, Selected, CellX, CellZ) : BuildResult.Busy;
+        }
+
+        private bool CanRequest => room.Playing && !room.Incapacitated && !room.BeingPulled && !Pending &&
+            room.Equipment?.Pending != true && !room.PurchasePending && room.Treasures?.Pending != true && room.Revival?.Pending != true;
+
+        public bool BeginStroke(int x, int z)
+        {
+            if (!Open || !CanRequest || !room.TryGetLocalPlayer(out var player)) return false;
+            message = null;
+            draft.Begin(Selected, x, z);
+            draft.Evaluate(room.Map, room.State, player);
+            return true;
+        }
+
+        public void CancelStroke() => draft.Cancel();
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (focused) return;
+            CancelStroke();
+            requests.CancelUnsent();
+            pointerValid = false;
+            preview?.Hide();
+        }
+
+        public bool CommitStroke()
+        {
+            if (!draft.Active) return false;
+            if (!CanRequest || !room.TryGetLocalPlayer(out var player)) { CancelStroke(); return false; }
+            draft.Evaluate(room.Map, room.State, player);
+            bool queued = requests.TryStart(draft.Cells);
+            if (!queued) ShowMessage("没有可铺设的地块", 3);
+            draft.Cancel();
+            if (queued) AdvanceBatch(player);
+            return queued;
+        }
+
+        private void AdvanceBatch(Fisher player)
+        {
+            if (!requests.Advance(room.Map, room.State, player)) return;
+            ShowMessage(requests.Rejected > 0 ? $"已铺设 {requests.Succeeded} · 跳过 {requests.Rejected}\n{Explain(requests.LastFailure)}" :
+                requests.Cancelled > 0 ? $"已铺设 {requests.Succeeded} · 已取消 {requests.Cancelled}" : $"已铺设 {requests.Succeeded} 块", 4);
         }
 
         public bool RequestPlacement(TileKind kind, int x, int z)
         {
-            if (!room.Playing || room.Incapacitated || Pending || room.Equipment?.Pending == true || room.PurchasePending || room.Treasures?.Pending==true || !room.TryGetLocalPlayer(out var player)) return false;
+            if (!CanRequest || !room.TryGetLocalPlayer(out var player)) return false;
             var result = PlatformRules.Check(room.Map, room.State, player, kind, x, z);
             if (result != BuildResult.Success)
             {
                 ShowMessage(Explain(result), 3);
                 return false;
             }
-            return requests.TryQueue(player.LastBuildId, kind, x, z);
+            bool queued = requests.TryStart(new[] { new PlatformBuildPreview(new PlatformTile(x, z, kind), result) });
+            if (queued) AdvanceBatch(player);
+            return queued;
         }
 
         public HookInput Compose(HookInput input) => requests.Compose(input, Open);
@@ -133,8 +208,12 @@ namespace Advanture.HookIsland
             var state = room.State;
             platform.Synchronize(state != null ? state.Tiles : initialTiles);
             driftwood.Synchronize(state?.Driftwood, Time.time);
-            bool show = Open && room.Playing && !overlay.MenuOpen && !room.BeingPulled;
-            platform.ShowPreview(show, pointerValid, CellX, CellZ, PreviewResult);
+            bool show = Open && room.Playing && !overlay.MenuOpen && !room.BeingPulled && !room.Incapacitated;
+            platform.ShowFrontier(show);
+            if (!show) preview.Hide();
+            else if (Pending) preview.ShowPending(requests.PendingTiles);
+            else if (draft.Active) preview.ShowDraft(draft.Cells);
+            else preview.ShowHover(pointerValid, CellX, CellZ, PreviewResult);
         }
 
         private void ShowMessage(string text, float duration)
@@ -147,7 +226,7 @@ namespace Advanture.HookIsland
         {
             switch (result)
             {
-                case BuildResult.Success: return "可铺设 · 左键确认";
+                case BuildResult.Success: return "按住左键拖动 · 松开铺设";
                 case BuildResult.Occupied: return "此格被地块或实体占用";
                 case BuildResult.NotAdjacent: return "需要与平台完整一边相邻";
                 case BuildResult.InsufficientMaterials: return "自己的材料不足，先回收浮木或捕鱼";
@@ -161,6 +240,7 @@ namespace Advanture.HookIsland
         private void OnDestroy()
         {
             platform?.Dispose();
+            preview?.Dispose();
             driftwood?.Dispose();
         }
     }

@@ -16,6 +16,7 @@ namespace Advanture.HookIsland
         private readonly Material band;
         private readonly Mesh ringMesh;
         private FryingPanArt panArt;
+        private FoodArt foodArt;
         public GroundItemPresentation(Transform parent)
         {
             root=new GameObject("Ground inventory").transform;root.SetParent(parent,false);
@@ -40,7 +41,9 @@ namespace Advanture.HookIsland
                 if(!objects.TryGetValue(item.Id,out var view))
                 {
                     view=new GameObject("Ground item "+item.Id).transform;view.SetParent(root,false);
-                    if(item.Kind==ItemKind.Weapon)
+                    if(item.Kind==ItemKind.Food)
+                    {if(foodArt==null)foodArt=new FoodArt();foodArt.Create(view,item.Type);view.localScale=Vector3.one*1.5f;}
+                    else if(item.Kind==ItemKind.Weapon)
                     {
                         if(panArt==null)panArt=new FryingPanArt(Shader.Find("Sprites/Default"));
                         var pan=panArt.Create(view);pan.localPosition=new Vector3(0,0,-.3f);
@@ -71,6 +74,6 @@ namespace Advanture.HookIsland
             result.SetFloat("_Ambient",.4f);result.SetFloat("_SunStrength",.85f);return result;
         }
         public void Clear(){foreach(var view in objects.Values)Object.Destroy(view.gameObject);objects.Clear();}
-        public void Dispose(){Clear();panArt?.Dispose();Object.Destroy(root.gameObject);foreach(var material in materials.Values)Object.Destroy(material);Object.Destroy(band);Object.Destroy(ringMesh);}
+        public void Dispose(){Clear();panArt?.Dispose();foodArt?.Dispose();Object.Destroy(root.gameObject);foreach(var material in materials.Values)Object.Destroy(material);Object.Destroy(band);Object.Destroy(ringMesh);}
     }
 }

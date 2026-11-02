@@ -1,4 +1,3 @@
-using System.Linq;
 using Advanture.HookIsland.Network;
 using Advanture.HookIsland.Simulation;
 using UnityEngine;
@@ -31,17 +30,26 @@ namespace Advanture.HookIsland
                 !GetComponent<FishingOverlay>().MenuOpen)
             {
                 if(Input.GetKeyDown(KeyCode.F))PickupNearest(p);
-                if(Input.GetKeyDown(KeyCode.Alpha1))SelectTool(p,ItemKind.Rod);
-                if(Input.GetKeyDown(KeyCode.Alpha2))SelectTool(p,ItemKind.Weapon);
+                for(int slot=0;slot<QuickbarRules.SlotCount;slot++)
+                    if(Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+slot)))SelectQuickSlot(slot);
             }
         }
-        public void SelectTool(Fisher player,ItemKind kind)
+        public void SelectQuickSlot(int slot)
         {
-            if(room.State?.Tackle==null || Pending)return;
-            var inventory=room.State.Tackle.Inventory;
-            if(inventory.Equipped(player.Slot,EquipmentSlot.RightHand)?.Kind==kind)return;
-            var item=inventory.Items.Where(i=>i.Owner==player.Slot && i.Kind==kind && i.Location==ItemLocation.Backpack).OrderByDescending(i=>i.Type).ThenBy(i=>i.Id).FirstOrDefault();
-            if(item.Id!=0)RequestInventory(new InventoryCommand(InventoryAction.Equip,item.Id));
+            if(room.State?.Tackle==null || slot<0 || slot>=QuickbarRules.SlotCount || !room.TryGetLocalPlayer(out _))return;
+            RequestInventory(new InventoryCommand(InventoryAction.SelectQuickSlot,slot+1));
+        }
+        // Return true when this click belongs to a food / empty slot, including failed use.
+        public bool UseSelected()
+        {
+            if(room.State?.Tackle==null || !room.TryGetLocalPlayer(out var p) || p.SelectedQuickSlot<0)return false;
+            var inventory=room.State.Tackle.Inventory;var binding=inventory.Quickbar[p.Slot*QuickbarRules.SlotCount+p.SelectedQuickSlot];
+            if(binding.Empty)return true;
+            if(binding.Kind!=ItemKind.Food)return InventoryCatalog.Get(binding.Kind,binding.Type).Slot!=EquipmentSlot.RightHand;
+            var item=QuickbarRules.Resolve(inventory,p.Slot,p.SelectedQuickSlot);
+            if(item.HasValue)RequestInventory(new InventoryCommand(InventoryAction.Use,item.Value.Id));
+            else Notify("没有携带这份食物");
+            return true;
         }
         public void ToggleInventory()
         {
@@ -58,7 +66,7 @@ namespace Advanture.HookIsland
         /// <summary>只排队意图；库存和金币由确认帧更新。挂起时不接收第二个点击。</summary>
         public bool RequestInventory(InventoryCommand intent)
         {
-            if(!room.Playing || !room.TryGetLocalPlayer(out var player) || Pending || room.Construction?.Pending==true || room.PurchasePending || room.Treasures?.Pending==true)return false;
+            if(room.State?.Tackle==null || !room.Playing || !room.TryGetLocalPlayer(out var player) || Pending || room.Construction?.Pending==true || room.PurchasePending || room.Treasures?.Pending==true)return false;
             return inventoryRequests.TryQueue(player.LastInventoryRequest,intent);
         }
         private void PickupNearest(Fisher player)
@@ -81,6 +89,8 @@ namespace Advanture.HookIsland
         {
             switch(result)
             {
+                case InventoryResult.HealthFull:return "生命已满";
+                case InventoryResult.CoolingDown:return "食物冷却中";
                 case InventoryResult.Success:return "操作已确认 · 背包已同步";
                 case InventoryResult.Disabled:return "当前角色无法操作装备";
                 case InventoryResult.NotOwned:return "只能操作自己背包中的物品";

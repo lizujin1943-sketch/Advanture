@@ -10,12 +10,14 @@ namespace Advanture.HookIsland.InventoryTests;
 internal static partial class Program
 {
     private static readonly Guid SessionId = Guid.Parse("cc45aee4-98a3-467e-ae7a-7fe08da5dccd");
-    private static IDeterministicSimulation<HookState> Game(int players = 2, int money = 1000, int wood = 0)
+    private static IDeterministicSimulation<HookState> Game(int players = 2, int money = 1000, int wood = 0, bool melee=false)
     {
         var game = new HookGame().Create();
         var session = new SessionDescriptor(SessionId, 1, HookGame.Rate, Enumerable.Range(0, players)
             .Select(i => new Participant((ushort)i, new Guid(i + 1, 0, 0, new byte[8]))).ToArray());
-        game.Initialize(new SimulationInitialization(session, new ByteString(IslandMap.CreatePlatform().Encode())));
+        var map=IslandMap.CreatePlatform();
+        if(melee)map=new IslandMap(map.Shore,map.Pier,map.Spawns,map.FishSpots,map.Platform,new FishingConfig(melee:new MeleeConfig()));
+        game.Initialize(new SimulationInitialization(session, new ByteString(map.Encode())));
         var s = game.Capture(); var p = s.Players.ToArray(); var inventory = new InventorySystem(s.Tackle!.Inventory);
         for (int i = 0; i < players; i++) { p[i].X = i * 500; p[i].Z = 0; }
         p[0].Coins = p[0].CoinsEarned = money;

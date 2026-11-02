@@ -16,8 +16,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     public static SimulationModule<HookState> CreateModule(bool initialFriendlyPranks=true)
     {
         var game=new HookGame(initialFriendlyPranks);
-        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"29",inputFormatVersion:"11",
-            stateFormatVersion:"26",contentHash:CatalogData.Hash(),determinismHash:"integer-mm-restored-presence-v29"),game,game,game);
+        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"30",inputFormatVersion:"12",
+            stateFormatVersion:"27",contentHash:CatalogData.Hash(),determinismHash:"integer-mm-food-quickbar-v30"),game,game,game);
     }
     public IDeterministicSimulation<HookState> Create()=>new Model(initialFriendlyPranks);
     public void ValidateCanonical(ReadOnlySpan<byte> bytes)=>HookInput.Decode(bytes);
@@ -239,6 +239,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             {
                 var p=players[i];var c=commands[i];
                 if(p.WaitingToJoin)continue;
+                if(p.FoodCooldownTicks>0)p.FoodCooldownTicks--;
                 bool wasDowned=p.Vitals.Downed;
                 if(equipment!=null)RevivalSystem.Respawn(map,tiles,players,ref p,c.Revival,equipment.Attributes(p),ref coins);
                 if(wasDowned && !p.Vitals.Downed)
@@ -255,17 +256,17 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 bool canAct=!p.Unavailable && (equipment==null || !p.Vitals.Downed);
                 if(!canAct)StopCharacterHook(ref p);
                 p.Shopping=canAct && !p.Melee.Active && !knockedBack && !p.Swimming.InWater && (equipment!=null || map.Platform==null) && c.Shopping && p.PulledBy<0 && p.HookedPlayer<0 && FishingRules.NearShop(map,tiles,p);
-                Purchase(ref p,c);equipment?.Apply(map,tiles,ref p,c,ref coins);
+                Purchase(ref p,c);equipment?.Apply(map,tiles,ref p,c,ref coins,c.Revival.RescueTarget!=0 || players.Any(other=>other.Revival.RescueTicks>0 && other.Revival.Rescuer==i+1));
                 if(c.Cancel || (equipment!=null && p.Swimming.InWater && equipment.Ring(p)==null))RetractHook(ref p);
                 if(c.AimX!=0 || c.AimZ!=0 || c.Fire){p.AimX=c.AimX;p.AimZ=c.AimZ;}
                 if(p.Cooldown>0)p.Cooldown--;
                 var melee=p.Melee;if(melee.CooldownTicks>0)melee.CooldownTicks--;p.Melee=melee;
                 if(!MeleeRules.CanAct(p,equipment?.Ring(p)!=null))MeleeRules.Cancel(ref p);
-                if(map.Fishing?.Melee.Enabled==true && c.Fire && c.Build==TileKind.None && c.RodAction==RodAction.None && c.Inventory.Action==InventoryAction.None && c.Treasure.IsEmpty && c.Revival.RescueTarget==0)
+                if(map.Fishing?.Melee.Enabled==true && equipment?.ActiveTool(p)==true && c.Fire && c.Build==TileKind.None && c.RodAction==RodAction.None && c.Inventory.Action==InventoryAction.None && c.Treasure.IsEmpty && c.Revival.RescueTarget==0)
                 {var weapon=equipment?.Weapon(p);if(weapon!=null && MeleeRules.Begin(ref p,weapon,c.AimX,c.AimZ,equipment!.Ring(p)!=null))
                     Record(HookGameplayEventKind.MeleeSwing,p,itemKind:ItemKind.Weapon,itemType:p.Melee.WeaponType);}
                 bool canCast=equipment==null || SwimmingSystem.CanCast(p.Swimming.InWater,p.Vitals.Downed,equipment.Ring(p)!=null);
-                if(canAct && canCast && c.Fire && c.Build==TileKind.None && c.RodAction==RodAction.None && c.Inventory.Action==InventoryAction.None && c.Treasure.IsEmpty && !p.Melee.Active &&
+                if(canAct && canCast && (equipment==null || equipment.ActiveTool(p)) && c.Fire && c.Build==TileKind.None && c.RodAction==RodAction.None && c.Inventory.Action==InventoryAction.None && c.Treasure.IsEmpty && !p.Melee.Active &&
                     (equipment==null || p.EquippedRod!=0) && p.PulledBy<0 && !p.Shopping && p.Phase==HookPhase.Ready && p.Cooldown==0)
                 {
                     int dx=c.AimX-p.X,dz=c.AimZ-p.Z,length=Sqrt((long)dx*dx+(long)dz*dz);

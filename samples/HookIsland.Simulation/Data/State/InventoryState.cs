@@ -11,7 +11,7 @@ public enum ItemLocation : byte { Backpack, Equipped, Ground }
 public enum InventoryResult : byte
 {
     None, Success, Disabled, NotOwned, InvalidItem, InvalidQuantity, InvalidPlacement,
-    NoSpace, TooFar, InsufficientCoins, InventoryNotEmpty, HookBusy, StaleStock, SoldOut, LimitReached, LayoutTooComplex
+    NoSpace, TooFar, InsufficientCoins, InventoryNotEmpty, HookBusy, StaleStock, SoldOut, LimitReached, LayoutTooComplex, HealthFull, CoolingDown
 }
 
 /// <summary>
@@ -41,11 +41,15 @@ public struct InventoryItem
 /// </summary>
 public sealed class InventoryState
 {
-    public InventoryState(int players, IEnumerable<InventoryItem> items, int nextId, IEnumerable<int> spentCoins)
+    public InventoryState(int players, IEnumerable<InventoryItem> items, int nextId, IEnumerable<int> spentCoins, IEnumerable<int>? consumedFoods=null, IEnumerable<QuickbarBinding>? quickbar=null)
     {
         PlayerCount = players; Items = Array.AsReadOnly(items.ToArray()); NextId = nextId;
         SpentCoins = Array.AsReadOnly(spentCoins.ToArray());
+        ConsumedFoods=Array.AsReadOnly(consumedFoods?.ToArray()??new int[FoodCatalog.All.Count]);
+        Quickbar=Array.AsReadOnly(quickbar?.ToArray()??QuickbarRules.Defaults(players,Items));
     }
+    public IReadOnlyList<int> ConsumedFoods {get;} // Global consumed quantities retain purchase-ledger conservation across trades.
+    public IReadOnlyList<QuickbarBinding> Quickbar {get;}
     public int PlayerCount { get; }
     public IReadOnlyList<InventoryItem> Items { get; }
     public int NextId { get; } // 下次分配的实例 ID，已消耗的编号不复用。

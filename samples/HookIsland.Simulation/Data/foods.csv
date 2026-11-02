@@ -1,0 +1,4 @@
+id,name,health,price,stack_limit,stock
+food_coconut,椰子,30,100,5,8
+food_grilled_fish,烤鱼,60,200,5,4
+food_seafood_meal,海鲜餐,100,500,5,2

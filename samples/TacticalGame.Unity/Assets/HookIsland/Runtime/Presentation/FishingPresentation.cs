@@ -32,6 +32,7 @@ namespace Advanture.HookIsland
         private readonly FishingAudioFeedback audioFeedback;
         private readonly CatchEscapePresentation escapes;
         private readonly FryingPanArt meleeArt;
+        private readonly FoodArt foodArt;
         public int RenderedPlayers { get {int count=0;foreach(var avatar in avatars.Values)if(avatar.Root.gameObject.activeSelf)count++;return count;} }
         public int RenderedFishingLines { get {int count=0;foreach(var avatar in avatars.Values)if(avatar.Rope.enabled)count++;return count;} }
         public int PresentedCatches=>audioFeedback.PresentedCatches;
@@ -44,6 +45,7 @@ namespace Advanture.HookIsland
             public SwimmingAppearance Swimming;
             public FisherAnimationView Animation;
             public MeleeAvatarView Melee;
+            public FoodEatingView Eating;
             public Renderer RodShaft,RodTipShaft;
             public LineRenderer Rope,Ring;
             public bool Placed;
@@ -84,6 +86,7 @@ namespace Advanture.HookIsland
             aimRing=Line("Aim target",.045f,new Color(1,.96f,.64f));aimRing.loop=true;
             aimLine=Line("Aim guide",.035f,new Color(1,1,.7f,.5f));
             audioFeedback=new FishingAudioFeedback(root);
+            if(map.Fishing!=null)foodArt=new FoodArt();
             if(map.Fishing?.Melee.Enabled==true)meleeArt=new FryingPanArt(lineShader);
         }
         public Vector3 PlayerPosition(int slot)=>avatars.TryGetValue(slot,out var a)?a.Root.position:Vector3.zero;
@@ -178,7 +181,8 @@ namespace Advanture.HookIsland
                 if(state.Tackle!=null)
                 {
                     a.Equipment?.Present(state.Tackle.Inventory,confirmed.Slot);
-                    a.Melee?.Present(confirmed,p,MeleeRules.Equipped(state,confirmed),state.RoundFinished || confirmed.Unavailable || confirmed.Vitals.Downed || confirmed.PulledBy>=0 || confirmed.Knockback.Active);
+                    a.Melee?.Present(confirmed,p,a.Eating?.Active==true?null:MeleeRules.Equipped(state,confirmed),state.RoundFinished || confirmed.Unavailable || confirmed.Vitals.Downed || confirmed.PulledBy>=0 || confirmed.Knockback.Active);
+                    a.Eating?.Present(state.RoundFinished || confirmed.Unavailable || confirmed.Vitals.Downed || p.Phase!=HookPhase.Ready || p.Melee.Active || p.Swimming.InWater || p.PulledBy>=0 || p.Knockback.Active);
                     if(a.RodTipShaft!=null)a.RodTipShaft.sharedMaterial=a.RodShaft.sharedMaterial;
                     a.Swimming?.Present(SwimRingCatalog.Equipped(state.Tackle.Inventory,confirmed.Slot)?.Level??0,confirmed.Swimming.InWater,moving,a.Root.position);
                 }
@@ -323,6 +327,7 @@ namespace Advanture.HookIsland
             var ringMount=new GameObject("Swim ring mount").transform;ringMount.SetParent(a.Body,false);ringMount.localScale=Vector3.one*.5f;
             a.Swimming=new SwimmingAppearance(ringMount,a.Root,line.shader);
             if(meleeArt!=null)a.Melee=new MeleeAvatarView(a.Body,meleeArt);
+            a.Eating=new FoodEatingView(a.Body,a.Rod,foodArt);
         }
         private void CreateLegacyBody(Avatar a,int slot)
         {
@@ -380,6 +385,7 @@ namespace Advanture.HookIsland
         public void PresentConfirmedEvent(HookGameplayEvent value,ushort local)
         {
             audioFeedback.Apply(value,local,map.Fishing?.Combo,meleeArt);
+            if(value.Kind==HookGameplayEventKind.FoodConsumed && avatars.TryGetValue(value.Slot,out var eater))eater.Eating?.Confirm(value.ItemType);
             if(value.Kind==HookGameplayEventKind.MeleeHit && avatars.TryGetValue(value.Slot,out var avatar))avatar.Melee?.ConfirmHit();
         }
         public void ClearPlayers()
@@ -393,7 +399,7 @@ namespace Advanture.HookIsland
             aimRing.enabled=aimLine.enabled=false;
             aimTargetLocked=false;
         }
-        public void Dispose(){audioFeedback.Dispose();meleeArt?.Dispose();fishWater.Dispose();escapes.Dispose();foreach(var f in fishViews)f?.Dispose();foreach(var a in avatars.Values){a.Animation?.Dispose();a.Swimming?.Dispose();}Release(root.gameObject);foreach(var r in resources)Release(r);}
+        public void Dispose(){audioFeedback.Dispose();foodArt?.Dispose();meleeArt?.Dispose();fishWater.Dispose();escapes.Dispose();foreach(var f in fishViews)f?.Dispose();foreach(var a in avatars.Values){a.Animation?.Dispose();a.Swimming?.Dispose();}Release(root.gameObject);foreach(var r in resources)Release(r);}
         private static void Release(Object value){if(Application.isPlaying)Object.Destroy(value);else Object.DestroyImmediate(value);}
     }
 }

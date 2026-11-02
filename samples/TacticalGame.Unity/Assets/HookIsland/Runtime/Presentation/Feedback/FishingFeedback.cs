@@ -14,6 +14,7 @@ namespace Advanture.HookIsland
         private int eventIndex=-1;
         private bool initialized,hasEvent;
         public AcquisitionFeedback Acquisitions {get;}=new AcquisitionFeedback();
+        public HealingFeedback Healing {get;}=new HealingFeedback();
         public HealthDamageFeedback Damage {get;}=new HealthDamageFeedback();
         public ComboHudAnimation Combo {get;}=new ComboHudAnimation();
         public int Generation {get;private set;}
@@ -23,7 +24,7 @@ namespace Advanture.HookIsland
             if(session==null || state==null){Reset();return;}
             if(!initialized || !ReferenceEquals(identity,session) || epoch!=round || confirmedTick<observedTick)Reset();
             initialized=true;identity=session;epoch=round;observedTick=confirmedTick;
-            Acquisitions.Advance(now);Damage.Advance(now,showDamage && !state.Won);
+            Acquisitions.Advance(now);Damage.Advance(now,showDamage && !state.Won);Healing.Advance(now,showDamage && !state.Won);
             int combo=local<state.Players.Count?state.Players[local].Combo.Count:0;
             Combo.Observe(session,round,confirmedTick,combo,state.Tackle?.Config.Combo,(float)now);
             foreach(var receipt in events)
@@ -34,7 +35,7 @@ namespace Advanture.HookIsland
                 var value=receipt.Event;
                 if(value.Slot>=state.Players.Count || state.Players[value.Slot].WaitingToJoin)continue;
                 Acquisitions.Apply(value,now);
-                if(showDamage && !state.Won)Damage.Apply(value,now);
+                if(showDamage && !state.Won){Damage.Apply(value,now);Healing.Apply(value,now);}
                 if(value.Kind==HookGameplayEventKind.ComboIncreased && value.Slot==local)Combo.ConfirmIncrease(value.Value,(float)now);
                 present?.Invoke(value);
             }
@@ -42,7 +43,7 @@ namespace Advanture.HookIsland
         public void Reset()
         {
             identity=null;eventSession=Guid.Empty;epoch=observedTick=eventTick=0;eventIndex=-1;initialized=hasEvent=false;
-            Acquisitions.Reset();Damage.Reset();Combo.Reset();Generation++;
+            Acquisitions.Reset();Damage.Reset();Healing.Reset();Combo.Reset();Generation++;
         }
     }
 }

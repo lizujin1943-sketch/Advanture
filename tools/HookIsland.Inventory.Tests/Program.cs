@@ -13,7 +13,7 @@ internal static partial class Program
         inventory.Capture().Items.First(i => i.Owner == owner && i.Kind == kind && i.Location == ItemLocation.Backpack);
     private static int Main(string[] args)
     {
-        var cases = DomainCases().Concat(CommandCases()).Concat(GameCases()).Concat(InteractionCases()).Concat(MaterialStackCases());
+        var cases = DomainCases().Concat(CommandCases()).Concat(GameCases()).Concat(InteractionCases()).Concat(MaterialStackCases()).Concat(FoodCases()).Concat(FoodGameCases());
         if (!args.Contains("--simulation-only")) cases = cases.Concat(NetworkCases());
         string? filter = args.FirstOrDefault(a => a.StartsWith("--filter=", StringComparison.Ordinal));
         if (filter != null) cases = cases.Where(c => c.Item1.Contains(filter.Substring(9), StringComparison.Ordinal));

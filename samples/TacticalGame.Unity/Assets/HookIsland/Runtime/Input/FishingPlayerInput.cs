@@ -61,7 +61,8 @@ namespace Advanture.HookIsland
             aim=FishingAimAssist.Resolve(room,viewCamera,pointer,aim);
             aim.x=Mathf.Clamp(aim.x,-90,90);aim.z=Mathf.Clamp(aim.z,-90,90);
             bool overUi=!CameraPointerCaptured && room.Overlay!=null && room.Overlay.PointerOverHud;
-            if(!skipPointerFrame && !overUi && room.CanCast && room.Construction?.Open!=true && Input.GetMouseButtonDown(0))pendingFire=true;
+            if(!skipPointerFrame && !overUi && room.Construction?.Open!=true && Input.GetMouseButtonDown(0))
+            {if(room.Equipment?.UseSelected()!=true && room.CanCast)pendingFire=true;}
             if(!skipPointerFrame && !overUi && room.Construction?.Open!=true && Input.GetMouseButtonDown(1))pendingCancel=true;
             float scroll=Input.mouseScrollDelta.y;
             if(!ThirdPerson && !overUi && Mathf.Abs(scroll)>.01f)viewCamera.orthographicSize=Mathf.Clamp(viewCamera.orthographicSize-scroll*.7f,room.Map.Platform==null?12:5,28);

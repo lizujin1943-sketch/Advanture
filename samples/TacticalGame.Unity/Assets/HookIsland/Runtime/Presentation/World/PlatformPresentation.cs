@@ -6,16 +6,15 @@ using Object = UnityEngine.Object;
 
 namespace Advanture.HookIsland
 {
-    /// <summary>Renders confirmed tiles and placement hints; never changes gameplay state.</summary>
+    /// <summary>Renders confirmed tiles and their buildable frontier; never changes gameplay state.</summary>
     internal sealed class PlatformPresentation : IDisposable
     {
-        private readonly Transform root, ghost;
+        private readonly Transform root;
         private readonly IReadOnlyDictionary<TileKind, GameObject> prefabs;
         private readonly List<GameObject> tiles = new List<GameObject>();
         private readonly List<PlatformTile> rendered = new List<PlatformTile>();
         private readonly List<LineRenderer> frontier = new List<LineRenderer>();
-        private readonly Material previewMaterial, lineMaterial;
-        private readonly LineRenderer outline;
+        private readonly Material lineMaterial;
         private readonly PlatformShoreline shoreline;
         private int frontierUsed;
         public int TileCount => tiles.Count;
@@ -27,14 +26,7 @@ namespace Advanture.HookIsland
             this.shoreline = shoreline;
             root = new GameObject("Synchronized platform").transform;
             root.SetParent(parent, false);
-            previewMaterial = new Material(Shader.Find("Hook Island/Baked Color Surface"));
-            previewMaterial.SetFloat("_Ambient", .4f);
-            previewMaterial.SetFloat("_SunStrength", .85f);
             lineMaterial = new Material(Shader.Find("Hook Island/Fishing Line"));
-            ghost = PlatformGeometry.Part(root, "Placement preview", Vector3.zero,
-                new Vector3(1.94f, .04f, 1.94f), previewMaterial);
-            outline = NewLine("Placement boundary", .045f);
-            HidePreview();
         }
 
         public void Synchronize(IReadOnlyList<PlatformTile> state)
@@ -76,20 +68,10 @@ namespace Advanture.HookIsland
             }
         }
 
-        public void ShowPreview(bool buildMode, bool hasPointer, int x, int z, BuildResult result)
+        public void ShowFrontier(bool buildMode)
         {
             for (int i = 0; i < frontier.Count; i++) frontier[i].enabled = buildMode && i < frontierUsed;
-            ghost.gameObject.SetActive(buildMode && hasPointer);
-            outline.enabled = buildMode && hasPointer;
-            if (!buildMode || !hasPointer) return;
-            var color = result == BuildResult.Success ? new Color(.22f, .84f, .52f) : new Color(.95f, .26f, .22f);
-            previewMaterial.color = color;
-            outline.startColor = outline.endColor = color * 1.2f;
-            ghost.position = new Vector3(x * 2, PlatformGeometry.DeckHeight + .03f, z * 2);
-            SetSquare(outline, ghost.position + Vector3.up * .04f);
         }
-
-        public void HidePreview() => ShowPreview(false, false, 0, 0, BuildResult.Disabled);
 
         private void RefreshFrontier(IReadOnlyList<PlatformTile> state)
         {
@@ -140,7 +122,6 @@ namespace Advanture.HookIsland
         public void Dispose()
         {
             if (root != null) Object.Destroy(root.gameObject);
-            Object.Destroy(previewMaterial);
             Object.Destroy(lineMaterial);
         }
     }

@@ -14,7 +14,7 @@ namespace Advanture.HookIsland.Tests
         public void VisibleControlsFitAndDoNotOverlapAtSupportedWindowSizes(int width,int height)
         {
             float scale=HudLayout.Scale(width,height);var layout=new HudLayout(width/scale,height/scale);
-            var rects=new[]{layout.Squad(4),layout.Wallet,layout.Menu,layout.Tools,layout.Construction,layout.Acquisitions,layout.Combo};
+            var rects=new[]{layout.Squad(4),layout.Wallet,layout.Menu,layout.Tools,layout.Construction,layout.Acquisitions,layout.Combo,layout.Quickbar};
             for(int i=0;i<rects.Length;i++)
             {
                 Assert.That(rects[i].xMin,Is.GreaterThanOrEqualTo(0));Assert.That(rects[i].yMin,Is.GreaterThanOrEqualTo(0));
@@ -22,6 +22,11 @@ namespace Advanture.HookIsland.Tests
                 for(int j=i+1;j<rects.Length;j++)Assert.That(rects[i].Overlaps(rects[j]),Is.False,$"HUD overlap: {i}, {j}");
             }
             for(int i=0;i<3;i++)Assert.That(layout.Contains(layout.Tool(i).center,4,false),Is.True,"Visible button must block casting.");
+            for(int i=0;i<9;i++)
+            {
+                Assert.That(layout.Quickbar.Contains(layout.QuickSlot(i).center),Is.True);
+                if(i>0)Assert.That(layout.QuickSlot(i-1).Overlaps(layout.QuickSlot(i)),Is.False);
+            }
         }
         [Test] public void CollapsedTaskDrawerOnlyBlocksItsVisibleHandleAndCanBeReversed()
         {

@@ -269,6 +269,46 @@ def apparel(row):
     return c.finish()
 
 
+
+def food(row):
+    c = Canvas()
+    if row["id"] == "food_coconut":
+        c.poly([(26,48),(36,32),(88,31),(106,55),(103,88),(82,111),(45,112),(24,89),(19,65)], "#6ca746")
+        c.poly([(79,38),(100,55),(97,85),(78,103),(63,107),(77,80)], "#448748", None)
+        c.ellipse((27,28,98,65), "#f6e8c7")
+        c.ellipse((36,34,89,57), "#b8ca9a", "#e9f0d0", 3)
+        c.line([(65,46),(79,14),(100,20)], INK, 7)
+        c.line([(65,46),(79,14),(100,20)], "#ffca69", 4)
+        c.curve([(33,65),(30,84),(41,99),(53,102)], "#a1cd61", 5)
+    elif row["id"] == "food_grilled_fish":
+        c.poly([(8,86),(28,56),(58,47),(111,64),(122,90),(91,108),(43,110)], "#43875c")
+        c.line([(19,95),(105,77)], "#87b875", 3)
+        c.poly([(33,68),(12,49),(14,83)], "#cd7837")
+        c.ellipse((28,36,113,87), "#e9a646")
+        c.poly([(46,38),(63,25),(80,40)], "#b45f32")
+        c.curve([(33,62),(40,40),(75,38),(92,44)], "#ffd879", 4)
+        for x in (48,64,80): c.line([(x,47),(x-5,66)], "#9c5430", 4)
+        c.ellipse((94,50,101,57), INK, None)
+        c.line([(99,73),(111,67)], "#ad6136", 2)
+        c.ellipse((35,87,58,106), "#ffdc65")
+        c.line([(39,95),(52,95)], CREAM, 2)
+    else:
+        c.ellipse((12,44,116,108), "#754d36")
+        c.poly([(13,66),(25,100),(44,115),(85,115),(105,99),(116,66)], "#a56c40")
+        c.ellipse((10,38,118,87), "#edc584")
+        c.ellipse((18,45,110,78), "#66964d", "#8c5b35", 3)
+        for x,y in ((35,53),(65,58),(85,46)):
+            c.ellipse((x-8,y-9,x+15,y+11), "#f1d6a1", "#c69459", 2)
+            c.line([(x-3,y),(x+8,y-4)], "#b7844f", 2)
+        c.curve([(39,62),(28,33),(67,27),(68,49)], INK, 18)
+        c.curve([(39,62),(28,33),(67,27),(68,49)], "#ef9354", 13)
+        for x,y in ((37,45),(44,36),(57,36)): c.line([(x-3,y+2),(x+3,y+8)], "#ffd18b", 2)
+        c.poly([(37,60),(25,61),(32,70),(43,67)], "#d97344")
+        c.line([(33,97),(43,104),(81,104),(94,94)], "#d59a60", 3)
+        c.poly([(87,55),(81,30),(95,41),(104,31),(99,56)], "#90b754")
+    return c.finish()
+
+
 def rows(name):
     with (DATA/name).open(encoding="utf-8") as stream:
         return list(csv.DictReader(stream))
@@ -276,7 +316,7 @@ def rows(name):
 
 def main():
     entries = [("material_wood", wood()), ("material_fishbone", bone())]
-    for name, draw in [("rods.csv",rod),("backpacks.csv",backpack),("swim-rings.csv",ring),("apparel.csv",apparel)]:
+    for name, draw in [("rods.csv",rod),("backpacks.csv",backpack),("swim-rings.csv",ring),("apparel.csv",apparel),("foods.csv",food)]:
         entries.extend((row["id"], draw(row)) for row in rows(name))
     assert len(entries) == len({key for key, _ in entries}), "Duplicate icon IDs"
     atlas = Image.new("RGBA", (COLUMNS*CELL, math.ceil(len(entries)/COLUMNS)*CELL))

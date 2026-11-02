@@ -11,9 +11,9 @@ namespace Advanture.HookIsland
         public Rect Squad(int players) => new Rect(24,24,16+Mathf.Clamp(players,1,4)*52,52);
         public Rect Wallet => new Rect(Width-196,24,128,48);
         public Rect Menu => new Rect(Width-60,24,36,48);
-        public Rect Combo => new Rect(Width/2+196,Height-142,230,118);
-        public Rect Weapons => new Rect(Width/2-59,Height-76,118,52);
-        public Rect Weapon(int index)=>new Rect(Weapons.x+index*64,Weapons.y,54,52);
+        public Rect Combo => new Rect(Width/2+240,Height-220,210,118);
+        public Rect Quickbar => new Rect(Width/2-267,Height-82,534,58);
+        public Rect QuickSlot(int index)=>new Rect(Quickbar.x+index*60,Quickbar.y,54,58);
         public Rect Tools => new Rect(Width-172,Height-70,148,46);
         public Rect Tool(int index) => new Rect(Tools.x+index*52,Tools.y,44,46);
         public Rect Construction => new Rect(24,Height-190,260,166);

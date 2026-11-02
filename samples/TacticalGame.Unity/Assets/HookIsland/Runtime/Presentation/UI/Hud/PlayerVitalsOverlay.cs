@@ -54,6 +54,7 @@ namespace Advanture.HookIsland
                 }
                 DrawCatchCue(health, state, player, mode);
                 DrawDamage(room.Feedback.Damage,health,player.Slot,now);
+                DrawHealing(room.Feedback.Healing,health,player.Slot,now);
             }
             if (visible && !room.CameraPointerCaptured) ui.Tooltip(width, height);
         }
@@ -106,6 +107,17 @@ namespace Advanture.HookIsland
             { ui.Surface(label); ui.Text(label, (CooperativeFishing.Lead(state, player) == player.Slot ? "主钓" : "辅助") + " · " + count, 10, HudPainter.White, TextAnchor.MiddleCenter); }
         }
 
+        private void DrawHealing(HealingFeedback healing,Rect health,ushort slot,float now)
+        {
+            foreach(var notice in healing.Notices)
+            {
+                if(notice.Slot!=slot)continue;
+                float t=(float)((now-notice.StartedAt)/HealingFeedback.Lifetime),alpha=1-Mathf.SmoothStep(.6f,1,t);
+                var rect=new Rect(health.center.x-42,health.y-39-t*36,84,28);var tint=HudPainter.Health;tint.a=alpha;
+                ui.Text(new Rect(rect.x+1,rect.y+2,rect.width,rect.height),"+"+notice.Amount,23,new Color(.08f,.02f,.02f,alpha),TextAnchor.MiddleCenter,true);
+                ui.Text(rect,"+"+notice.Amount,23,tint,TextAnchor.MiddleCenter,true);
+            }
+        }
         private void DrawDamage(HealthDamageFeedback damage,Rect health, ushort slot, float now)
         {
             foreach (var notice in damage.Notices)

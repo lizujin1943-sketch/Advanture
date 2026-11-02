@@ -30,7 +30,8 @@ namespace Advanture.HookIsland.Tests
                 Set(equipment,"<InventoryOpen>k__BackingField",true);Set(construction,"<Open>k__BackingField",true);
                 Get<RodRequestBuffer>(equipment,"requests").TryQueue(4,RodAction.Equip,1,0);
                 Get<InventoryRequestBuffer>(equipment,"inventoryRequests").TryQueue(4,new InventoryCommand(InventoryAction.Pickup,target:1));
-                Get<PlatformBuildRequestBuffer>(construction,"requests").TryQueue(4,TileKind.Wood,2,0);
+                Get<PlatformBuildBatch>(construction,"requests").TryStart(new[]{new PlatformBuildPreview(new PlatformTile(2,0,TileKind.Wood),BuildResult.Success)});
+                Get<PlatformBuildDraft>(construction,"draft").Begin(TileKind.Wood,3,0);
                 Get<RevivalRequestBuffer>(revival,"requests").TryQueue(new RevivalState{Dead=true,Deaths=2,DownedId=2,DeathTick=1,LastRequest=4});
                 Get<RoomRulesRequestBuffer>(room,"roomRulesRequests").TryQueue(new RoomRulesState(true,4),false);
                 Set(revival,"heldTarget",1);
@@ -39,6 +40,7 @@ namespace Advanture.HookIsland.Tests
                 Assert.That(reset,Is.Not.Null,"A restart must clear local queues without leaving the room.");reset.Invoke(room,null);
                 Assert.That(room.State,Is.Null);Assert.That(room.PurchasePending || room.RoomRulesPending || equipment.Pending || construction.Pending || revival.Pending,Is.False);
                 Assert.That(overlay.MenuOpen || room.ShopOpen || equipment.InventoryOpen || construction.Open,Is.False);
+                Assert.That(construction.Dragging || construction.PreviewCells.Count>0,Is.False,"Old construction preview crossed the round boundary.");
                 Assert.That(equipmentUi.CharacterPage,Is.True);
                 var input=(HookInput)typeof(IslandFishingController).GetMethod("Sample",Private).Invoke(room,new object[]{1UL});
                 Assert.That(input.Encode(),Is.EqualTo(default(HookInput).Encode()),"Old movement, casting, trade, construction or revival intent crossed the round boundary.");

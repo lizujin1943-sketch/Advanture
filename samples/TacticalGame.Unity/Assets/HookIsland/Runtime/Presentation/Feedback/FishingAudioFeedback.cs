@@ -10,7 +10,7 @@ namespace Advanture.HookIsland
     public sealed class FishingAudioFeedback : IDisposable
     {
         private readonly AudioSource audio;
-        private readonly AudioClip caught,cast,hooked,comboStart,comboCap;
+        private readonly AudioClip caught,cast,hooked,comboStart,comboCap,sip,bite;
         private readonly List<AudioClip> clips=new List<AudioClip>();
         public int PresentedCatches {get;private set;}
         public int PresentedCasts {get;private set;}
@@ -18,6 +18,7 @@ namespace Advanture.HookIsland
         public FishingAudioFeedback(Transform root)
         {
             audio=root.gameObject.AddComponent<AudioSource>();audio.spatialBlend=0;audio.volume=.25f;
+            sip=MealSound(true);bite=MealSound(false);
             caught=Tone("Catch chime",880,1320,.2f);cast=Tone("Hook cast",220,500,.09f);
             hooked=Tone("Teammate hooked",430,150,.19f);
             comboStart=Tone("Combo started",1046,1568,.16f);comboCap=Tone("Combo maximum",1318,2093,.25f);
@@ -26,6 +27,8 @@ namespace Advanture.HookIsland
         {
             switch(value.Kind)
             {
+                case HookGameplayEventKind.FoodConsumed:
+                    audio.PlayOneShot(value.ItemType==0?sip:bite,value.Slot==local?.65f:.3f);break;
                 case HookGameplayEventKind.HookCast:
                     PresentedCasts++;if(value.Slot==local)audio.PlayOneShot(cast);break;
                 case HookGameplayEventKind.FishCaught:
@@ -44,6 +47,18 @@ namespace Advanture.HookIsland
                 case HookGameplayEventKind.MeleeHit:
                     if(melee!=null)audio.PlayOneShot(melee.Impact,.8f);break;
             }
+        }
+        private AudioClip MealSound(bool drinking)
+        {
+            const int rate=22050;var samples=new float[(int)(rate*.34f)];uint noise=157;float smooth=0;
+            for(int n=0;n<samples.Length;n++)
+            {
+                float t=n/(float)rate;noise=unchecked(noise*1664525+1013904223);
+                float raw=(noise>>8)/8388608f-1;smooth=Mathf.Lerp(smooth,raw,.12f);
+                float envelope=Mathf.Exp(-Mathf.Pow((t-.07f)/.035f,2))+Mathf.Exp(-Mathf.Pow((t-.2f)/.045f,2))*.7f;
+                samples[n]=envelope*(drinking?Mathf.Sin((t*165+t*t*240)*Mathf.PI*2)*.22f+smooth*.25f:(raw-smooth)*.18f+smooth*.3f);
+            }
+            var result=AudioClip.Create(drinking?"Coconut sip":"Food bite",samples.Length,1,rate,false);result.SetData(samples,0);clips.Add(result);return result;
         }
         private AudioClip Tone(string name,float start,float end,float duration)
         {

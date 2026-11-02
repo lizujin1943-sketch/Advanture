@@ -7,7 +7,7 @@ using System.Linq;
 namespace Advanture.HookIsland.Simulation;
 
 /// <summary>已实现且能进入库存的物品类别；未实现的装备不生成占位商品。</summary>
-public enum ItemKind : byte { Wood = 1, Fishbone, Rod, Backpack, SwimRing, Apparel, Weapon }
+public enum ItemKind : byte { Wood = 1, Fishbone, Rod, Backpack, SwimRing, Apparel, Weapon, Food }
 
 /// <summary>角色的八个独立装备槽。只有明确实现的物品类型能占用对应槽。</summary>
 public enum EquipmentSlot : byte { None, Hat, LeftHand, RightHand, Clothes, Shoes, Backpack, Accessory, SwimRing }
@@ -66,12 +66,14 @@ public static class InventoryCatalog
     public static BackpackDefinition Backpack(int level) => level >= 1 && level <= Backpacks.Count
         ? Backpacks[level - 1] : throw new ArgumentOutOfRangeException(nameof(level));
     public static bool IsMaterial(ItemKind kind) => kind == ItemKind.Wood || kind == ItemKind.Fishbone;
+    public static bool IsStackable(ItemKind kind) => IsMaterial(kind) || kind == ItemKind.Food;
     public static bool IsValid(ItemKind kind, int type) => kind switch {
         ItemKind.Wood or ItemKind.Fishbone => type == 0,
         ItemKind.Rod => type >= 0 && type < RodCatalog.All.Count,
         ItemKind.Backpack => type >= 1 && type <= Backpacks.Count,
         ItemKind.SwimRing => type >= 1 && type <= SwimRingCatalog.All.Count,
         ItemKind.Apparel => type >= 0 && type < ApparelCatalog.All.Count,
+        ItemKind.Food => type >= 0 && type < FoodCatalog.All.Count,
         ItemKind.Weapon => type >= 0 && type < WeaponCatalog.All.Count,
         _ => false
     };
@@ -79,6 +81,7 @@ public static class InventoryCatalog
     {
         if (!IsValid(kind, type)) throw new ArgumentOutOfRangeException(nameof(type));
         if (IsMaterial(kind)) return new InventoryDefinition(kind == ItemKind.Wood ? "木材" : "鱼骨", 1, 1, MaterialStackLimit, EquipmentSlot.None, 0);
+        if (kind == ItemKind.Food) {var food=FoodCatalog.Get(type);return new InventoryDefinition(food.Name,1,1,food.StackLimit,EquipmentSlot.None,food.Price);}
         if (kind == ItemKind.Backpack) return new InventoryDefinition(Backpack(type).Name, 2, 2, 1, EquipmentSlot.Backpack, Backpack(type).Price);
         if (kind == ItemKind.SwimRing) return new InventoryDefinition(SwimRingCatalog.Get(type).Name, 2, 2, 1, EquipmentSlot.SwimRing, SwimRingCatalog.Get(type).Price);
         if (kind == ItemKind.Apparel) return ApparelCatalog.Get(type).Item;

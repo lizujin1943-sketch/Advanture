@@ -45,12 +45,12 @@ internal sealed class EquipmentSystem
     }
     internal void Advance(IslandMap map,IReadOnlyList<PlatformTile> tiles,IReadOnlyList<Fisher> players,ulong step)
         =>merchants.Advance(map,tiles,players,step);
-    internal void Apply(IslandMap map,IReadOnlyList<PlatformTile> tiles,ref Fisher player,HookInput command,ref int coins)
+    internal void Apply(IslandMap map,IReadOnlyList<PlatformTile> tiles,ref Fisher player,HookInput command,ref int coins,bool rescuing=false)
     {
         if(command.Inventory.Action!=InventoryAction.None && command.Inventory.RequestId>player.LastInventoryRequest)
         {
             player.LastInventoryRequest=command.Inventory.RequestId;
-            player.LastInventoryResult=Transact(map,tiles,ref player,command.Inventory,ref coins);
+            player.LastInventoryResult=Transact(map,tiles,ref player,command.Inventory,ref coins,rescuing);
             if(player.LastInventoryResult==InventoryResult.Success)Recalculate(player.Slot);
         }
         // 保留旧钓竿输入适配，现有自动游玩和调用方也必须通过同一库存事务，不能绕过材料占格。
@@ -78,7 +78,7 @@ internal sealed class EquipmentSystem
         // 换装只裁切上限，不补满。自然休息仍由每帧的 StaminaSystem 负责。
         CharacterSystem.Clamp(ref player.Vitals,ref player.Stamina,Attributes(player));
     }
-    private InventoryResult Transact(IslandMap map,IReadOnlyList<PlatformTile> tiles,ref Fisher player,InventoryCommand command,ref int coins)
+    private InventoryResult Transact(IslandMap map,IReadOnlyList<PlatformTile> tiles,ref Fisher player,InventoryCommand command,ref int coins,bool rescuing=false)
     {
         if(player.Unavailable || player.Vitals.Downed)return InventoryResult.Disabled;
         if(player.PulledBy>=0)return InventoryResult.HookBusy;
@@ -93,6 +93,16 @@ internal sealed class EquipmentSystem
             if(!MerchantRules.CanInteract(player))return InventoryResult.Disabled;
             var merchant=merchants.Get(command.MerchantId);
             if(merchant==null || !merchant.Active || command.Batch!=merchant.Batch)return InventoryResult.StaleStock;
+            if(command.Target>=FoodCatalog.OfferOffset)
+            {
+                int type=command.Target-FoodCatalog.OfferOffset;
+                if(command.Action!=InventoryAction.Buy)return InventoryResult.InvalidItem;
+                if(type<0 || type>=merchant.FoodStock.Count || merchant.FoodStock[type]==0)return InventoryResult.SoldOut;
+                int before=player.Coins;
+                var purchased=Inventory.Purchase(owner,ItemKind.Food,type,false,false,point,ref player.Coins);
+                if(purchased==InventoryResult.Success){coins-=before-player.Coins;merchants.SellFood(command.MerchantId,type);}
+                return purchased;
+            }
             var stock=merchant.Stock;
             if(command.Target>=stock.Count || stock[command.Target].Sold)return InventoryResult.SoldOut;
             var offer=stock[command.Target];bool equip=command.Action==InventoryAction.BuyAndEquip;
@@ -100,14 +110,31 @@ internal sealed class EquipmentSystem
             int previousCoins=player.Coins;
             var result=Inventory.Purchase(owner,offer.Kind,offer.Type,equip,command.DropOld,point,ref player.Coins);
             if(result==InventoryResult.Success)
-            {coins-=previousCoins-player.Coins;merchants.Sell(command.MerchantId,command.Target);}
+            {coins-=previousCoins-player.Coins;merchants.Sell(command.MerchantId,command.Target);if(equip && InventoryCatalog.Get(offer.Kind,offer.Type).Slot==EquipmentSlot.RightHand)player.SelectedQuickSlot=-1;}
             return result;
+        }
+        if(command.Action==InventoryAction.Use)
+            return FoodUseSystem.Use(Inventory,ref player,command.Target,Attributes(player),config.FoodCooldownTicks,grounded,rescuing);
+        if(command.Action==InventoryAction.BindQuickSlot)return Inventory.BindQuickSlot(owner,command.Target,command.Amount-1);
+        if(command.Action==InventoryAction.ClearQuickSlot)return Inventory.ClearQuickSlot(owner,command.Target-1);
+        if(command.Action==InventoryAction.SelectQuickSlot)
+        {
+            int slot=command.Target-1;
+            if(slot<0 || slot>=QuickbarRules.SlotCount)return InventoryResult.InvalidPlacement;
+            var selected=Inventory.QuickItem(owner,slot);
+            if(player.Phase!=HookPhase.Ready || player.Melee.Active)return InventoryResult.HookBusy;
+            if(selected.HasValue && selected.Value.Kind!=ItemKind.Food)
+            {
+                var result=Inventory.Equip(owner,selected.Value.Id,false,point);
+                if(result!=InventoryResult.Success)return result;
+            }
+            player.SelectedQuickSlot=slot;return InventoryResult.Success;
         }
         var item=Inventory.Find(command.Target)??default;
         bool changesRod=(command.Action==InventoryAction.Unequip && command.Target==(int)EquipmentSlot.RightHand) ||
             ((command.Action==InventoryAction.Equip || command.Action==InventoryAction.PickupAndEquip) && item.Id!=0 && item.Definition.Slot==EquipmentSlot.RightHand);
         if(changesRod && (player.Phase!=HookPhase.Ready || player.Melee.Active))return InventoryResult.HookBusy;
-        return command.Action switch {
+        var outcome=command.Action switch {
             InventoryAction.Move=>Inventory.Move(owner,command.Target,command.X,command.Y,command.Rotated),
             InventoryAction.Split=>Inventory.Split(owner,command.Target,command.Amount,command.X,command.Y),
             InventoryAction.Drop=>Inventory.Drop(owner,command.Target,command.Amount,point),
@@ -117,6 +144,20 @@ internal sealed class EquipmentSystem
             InventoryAction.Unequip=>Inventory.Unequip(owner,(EquipmentSlot)command.Target,point),
             _=>InventoryResult.InvalidItem
         };
+        if(outcome==InventoryResult.Success && changesRod)
+        {
+            player.SelectedQuickSlot=-1;
+            var equipped=Inventory.Equipped(owner,EquipmentSlot.RightHand);
+            if(equipped.HasValue)for(int n=0;n<QuickbarRules.SlotCount;n++)
+                if(Inventory.QuickSlot(owner,n).ItemId==equipped.Value.Id){player.SelectedQuickSlot=n;break;}
+        }
+        return outcome;
+    }
+    internal bool ActiveTool(Fisher player)
+    {
+        if(player.SelectedQuickSlot<0)return true;
+        var item=Inventory.QuickItem(player.Slot,player.SelectedQuickSlot);
+        return item.HasValue && item.Value.Location==ItemLocation.Equipped && item.Value.Definition.Slot==EquipmentSlot.RightHand;
     }
     private static RodResult LegacyResult(InventoryResult result)=>result switch {
         InventoryResult.Success=>RodResult.Success,InventoryResult.TooFar=>RodResult.TooFar,

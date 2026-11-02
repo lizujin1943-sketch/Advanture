@@ -12,21 +12,21 @@ namespace Advanture.HookIsland
         private readonly CommissionHud commissions;
         private readonly FinaleHud finale;
         private readonly ComboHud combo;
-        private readonly ItemIconPainter itemIcons=new ItemIconPainter();
+        private readonly QuickbarHud quickbar;
         private readonly ObjectivePanelMotion objectives = new ObjectivePanelMotion();
         private readonly HealthBarFeedback squadHealth = new HealthBarFeedback();
         public float ObjectiveReveal => objectives.Reveal(Time.unscaledTime);
         public void ToggleObjectives() => objectives.Toggle(Time.unscaledTime);
         public void Hide() => squadHealth.Reset();
         public GameplayHud(IslandFishingController room,FishingOverlay overlay,HudPainter painter)
-        {this.room=room;this.overlay=overlay;ui=painter;commissions=new CommissionHud(room,painter);finale=new FinaleHud(room,painter);combo=new ComboHud();}
+        {this.room=room;this.overlay=overlay;ui=painter;commissions=new CommissionHud(room,painter);finale=new FinaleHud(room,painter);combo=new ComboHud();quickbar=new QuickbarHud(room,painter);}
 
         public void Draw(HudLayout layout,float scale)
         {
             if(room.State==null || !room.TryGetLocalPlayer(out var local))return;
             if(room.State.Won){Hide();finale.DrawVictory(layout);return;}
             DrawSquad(layout);DrawWallet(layout,local);
-            DrawWeapons(layout,local);
+            quickbar.Draw(layout,local);
             DrawObjectives(layout);
             combo.DrawFrame(layout.Combo,room.Feedback.Combo.Sample(Time.unscaledTime));
             if(ui.IconButton(layout.Menu,HudIcon.Menu,"菜单 · Esc"))overlay.OpenMenu();
@@ -39,29 +39,6 @@ namespace Advanture.HookIsland
             DrawWorld(scale,layout.Height);
             if(room.Construction?.Open==true)DrawConstruction(layout.Construction);
             DrawFeedback(layout);
-        }
-
-        private void DrawWeapons(HudLayout layout,Fisher local)
-        {
-            if(room.State.Tackle?.Config.Melee.Enabled!=true || room.Construction?.Open==true)return;
-            var inventory=room.State.Tackle.Inventory;var equipped=inventory.Equipped(local.Slot,EquipmentSlot.RightHand);
-            for(int slot=0;slot<2;slot++)
-            {
-                ItemKind kind=slot==0?ItemKind.Rod:ItemKind.Weapon;InventoryItem owned=default;
-                foreach(var item in inventory.Items)if(item.Owner==local.Slot && item.Kind==kind && (owned.Id==0 || item.Type>owned.Type))owned=item;
-                var area=layout.Weapon(slot);bool active=equipped?.Kind==kind;
-                if(active)owned=equipped.Value;
-                ui.Surface(area,new Color(.025f,.095f,.12f,active?.78f:.4f));
-                if(active)ui.Surface(new Rect(area.x,area.yMax-3,area.width,3),new Color(1,.78f,.3f));
-                if(owned.Id!=0)itemIcons.Draw(new Rect(area.x+9,area.y+4,36,36),owned.Kind,owned.Type,tint:active?Color.white:new Color(.65f,.72f,.74f));
-                ui.Text(new Rect(area.x+3,area.y+30,16,18),(slot+1).ToString(),11,HudPainter.Muted,TextAnchor.MiddleCenter);
-                if(active && kind==ItemKind.Weapon && local.Melee.CooldownTicks>0)
-                {float fraction=local.Melee.CooldownTicks/(float)WeaponCatalog.Get(local.Melee.WeaponType).CooldownTicks;ui.Surface(new Rect(area.x+2,area.y+2,area.width-4,(area.height-4)*fraction),new Color(.02f,.06f,.08f,.55f));}
-                ui.Hint(area,owned.Id!=0?owned.Definition.Name+" · "+(slot+1):"未携带");
-                bool previous=GUI.enabled;GUI.enabled=previous && owned.Id!=0 && !room.Incapacitated && room.Equipment?.Pending!=true;
-                if(GUI.Button(area,GUIContent.none,GUIStyle.none))room.Equipment?.SelectTool(local,kind);
-                GUI.enabled=previous;
-            }
         }
 
         private void DrawObjectives(HudLayout layout)
@@ -133,8 +110,7 @@ namespace Advanture.HookIsland
                 if(GUI.Button(card,GUIContent.none,GUIStyle.none))build.Select(kind);
             }
             string message=build.Message;
-            if(message==null)message=build.PreviewResult==BuildResult.Success?"左键铺设 · 右键取消":PlatformConstruction.Explain(build.PreviewResult);
-            if(message=="铺设完成 · 全员可通行")message="铺设完成";
+            if(message==null)message=build.PreviewResult==BuildResult.Success?"按住左键拖动 · 松开铺设":PlatformConstruction.Explain(build.PreviewResult);
             ui.Icon(new Rect(rect.x+14,rect.y+129,16,16),build.PreviewResult==BuildResult.Success?HudIcon.Check:HudIcon.Alert,build.PreviewResult==BuildResult.Success?HudPainter.Mint:HudPainter.Gold);
             ui.Text(new Rect(rect.x+38,rect.y+121,208,32),message,12,HudPainter.Muted);
         }
@@ -169,8 +145,8 @@ namespace Advanture.HookIsland
         {
             var rect=layout.Help;ui.Surface(rect);ui.Text(new Rect(rect.x+26,rect.y+18,300,32),"操作指南",20,HudPainter.White,TextAnchor.MiddleLeft,true);
             if(ui.IconButton(new Rect(rect.xMax-48,rect.y+13,32,32),HudIcon.Close,"关闭 · Esc"))overlay.MenuOpen=false;
-            string[] keys={"WASD","鼠标","左键","右键","V / J","R","E","Tab / I","B","滚轮"};
-            string[] hints={"移动 · 第三人称按视角方向","俯视角瞄准 / 第三人称转向","出钩 · 第三人称沿视线方向","收钩 / 取消","V 切换视角 · J 收起 / 展开任务","按住救起队友","开箱 / 商店","角色与背包","扩建平台 · 1 / 2 切换材料","俯视角缩放 / 第三人称拉近拉远"};
+            string[] keys={"WASD","鼠标","左键","右键","V / J","R","E","Tab / I","B / 1–9","滚轮"};
+            string[] hints={"移动 · 第三人称按视角方向","俯视角瞄准 / 第三人称转向","使用当前物品 / 出钩 / 挥击","收钩 / 取消","V 切换视角 · J 收起 / 展开任务","按住救起队友","开箱 / 商店","角色与背包","B 扩建 · 1–9 选择快捷物品","俯视角缩放 / 第三人称拉近拉远"};
             for(int i=0;i<keys.Length;i++)
             {float y=rect.y+65+i*32;ui.Surface(new Rect(rect.x+26,y+3,70,24),HudPainter.Track);ui.Text(new Rect(rect.x+26,y+3,70,24),keys[i],12,HudPainter.White,TextAnchor.MiddleCenter);ui.Text(new Rect(rect.x+116,y,280,30),hints[i],14,HudPainter.Muted);}
         }

@@ -36,9 +36,14 @@ public sealed class MerchantSystem
             }
         }
     }
+    internal void SellFood(int id,int type)
+    {
+        var s=states[id];var food=s.FoodStock.ToArray();food[type]--;
+        states[id]=new MerchantState(id,s.Active,s.ActivatedAt,s.Batch,s.NextRestock,s.Stock,food);
+    }
     internal void Sell(int id,int index)
     {
         var s=states[id];var stock=s.Stock.ToArray();var offer=stock[index];offer.Sold=true;stock[index]=offer;
-        states[id]=new MerchantState(id,s.Active,s.ActivatedAt,s.Batch,s.NextRestock,stock);
+        states[id]=new MerchantState(id,s.Active,s.ActivatedAt,s.Batch,s.NextRestock,stock,s.FoodStock);
     }
 }
