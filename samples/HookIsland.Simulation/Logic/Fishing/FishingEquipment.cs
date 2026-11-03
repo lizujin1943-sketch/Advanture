@@ -8,13 +8,13 @@ namespace Advanture.HookIsland.Simulation;
 public sealed class FishingConfig
 {
     public FishingConfig(int staminaBase=100,int regenDelayTicks=60,int regenMilliPerSecond=5000,int reelSpeed=2000,
-        int merchantLevel=1,int restockSeconds=600,int seed=7381,CharacterConfig? character=null,SwimmingConfig? swimming=null,EnemyConfig? enemies=null,RevivalConfig? revival=null,int cooperativeSpeedBonusPermille=500,TreasureConfig? treasure=null,CommissionConfig? commissions=null,OceanConfig? ocean=null,FinaleConfig? finale=null,MerchantConfig? merchants=null,ComboConfig? combo=null,MeleeConfig? melee=null,int foodCooldownTicks=240,FirearmConfig? firearms=null,CrabConfig? crabs=null,BossConfig? boss=null)
+        int merchantLevel=1,int restockSeconds=600,int seed=7381,CharacterConfig? character=null,SwimmingConfig? swimming=null,EnemyConfig? enemies=null,RevivalConfig? revival=null,int cooperativeSpeedBonusPermille=500,TreasureConfig? treasure=null,CommissionConfig? commissions=null,OceanConfig? ocean=null,FinaleConfig? finale=null,MerchantConfig? merchants=null,ComboConfig? combo=null,MeleeConfig? melee=null,int foodCooldownTicks=240,FirearmConfig? firearms=null,CrabConfig? crabs=null,BossConfig? boss=null,int startingCoins=0)
     {
-        if(foodCooldownTicks<1 || foodCooldownTicks>18000 || staminaBase<1 || staminaBase>10000 || regenDelayTicks<0 || regenDelayTicks>18000 ||
+        if(startingCoins<0 || startingCoins>1000000 || foodCooldownTicks<1 || foodCooldownTicks>18000 || staminaBase<1 || staminaBase>10000 || regenDelayTicks<0 || regenDelayTicks>18000 ||
             regenMilliPerSecond<1 || regenMilliPerSecond>1000000 || reelSpeed<300 || reelSpeed>30000 ||
             merchantLevel<1 || merchantLevel>5 || restockSeconds<1 || restockSeconds>86400 || seed<0 || cooperativeSpeedBonusPermille<0 || cooperativeSpeedBonusPermille>3000)
             throw new InvalidDataException("Invalid fishing configuration.");
-        Boss=boss??BossConfig.Disabled;
+        Boss=boss??BossConfig.Disabled;StartingCoins=startingCoins;
         FoodCooldownTicks=foodCooldownTicks;Firearms=firearms??FirearmConfig.Disabled;
         Character=character??new CharacterConfig();Swimming=swimming??new SwimmingConfig();Revival=revival??new RevivalConfig();
         Enemies=enemies??EnemyConfig.Disabled;Treasure=treasure??TreasureConfig.Disabled;Commissions=commissions??CommissionConfig.Disabled;
@@ -30,6 +30,7 @@ public sealed class FishingConfig
         CooperativeSpeedBonusPermille=cooperativeSpeedBonusPermille;
     }
     public int FoodCooldownTicks {get;}
+    public int StartingCoins {get;}
     public CharacterConfig Character { get; }
     public SwimmingConfig Swimming { get; }
     public RevivalConfig Revival { get; }
@@ -53,10 +54,10 @@ public sealed class FishingConfig
     public int RestockSeconds { get; }
     public int Seed { get; }
     internal void Write(BinaryWriter w)
-    {w.Write(StaminaBase);w.Write(RegenDelayTicks);w.Write(RegenMilliPerSecond);w.Write(ReelSpeed);w.Write(MerchantLevel);w.Write(RestockSeconds);w.Write(Seed);Character.Write(w);Swimming.Write(w);Enemies.Write(w);Revival.Write(w);w.Write(CooperativeSpeedBonusPermille);Treasure.Write(w);Commissions.Write(w);Ocean.Write(w);Finale.Write(w);Merchants.Write(w);Combo.Write(w);Melee.Write(w);w.Write(FoodCooldownTicks);Firearms.Write(w);Crabs.Write(w);Boss.Write(w);w.Write(CatalogData.Hash());}
+    {w.Write(StaminaBase);w.Write(RegenDelayTicks);w.Write(RegenMilliPerSecond);w.Write(ReelSpeed);w.Write(MerchantLevel);w.Write(RestockSeconds);w.Write(Seed);Character.Write(w);Swimming.Write(w);Enemies.Write(w);Revival.Write(w);w.Write(CooperativeSpeedBonusPermille);Treasure.Write(w);Commissions.Write(w);Ocean.Write(w);Finale.Write(w);Merchants.Write(w);Combo.Write(w);Melee.Write(w);w.Write(FoodCooldownTicks);Firearms.Write(w);Crabs.Write(w);Boss.Write(w);w.Write(StartingCoins);w.Write(CatalogData.Hash());}
     internal static FishingConfig Read(BinaryReader r)
     {
-        var c=new FishingConfig(r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),CharacterConfig.Read(r),SwimmingConfig.Read(r),EnemyConfig.Read(r),RevivalConfig.Read(r),r.ReadInt32(),TreasureConfig.Read(r),CommissionConfig.Read(r),OceanConfig.Read(r),FinaleConfig.Read(r),MerchantConfig.Read(r),ComboConfig.Read(r),MeleeConfig.Read(r),r.ReadInt32(),FirearmConfig.Read(r),CrabConfig.Read(r),BossConfig.Read(r));
+        var c=new FishingConfig(r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),CharacterConfig.Read(r),SwimmingConfig.Read(r),EnemyConfig.Read(r),RevivalConfig.Read(r),r.ReadInt32(),TreasureConfig.Read(r),CommissionConfig.Read(r),OceanConfig.Read(r),FinaleConfig.Read(r),MerchantConfig.Read(r),ComboConfig.Read(r),MeleeConfig.Read(r),r.ReadInt32(),FirearmConfig.Read(r),CrabConfig.Read(r),BossConfig.Read(r),r.ReadInt32());
         if(r.ReadString()!=CatalogData.Hash())throw new InvalidDataException("Fishing catalog version mismatch.");return c;
     }
     public byte[] Encode(){using var s=new MemoryStream();using var w=new BinaryWriter(s);Write(w);return s.ToArray();}

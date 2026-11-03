@@ -28,6 +28,20 @@ internal static partial class Program
     private static bool Restart(IslandHost host) => host.TryRestart();
     private static IEnumerable<(string,Action)> Cases()
     {
+        yield return ("starting_coins_four_clients_restart_resets_each_wallet_to_3000",()=>{
+            // Keep revival unaffordable in this restart fixture; funded dead players can otherwise still revive.
+            using var party=new Party(4,Map(3000,1000000));party.Until(()=>party.Running,_=>default);party.Flush();
+            Require(party.Host.Session!.InspectState().Players.All(p=>p.Coins==3000),"Initial wallets differ");
+            // Walk outward from each spawn; walking through the opposite player can block departure.
+            party.Until(()=>party.Host.Session!.InspectState().GameOver,c=>new HookInput(c.Slot==0 || c.Slot==3?(short)-1000:(short)1000,0));party.Flush();
+            var previous=party.Host.Session;Require(Restart(party.Host),"Could not restart funded game");
+            party.Until(()=>!ReferenceEquals(previous,party.Host.Session) && party.Running,_=>default);party.Flush();
+            var state=party.Host.Session!.InspectState();
+            Require(state.Coins==12000 && state.Players.All(p=>p.Coins==3000 && p.CoinsEarned==3000) && state.Tackle!.Inventory.SpentCoins.All(n=>n==0),"Restart stacked starting money or preserved spending");
+            string hash=CheckpointCodec.Hash(party.Host.Session.CaptureCheckpoint());
+            Require(party.Clients.All(c=>CheckpointCodec.Hash(c.Session!.CaptureCheckpoint())==hash),"Restart wallets diverged");
+            Console.WriteLine("STARTING_COINS_RESTART clients=4 coins=3000 hash="+hash);
+        });
         foreach(int count in new[]{1,4})yield return ($"room_rules_restart_preserves_disabled_policy_{count}_players",()=>{
             using var party=new Party(count);party.Until(()=>party.Running,_=>default);
             party.Until(()=>!party.Host.Session!.InspectState().RoomRules.FriendlyPranksEnabled,
@@ -48,12 +62,12 @@ internal static partial class Program
         yield return ("network_single_player_two_rounds_keep_socket_and_reset_everything", () => RestartRounds(1));
         yield return ("network_four_players_two_rounds_keep_identity_and_reset_everything", () => RestartRounds(4));
     }
-    private static IslandMap Map()
+    private static IslandMap Map(int startingCoins=0,int baseFee=10)
     {
         var m = IslandMap.CreatePlatform();
         return new IslandMap(m.Shore, m.Pier, m.Spawns, m.FishSpots, m.Platform,
             new FishingConfig(swimming: new SwimmingConfig(healthLossBasisPointsPerSecond: 10000),
-                revival: new RevivalConfig(downedTicks: 30)));
+                revival: new RevivalConfig(downedTicks: 30,baseFee:baseFee),startingCoins:startingCoins));
     }
     private static HookInput LeavePlatform(IslandClient c) => new HookInput(c.Slot % 2 == 0 ? (short)1000 : (short)-1000, 0);
     private static void RestartRounds(int count)

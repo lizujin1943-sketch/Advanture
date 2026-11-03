@@ -27,6 +27,7 @@ MonoBehaviour:
   enableMelee: 1
   enableFirearms: 1
   startWithFryingPan: 1
+  startingCoins: 3000
   piranhaHealth: 50
   meleeStunSeconds: 0.5
   characterBaseStamina: 100

@@ -10,8 +10,8 @@ namespace Advanture.HookIsland.FirearmTests;
 internal static partial class Program
 {
     private static readonly Guid SessionId=new("213714a2-0922-4db6-9a80-abaa623c9f11");
-    private static IslandMap Map(EnemyConfig? enemies=null)
-    {var b=IslandMap.CreatePlatform();return new IslandMap(b.Shore,b.Pier,b.Spawns,b.FishSpots,b.Platform,new FishingConfig(enemies:enemies??EnemyConfig.Disabled,melee:new MeleeConfig(),firearms:new FirearmConfig()));}
+    private static IslandMap Map(EnemyConfig? enemies=null,int startingCoins=0)
+    {var b=IslandMap.CreatePlatform();return new IslandMap(b.Shore,b.Pier,b.Spawns,b.FishSpots,b.Platform,new FishingConfig(enemies:enemies??EnemyConfig.Disabled,melee:new MeleeConfig(),firearms:new FirearmConfig(),startingCoins:startingCoins));}
     private static IDeterministicSimulation<HookState> Model(EnemyConfig? enemies=null,bool armed=true)
     {
         var m=new HookGame(false).Create();m.Initialize(new SimulationInitialization(new SessionDescriptor(SessionId,1,30,new[]{new Participant(0,Guid.NewGuid()),new Participant(1,Guid.NewGuid())}),new ByteString(Map(enemies).Encode())));

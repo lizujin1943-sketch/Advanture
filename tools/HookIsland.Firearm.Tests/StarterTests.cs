@@ -17,6 +17,28 @@ internal static partial class Program
     private static HookInput SelectSlot(int slot,uint request)=>new(0,0,inventory:new InventoryCommand(InventoryAction.SelectQuickSlot,slot,requestId:request));
     private static IEnumerable<(string,Action)> StarterCases()
     {
+        yield return ("starting_coins_formal_map_and_per_player_credit_round_trip",()=>{
+            var map=IslandMap.Decode(System.IO.File.ReadAllBytes("samples/TacticalGame.Unity/Assets/HookIsland/Data/PlatformMap.bytes"));
+            Require(map.Fishing!.StartingCoins==3000,"Formal map did not package 3000 starting coins");
+            foreach(int count in new[]{1,4})
+            {
+                var model=FreshGame(count,map);var state=model.Capture();
+                Require(state.Coins==count*3000 && state.Players.All(p=>p.Coins==3000 && p.CoinsEarned==3000),"Starting credit is not personal");
+                Require(state.Tackle!.Inventory.SpentCoins.All(n=>n==0) && state.Players.All(p=>p.Catches==0 && p.Combo.Count==0),"Starting money changed progression or spending");
+                var codec=new HookGame();model.Restore(codec.Decode(codec.Encode(state)));Wait(model,5);
+                Require(model.Capture().Coins==count*3000 && model.Capture().Players.All(p=>p.Coins==3000),"Restore duplicated starting credit");
+            }
+            Reject(()=>new FishingConfig(startingCoins:-1));Reject(()=>new FishingConfig(startingCoins:1000001));
+        });
+        yield return ("starting_coins_purchase_restore_and_fresh_round_balance",()=>{
+            var map=Map(startingCoins:3000);var model=FreshGame(1,map);
+            Step(model,Buy(FirearmCatalog.OfferOffset+1,1,true));Wait(model,FirearmCatalog.Get(1).DrawTicks);
+            var state=model.Capture();Require(state.Players[0].Coins==2100 && state.Coins==2100,"Starting credit could not buy the AK47");
+            var codec=new HookGame();var restored=FreshGame(1,map);restored.Restore(codec.Decode(codec.Encode(state)));
+            Step(restored,Buy(FirearmCatalog.OfferOffset+1,1,true));
+            Require(restored.Capture().Players[0].Coins==2100 && restored.Capture().Tackle!.Inventory.SpentCoins[0]==900,"Restoring replayed grant or purchase");
+            var fresh=FreshGame(1,map).Capture();Require(fresh.Coins==3000 && fresh.Tackle!.Inventory.SpentCoins[0]==0,"Fresh round retained old spending");
+        });
         yield return ("starter_pistol_each_player_has_one_loaded_gun_and_can_use_slot_six",()=>{
             foreach(int count in new[]{1,4})
             {
