@@ -66,7 +66,8 @@ internal static class BossStateCodec
         }
         foreach(var player in s.Players)if(player.WaitingToJoin && (b.Attackers&(1<<player.Slot))!=0)throw new InvalidDataException("Unjoined boss contributor.");
         if(b.DestroyedTiles.Count>0 && b.Sequence==0)throw new InvalidDataException("Boss damage has no attempt.");
-        var initial=BossArena.InitialTiles(s.Tackle?.Config);var keys=new System.Collections.Generic.HashSet<(int,int,TileKind,int)>();
+        var initial=b.DestroyedTiles.Count==0?Array.Empty<PlatformTile>():BossArena.InitialTiles(s.Tackle?.Config);
+        var keys=new System.Collections.Generic.HashSet<(int,int,TileKind,int)>();
         foreach(var loss in b.DestroyedTiles)
             if(!BossArena.Destructible(loss.X,loss.Z) || !PlatformRules.InBounds(loss.X,loss.Z) || loss.Kind<TileKind.Wood || loss.Kind>TileKind.Fishbone || loss.Builder< -1 || loss.Builder>=s.Players.Count || loss.Paid<0 || loss.Paid>4L*int.MaxValue ||
                 (loss.Builder==-1)!=(loss.Paid==0) || loss.Builder==-1 && (!initial.Any(t=>t.X==loss.X && t.Z==loss.Z) || loss.Kind!=TileKind.Wood) || !keys.Add((loss.X,loss.Z,loss.Kind,loss.Builder)))

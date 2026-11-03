@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using Advanture.HookIsland.Network;
 using Advanture.HookIsland.Simulation;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace Advanture.HookIsland
@@ -14,6 +15,11 @@ namespace Advanture.HookIsland
         [SerializeField] private Shader lineShader;
         [SerializeField] private PlatformSettings platformSettings;
         private readonly Stopwatch clock=new Stopwatch();
+        private static readonly ProfilerMarker ConnectionMarker=new ProfilerMarker("HookIsland.Connection");
+        private static readonly ProfilerMarker ConfirmedMarker=new ProfilerMarker("HookIsland.ConfirmedSnapshot");
+        private static readonly ProfilerMarker PredictedMarker=new ProfilerMarker("HookIsland.PredictedSnapshot");
+        private static readonly ProfilerMarker WorldMarker=new ProfilerMarker("HookIsland.WorldPresentation");
+        private static readonly ProfilerMarker PresentationMarker=new ProfilerMarker("HookIsland.PlayerPresentation");
         private IslandMap map;
         private FishingPresentation presentation;
         private GroundItemPresentation groundItems;
@@ -139,25 +145,33 @@ namespace Advanture.HookIsland
         private void Update()
         {
             Revival?.Capture();playerInput.Capture(this);
-            if(!PollConnection()){presentation?.ClearFirstPerson();CloseShop();return;}
+            using(ConnectionMarker.Auto())
+                if(!PollConnection()){presentation?.ClearFirstPerson();CloseShop();return;}
             try
             {
-                State=Client.Session.InspectState();
+                using(ConfirmedMarker.Auto())State=Client.Session.InspectState();
                 roomRulesRequests.Observe(State.RoomRules);
                 ObservePurchase();
                 if(Incapacitated){CloseShop();Equipment?.Close();Construction?.Close();}
-                groundItems?.Synchronize(State.Tackle?.Inventory);
-                Enemies?.Synchronize(State);Crabs?.Synchronize(State);Treasures?.Synchronize(State);
-                Finale?.Synchronize(State);
-                Boss?.Synchronize(State);
-                Merchants?.Synchronize(State);
+                using(WorldMarker.Auto())
+                {
+                    groundItems?.Synchronize(State.Tackle?.Inventory);
+                    Enemies?.Synchronize(State);Crabs?.Synchronize(State);Treasures?.Synchronize(State);
+                    Finale?.Synchronize(State);
+                    Boss?.Synchronize(State);
+                    Merchants?.Synchronize(State);
+                }
                 if(ShopOpen && (!Playing || !CanShopAt(ShopMerchantId)))CloseShop();
-                var predicted=Client.Session.InspectPredictedState();
-                presentation.Present(State,predicted,LocalSlot,Aim,
-                    Playing && CanCast && !HoldingMelee && !HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null,
-                    Playing && CanCast && HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null);
-                if(TryGetLocalPlayer(out var local))playerInput.Follow(this,local);
-                presentation.PresentFirstPerson(State,predicted,LocalSlot,FirstPerson,viewCamera,Aim);
+                HookState predicted;
+                using(PredictedMarker.Auto())predicted=Client.Session.InspectPredictedState();
+                using(PresentationMarker.Auto())
+                {
+                    presentation.Present(State,predicted,LocalSlot,Aim,
+                        Playing && CanCast && !HoldingMelee && !HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null,
+                        Playing && CanCast && HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null);
+                    if(TryGetLocalPlayer(out var local))playerInput.Follow(this,local);
+                    presentation.PresentFirstPerson(State,predicted,LocalSlot,FirstPerson,viewCamera,Aim);
+                }
                 Feedback.Update(Client,Client.RoundEpoch,Client.Session.ConfirmedTick,State,LocalSlot,Client.ConfirmedEvents,Time.unscaledTime,
                     overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true,PresentConfirmedEvent);
             }

@@ -11,8 +11,10 @@ public sealed class CrabSystem
     private readonly int slot;
     private CrabState state;
     public CrabSystem(IslandMap map,CrabState? restored=null,int slot=0)
+        :this(map,new CrabNavigation(map),restored,slot) { }
+    internal CrabSystem(IslandMap map,CrabNavigation navigation,CrabState? restored=null,int slot=0)
     {
-        config=map.Fishing!.Crabs;navigation=new CrabNavigation(map);
+        config=map.Fishing!.Crabs;this.navigation=navigation;
         if(slot<0 || slot>=config.Count)throw new ArgumentOutOfRangeException(nameof(slot));
         this.slot=slot;
         state=restored??new CrabState{Timer=config.InitialDelayTicks+slot*config.SpawnStaggerTicks,Target=-1};

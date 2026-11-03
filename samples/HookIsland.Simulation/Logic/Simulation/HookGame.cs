@@ -206,7 +206,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             fish=map.FishSpots.Select((p,i)=>CreateFish(i,i*5,0)).ToArray();
             tick=0;coins=0;roomRules=new RoomRulesState(initialFriendlyPranks);
             InitializeTreasure();
-            crabs=map.Fishing?.Crabs.Enabled==true?Enumerable.Range(0,map.Fishing.Crabs.Count).Select(i=>new CrabSystem(map,slot:i)).ToArray():Array.Empty<CrabSystem>();
+            crabNavigation=new CrabNavigation(map);
+            crabs=map.Fishing?.Crabs.Enabled==true?Enumerable.Range(0,map.Fishing.Crabs.Count).Select(i=>new CrabSystem(map,crabNavigation,slot:i)).ToArray():Array.Empty<CrabSystem>();
         }
         public IReadOnlyList<ByteString> Step(FrameContext context,IReadOnlyList<SimulationInput> inputs)
         {
@@ -751,7 +752,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             finale=map.Fishing?.Finale.Enabled==true?new FinaleSystem(map.Fishing.Finale,state.Finale):null;
             tiles=state.Tiles.ToList();driftwood=state.Driftwood.ToArray();equipment=state.Tackle==null?null:new EquipmentSystem(state.Tackle);
             enemies=map.Fishing?.Enemies.Enabled==true?new EnemySystem(map.Fishing.Enemies,state.Enemies):null;
-            crabs=state.Crabs.Select((c,i)=>new CrabSystem(map,c,i)).ToArray();
+            crabs=state.Crabs.Select((c,i)=>new CrabSystem(map,crabNavigation,c,i)).ToArray();
             boss=new BossSystem(map.Fishing?.Boss??BossConfig.Disabled,players.Length,state.Boss);
             events.Clear();ObserveInventory();
         }

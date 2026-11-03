@@ -13,16 +13,27 @@ public sealed class CrabNavigation
     private Point[] nodes=Array.Empty<Point>();
     private int[][] edges=Array.Empty<int[]>();
     private readonly List<(Point land,Point water)> shores=new List<(Point,Point)>();
-    private int tileCount=-1;
+    private Point[] terrain=Array.Empty<Point>();
+    private bool graphReady;
     private static readonly Point[] Directions={new Point(0,-1),new Point(1,0),new Point(0,1),new Point(-1,0)};
     public CrabNavigation(IslandMap map){this.map=map;}
     public void Refresh(IReadOnlyList<PlatformTile> tiles)
     {
-        if(tileCount==tiles.Count)return; // Tiles only grow; a restore creates a fresh navigation object.
-        tileCount=tiles.Count;cells.Clear();indices.Clear();shores.Clear();
-        foreach(var t in tiles)cells.Add((t.X,t.Z));
+        // A rollback or a destroyed/rebuilt tile can change coordinates without changing the count.
+        bool unchanged=terrain.Length==tiles.Count;
+        for(int i=0;unchanged && i<tiles.Count;i++)
+            unchanged=terrain[i].X==tiles[i].X && terrain[i].Z==tiles[i].Z;
+        if(unchanged)return;
+        terrain=new Point[tiles.Count];cells.Clear();graphReady=false;
+        for(int i=0;i<tiles.Count;i++)
+        {var t=tiles[i];terrain[i]=new Point(t.X,t.Z);cells.Add((t.X,t.Z));}
+    }
+    private void EnsureGraph()
+    {
+        if(graphReady)return;
+        indices.Clear();shores.Clear();
         var points=new List<Point>();
-        foreach(var t in tiles.OrderBy(t=>t.Z).ThenBy(t=>t.X))
+        foreach(var t in terrain.OrderBy(t=>t.Z).ThenBy(t=>t.X))
             for(int z=-500;z<=1000;z+=500)for(int x=-500;x<=1000;x+=500)
             {var p=new Point(t.X*2000+x,t.Z*2000+z);if(CanStand(p.X,p.Z))points.Add(p);}
         nodes=points.ToArray();
@@ -35,13 +46,14 @@ public sealed class CrabNavigation
                 if(indices.TryGetValue((p.X+d.X*500,p.Z+d.Z*500),out int n) && Segment(p.X,p.Z,nodes[n].X,nodes[n].Z))adjacent.Add(n);
             edges[i]=adjacent.ToArray();
         }
-        foreach(var t in tiles.OrderBy(t=>t.Z).ThenBy(t=>t.X))foreach(var d in Directions)
+        foreach(var t in terrain.OrderBy(t=>t.Z).ThenBy(t=>t.X))foreach(var d in Directions)
         {
             if(cells.Contains((t.X+d.X,t.Z+d.Z)))continue;
             var land=new Point(t.X*2000+d.X*500,t.Z*2000+d.Z*500);
             var water=new Point(t.X*2000+d.X*1500,t.Z*2000+d.Z*1500);
             if(CanStand(land.X,land.Z) && !SwimmingTerrain.Obstacle(map,water.X,water.Z))shores.Add((land,water));
         }
+        graphReady=true;
     }
     public bool CanStand(int x,int z)
     {
@@ -71,6 +83,7 @@ public sealed class CrabNavigation
     }
     public bool TrySpawn(IReadOnlyList<Fisher> players,uint generation,out Point land,out Point water,int slot=0,int count=1)
     {
+        EnsureGraph();
         land=water=default;
         if(shores.Count==0)return false;
         int start=(int)((generation+(ulong)slot*(uint)shores.Count/(uint)count)%(uint)shores.Count);
@@ -86,6 +99,7 @@ public sealed class CrabNavigation
     }
     public int Target(IReadOnlyList<Fisher> players,int x,int z,out Point goal)
     {
+        EnsureGraph();
         goal=new Point(x,z);int target=-1;long best=long.MaxValue;var route=Search(x,z);
         foreach(var p in players)
         {
@@ -98,6 +112,7 @@ public sealed class CrabNavigation
     }
     public bool Retreat(int x,int z,out Point goal,out Point water)
     {
+        EnsureGraph();
         goal=water=default;var route=Search(x,z);long best=long.MaxValue;int selected=-1;
         foreach(var shore in shores)
         {

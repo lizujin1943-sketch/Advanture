@@ -69,6 +69,8 @@ public static class FishCatalog
 }
 internal static class CatalogData
 {
+    // Embedded resources cannot change during this assembly's lifetime.
+    private static readonly Lazy<string> ContentHash=new Lazy<string>(ComputeHash);
     private static string Read(string file)
     {
         var assembly=typeof(CatalogData).Assembly;
@@ -78,6 +80,7 @@ internal static class CatalogData
         using var stream=assembly.GetManifestResourceStream(name)!;using var reader=new StreamReader(stream,Encoding.UTF8);return reader.ReadToEnd().Replace("\r\n","\n").Replace("\r","\n");
     }
     internal static IEnumerable<string[]> Rows(string file)=>Read(file).Split('\n').Skip(1).Where(s=>!string.IsNullOrWhiteSpace(s)).Select(s=>s.Trim().Split(','));
-    internal static string Hash()
+    internal static string Hash()=>ContentHash.Value;
+    private static string ComputeHash()
     {using var sha=SHA256.Create();return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(Read("rods.csv")+Read("fish.csv")+Read("backpacks.csv")+Read("swim-rings.csv")+Read("apparel.csv")+Read("weapons.csv")+Read("foods.csv")+Read("firearms.csv")+Read("ammunition.csv"))));}
 }

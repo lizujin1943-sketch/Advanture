@@ -110,6 +110,7 @@ internal static partial class Program
             Require(new HookGame().Encode(m.Capture())[3]==0x4c,"State version not advanced");
         });
         foreach(var test in StateCases())yield return test;
+        foreach(var test in TerrainValidationCases())yield return test;
         foreach(var test in NetworkCases())yield return test;
     }
     private static int Main(string[] args)

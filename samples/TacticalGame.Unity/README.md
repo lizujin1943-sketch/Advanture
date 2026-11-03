@@ -36,6 +36,14 @@ python3 scripts/run-yard-pair.py
 
 构建列表默认启用联机场景。构建产物放在 `artifacts/tactical-network/`。原 `Assets/TacticalGame/Scenes/Yard07.unity` 是单机版，可单独打开 Play，不经过联网流程；原 [Yard07.app](../../artifacts/tactical-unity/Yard07.app) 也仍保留。
 
+钩索小岛需要同步自己的程序集：macOS / Linux 运行 `./scripts/sync-hook-island.sh`；Windows 在仓库根目录用 PowerShell 运行以下命令（需要 .NET 8 SDK 和 Python 3）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync-hook-island.ps1
+```
+
+同步脚本也会更新框架和七号转运站的程序集。拉取新代码或切换分支后重新运行；这些 DLL 是本地生成内容，不随 Git 更新。如果 Unity 报 `CS0246`，提示找不到 `BossConfig`、`FirearmDefinition` 等已存在于源码中的类型，先同步，再在 Unity 选择 **Assets → Refresh**，等待编译完成。
+
 ## 代码阅读与分层
 
 Cursor / VS Code 的仓库工作区加载 `TacticalGame.Unity.sln`，同时索引 Unity 脚本和纯 C# 框架。工程固定安装 `Visual Studio Editor 2.0.23`，使用兼容本仓库 .NET 8 的 `.sln`，不升级到默认生成 `.slnx` 的版本。

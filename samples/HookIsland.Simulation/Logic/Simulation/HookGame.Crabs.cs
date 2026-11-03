@@ -8,6 +8,9 @@ public sealed partial class HookGame
     private sealed partial class Model
     {
         private CrabSystem[] crabs=Array.Empty<CrabSystem>();
+        // Derived terrain only. Shared by this model's crabs and retained across prediction restores;
+        // never shared between authoritative/predicted models or serialized as gameplay state.
+        private CrabNavigation crabNavigation=null!;
         private void AdvanceCrabs()
         {
             foreach(var crab in crabs)

@@ -109,5 +109,5 @@ internal static partial class Program
         });
     }
     private static int Main(string[] args)
-    {int count=0;try{foreach(var (name,test) in Cases().Concat(BoundaryCases()).Concat(PopulationCases()).Concat(NetworkCases()).Where(c=>args.Length==0||args.Any(a=>c.Item1.Contains(a,StringComparison.OrdinalIgnoreCase)))){test();Console.WriteLine("PASS "+name);count++;}Require(count>0,"No matching crab checks");Console.WriteLine($"Passed {count} crab checks");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
+    {int count=0;try{foreach(var (name,test) in Cases().Concat(BoundaryCases()).Concat(PopulationCases()).Concat(NavigationCacheCases()).Concat(NetworkCases()).Where(c=>args.Length==0||args.Any(a=>c.Item1.Contains(a,StringComparison.OrdinalIgnoreCase)))){test();Console.WriteLine("PASS "+name);count++;}Require(count>0,"No matching crab checks");Console.WriteLine($"Passed {count} crab checks");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
 }
