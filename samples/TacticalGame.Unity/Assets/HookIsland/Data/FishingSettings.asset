@@ -30,6 +30,7 @@ MonoBehaviour:
   merchantLevel: 1
   restockSeconds: 600
   worldSeed: 7381
+  crabs: {fileID: 11400000, guid: 991bb99abef8439a992eb3c1c47720b4, type: 2}
   enableMelee: 1
   startWithFryingPan: 1
   piranhaHealth: 50

@@ -1,0 +1,25 @@
+fileFormatVersion: 2
+guid: c45c5120898e49f5b07d614b51e9e1a3
+ModelImporter:
+  serializedVersion: 22200
+  internalIDToNameTable: []
+  externalObjects: {}
+  materials:
+    materialImportMode: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    optimizeGameObjects: 0
+  meshes:
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useFileUnits: 1
+    bakeAxisConversion: 1
+    preserveHierarchy: 1
+  importAnimation: 0
+  animationType: 0
+  userData:
+  assetBundleName:
+  assetBundleVariant:

@@ -63,7 +63,7 @@ public struct Fish
 public sealed class HookState
 {
     public HookState(ulong steps, IEnumerable<Fisher> players, IEnumerable<Fish> fish, int coins,
-        IEnumerable<PlatformTile>? tiles=null,IEnumerable<Driftwood>? driftwood=null,TackleState? tackle=null,EnemyState? enemies=null,RoomRulesState? roomRules=null,TreasureState? treasure=null,CommissionState? commissions=null,OceanState? ocean=null,FinaleState? finale=null)
+        IEnumerable<PlatformTile>? tiles=null,IEnumerable<Driftwood>? driftwood=null,TackleState? tackle=null,EnemyState? enemies=null,RoomRulesState? roomRules=null,TreasureState? treasure=null,CommissionState? commissions=null,OceanState? ocean=null,FinaleState? finale=null,CrabState crab=default)
     {
         Steps=steps;Players=Array.AsReadOnly(players.ToArray());Fish=Array.AsReadOnly(fish.ToArray());Coins=coins;
         Tiles=Array.AsReadOnly((tiles??Array.Empty<PlatformTile>()).ToArray());
@@ -74,7 +74,7 @@ public sealed class HookState
         Treasure=treasure??TreasureState.Empty;
         Commissions=commissions??CommissionState.Empty;
         Ocean=ocean??OceanState.Empty;
-        Finale=finale??FinaleState.Empty;
+        Finale=finale??FinaleState.Empty;Crab=crab;
     }
     public bool Won=>Finale.Phase==FinalePhase.Victory;
     public bool RoundFinished=>Won || GameOver;
@@ -92,4 +92,5 @@ public sealed class HookState
     public CommissionState Commissions { get; }
     public OceanState Ocean {get;}
     public FinaleState Finale {get;}
+    public CrabState Crab {get;}
 }

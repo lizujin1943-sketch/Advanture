@@ -18,6 +18,7 @@ namespace Advanture.HookIsland
         private FishingPresentation presentation;
         private GroundItemPresentation groundItems;
         public EnemyPresentation Enemies { get; private set; }
+        public CrabPresentation Crabs { get; private set; }
         public FinalePresentation Finale { get; private set; }
         public MerchantPresentation Merchants { get; private set; }
         public TreasureController Treasures { get; private set; }
@@ -109,6 +110,7 @@ namespace Advanture.HookIsland
                 EnsureRoomSession();
                 if(map.Fishing!=null)groundItems=new GroundItemPresentation(transform);
                 if(map.Fishing?.Treasure.Enabled==true)Treasures=new TreasureController(this,viewCamera);
+                if(map.Fishing?.Crabs.Enabled==true)Crabs=new CrabPresentation(transform,lineShader,map.Fishing.Crabs);
                 if(map.Fishing?.Enemies.Enabled==true)Enemies=new EnemyPresentation(transform,viewCamera,lineShader,map.Fishing.Enemies);
                 if(map.Fishing?.Finale.Enabled==true)Finale=new FinalePresentation(transform,lineShader,map.Fishing.Finale);
                 if(map.Fishing?.Merchants.Definitions.Count>0)Merchants=new MerchantPresentation(transform,map.Fishing);
@@ -141,7 +143,7 @@ namespace Advanture.HookIsland
                 ObservePurchase();
                 if(Incapacitated){CloseShop();Equipment?.Close();Construction?.Close();}
                 groundItems?.Synchronize(State.Tackle?.Inventory);
-                Enemies?.Synchronize(State);Treasures?.Synchronize(State);
+                Enemies?.Synchronize(State);Crabs?.Synchronize(State);Treasures?.Synchronize(State);
                 Finale?.Synchronize(State);
                 Merchants?.Synchronize(State);
                 if(ShopOpen && (!Playing || !CanShopAt(ShopMerchantId)))CloseShop();
@@ -231,14 +233,14 @@ namespace Advanture.HookIsland
             State=null;playerInput.Reset();Feedback.Reset();presentation?.ClearPlayers();
             ShopOpen=false;ShopMerchantId=-1;pendingPurchaseId=0;pendingUpgrade=HookUpgrade.None;shopMessage=null;
             roomRulesRequests.Reset();
-            Construction?.ResetSession();Equipment?.ResetSession();Revival?.ResetSession();groundItems?.Clear();Enemies?.Clear();Treasures?.Clear();
+            Construction?.ResetSession();Equipment?.ResetSession();Revival?.ResetSession();groundItems?.Clear();Enemies?.Clear();Crabs?.Clear();Treasures?.Clear();
             Finale?.Clear();Merchants?.Synchronize(null);
             if(overlay!=null)overlay.MenuOpen=false;
             if(map?.Platform!=null && viewCamera!=null && LocalSlot<map.Spawns.Count)
             {var spawn=map.Spawns[LocalSlot];viewCamera.transform.position=new Vector3(spawn.X/1000f,24,spawn.Z/1000f-20);}
         }
         private void OnDestroy()
-        {LeaveRoom();playerInput.Dispose();presentation?.Dispose();groundItems?.Dispose();Enemies?.Dispose();Treasures?.Dispose();Finale?.Dispose();Merchants?.Dispose();Application.runInBackground=restoreBackground;}
+        {LeaveRoom();playerInput.Dispose();presentation?.Dispose();groundItems?.Dispose();Enemies?.Dispose();Crabs?.Dispose();Treasures?.Dispose();Finale?.Dispose();Merchants?.Dispose();Application.runInBackground=restoreBackground;}
         private void OnApplicationQuit(){roomSession?.Dispose();}
         public static string LaunchValue(string key)
         {var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,key);return i>=0 && i+1<args.Length?args[i+1]:null;}

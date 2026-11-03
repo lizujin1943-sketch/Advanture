@@ -8,7 +8,7 @@ public static class KnockbackSystem
     public const int Distance=4000,Speed=10000;
     public static void Start(ref Fisher p,int directionX,int directionZ,int distance=Distance)
     {
-        if(distance<1000 || distance>46000)throw new ArgumentOutOfRangeException(nameof(distance));
+        if(distance<1 || distance>46000)throw new ArgumentOutOfRangeException(nameof(distance));
         EnemyGeometry.Direction(directionX,directionZ,out int dx,out int dz);
         p.Knockback=new KnockbackState {OriginX=p.X,OriginZ=p.Z,DirectionX=dx,DirectionZ=dz,TotalDistance=distance,Active=true};
         p.Shopping=false;p.Swimming.Active=false;

@@ -73,7 +73,9 @@ internal static class CatalogData
     {
         var assembly=typeof(CatalogData).Assembly;
         var name=assembly.GetManifestResourceNames().Single(n=>n.EndsWith("."+file,StringComparison.Ordinal));
-        using var stream=assembly.GetManifestResourceStream(name)!;using var reader=new StreamReader(stream,Encoding.UTF8);return reader.ReadToEnd();
+        // Git may check out identical CSV content as CRLF on Windows. Hash the same canonical
+        // text on every platform, otherwise an unchanged catalog rejects maps and peers.
+        using var stream=assembly.GetManifestResourceStream(name)!;using var reader=new StreamReader(stream,Encoding.UTF8);return reader.ReadToEnd().Replace("\r\n","\n").Replace("\r","\n");
     }
     internal static IEnumerable<string[]> Rows(string file)=>Read(file).Split('\n').Skip(1).Where(s=>!string.IsNullOrWhiteSpace(s)).Select(s=>s.Trim().Split(','));
     internal static string Hash()

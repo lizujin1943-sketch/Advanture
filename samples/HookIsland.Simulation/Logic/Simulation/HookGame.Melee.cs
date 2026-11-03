@@ -29,6 +29,14 @@ public sealed partial class HookGame
                         var monster=enemies.Monster;
                         if(monster.Phase==MonsterPhase.Windup && MeleeRules.Contains(p,monster.X,monster.Z,weapon,EnemyGeometry.MonsterRadius) && enemies.Interrupt())Hit(-2,monster.X,monster.Z);
                     }
+                    if(crabs!=null)
+                    {
+                        var crab=crabs.Capture();
+                        if(crab.Damageable && MeleeRules.Contains(p,crab.X,crab.Z,weapon,CrabConfig.BodyRadius))
+                        {
+                            if(crabs.ReachableHit(tiles,p.X,p.Z) && crabs.Strike(p.Slot,weapon.Damage))Hit(-3,crab.X,crab.Z);
+                        }
+                    }
                     if(roomRules.FriendlyPranksEnabled)for(int j=0;j<players.Length;j++)
                     {
                         var target=players[j];

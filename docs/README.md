@@ -31,3 +31,5 @@ Unity 双人试玩：[七号转运站](../samples/TacticalGame.Unity/README.md)�
 - [AK-47 对战实现](ak47-implementation.md)：独立射击规则、命中与死亡、Unity 持枪表现和双客户端验收。
 
 - [Protobuf 房间与帧同步协议](protobuf-protocol.md)：协议分层、字段含义、源码阅读顺序、兼容规则和迁移验证。
+
+- [螃蟹主动登岸与夹击](crab-implementation.md)：确定性导航、平底锅战斗、攻击者奖励、Blender 模型与验证边界。
