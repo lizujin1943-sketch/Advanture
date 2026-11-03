@@ -13,7 +13,9 @@ MonoBehaviour:
   m_Name: CrabSettings
   m_EditorClassIdentifier:
   enabledInGame: 1
-  firstSpawnSeconds: 90
+  count: 3
+  spawnStaggerSeconds: 3
+  firstSpawnSeconds: 10
   respawnSeconds: 60
   health: 100
   speed: 2

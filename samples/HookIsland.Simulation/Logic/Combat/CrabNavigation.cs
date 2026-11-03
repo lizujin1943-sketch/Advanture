@@ -69,11 +69,11 @@ public sealed class CrabNavigation
         }
         return true;
     }
-    public bool TrySpawn(IReadOnlyList<Fisher> players,uint generation,out Point land,out Point water)
+    public bool TrySpawn(IReadOnlyList<Fisher> players,uint generation,out Point land,out Point water,int slot=0,int count=1)
     {
         land=water=default;
         if(shores.Count==0)return false;
-        int start=(int)(generation%(uint)shores.Count);
+        int start=(int)((generation+(ulong)slot*(uint)shores.Count/(uint)count)%(uint)shores.Count);
         for(int i=0;i<shores.Count;i++)
         {
             var candidate=shores[(start+i)%shores.Count];

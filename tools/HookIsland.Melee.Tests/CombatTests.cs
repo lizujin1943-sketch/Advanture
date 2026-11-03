@@ -8,15 +8,19 @@ internal static partial class Program
 {
     private static IEnumerable<(string,Action)> CombatCases()
     {
-        yield return ("piranha_takes_two_hits_and_respawns_without_fishing_rewards",()=>{
+        yield return ("piranha_pan_kill_rewards_coins_once_without_fishing_progress",()=>{
             var cfg=new EnemyConfig(piranhaCount:1,monsterEnabled:false,patrolSpeed:30,piranhaRespawnTicks:60);
             var m=Model(enemies:cfg);Equip(m);Pair(m);var s=m.Capture();var f=s.Enemies.Piranhas.ToArray();f[0].X=1000;f[0].Z=-1400;
             m.Restore(Replace(s,enemies:new EnemyState(f,s.Enemies.Monster,s.Enemies.Waterballs)));
             Step(m,new HookInput(0,0,2000,-1400,true));for(int i=1;i<6;i++)Step(m);
             var hit=m.Capture();Require(hit.Enemies.Piranhas[0].DamageTaken==25 && hit.Enemies.Piranhas[0].StunTicks>0,"Piranha did not take damage/stun");m.Restore(hit);
             for(int i=0;i<19;i++)Step(m);Step(m,new HookInput(0,0,2000,-1400,true));for(int i=1;i<6;i++)Step(m);
-            var dead=m.Capture();Require(dead.Enemies.Piranhas[0].RespawnTicks>0 && dead.Enemies.Piranhas[0].DamageTaken==50,"Piranha survived two hits");Require(dead.Coins==0 && dead.Enemies.Captures==0 && dead.Players[0].Catches==0,"Melee minted fishing rewards");m.Restore(dead);
+            var dead=m.Capture();int gold=PiranhaFishing.Coins(cfg,f[0]);
+            Require(dead.Enemies.Piranhas[0].RespawnTicks>0 && dead.Enemies.Piranhas[0].DamageTaken==50,"Piranha survived two hits");
+            Require(dead.Coins==gold && dead.Players[0].Coins==gold && dead.Players[0].CoinsEarned==gold && dead.Enemies.Piranhas[0].RewardOwner==0,"Melee kill did not settle coins");
+            Require(dead.Enemies.Captures==0 && dead.Players[0].Catches==0 && dead.Players[0].Combo.Count==0 && dead.Players[0].FishbonesEarned==0,"Melee changed fishing progress");m.Restore(new HookGame().Decode(new HookGame().Encode(dead)));
             for(int i=0;i<60;i++)Step(m);Require(m.Capture().Enemies.Piranhas[0].DamageTaken==0 && m.Capture().Enemies.Piranhas[0].RespawnTicks==0,"Respawn did not restore health");
+            Require(m.Capture().Coins==gold,"Restore or respawn repeated the kill reward");
         });
         yield return ("pan_interrupts_monster_on_final_windup_tick",()=>{
             var cfg=new EnemyConfig(piranhaCount:0,windupTicks:60,initialDelayTicks:18000);var m=Model(enemies:cfg);Equip(m);var s=m.Capture();var ps=s.Players.ToArray();ps[0].X=0;ps[0].Z=-2670;ps[0].HookX=0;ps[0].HookZ=-2670;

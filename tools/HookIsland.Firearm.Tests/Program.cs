@@ -130,10 +130,14 @@ internal static partial class Program
             Step(m,new HookInput(0,0,inventory:new InventoryCommand(InventoryAction.Equip,rod,requestId:3)));
             Require(m.Capture().Players[0].EquippedRod==rod && m.Capture().Players[0].LastInventoryResult==InventoryResult.Success,"Sixth interval delayed equipment gate");
         });
-        yield return ("piranha_two_shots_kill_no_loot_and_nearest_solids_block",()=>{
+        yield return ("piranha_two_shots_kill_awards_coins_once_and_nearest_solids_block",()=>{
             var cfg=new EnemyConfig(piranhaCount:1,monsterEnabled:false,patrolSpeed:30);var m=Model(cfg);var s=m.Capture();var ps=s.Players.ToArray();ps[1].X=ps[1].HookX=2000;ps[1].Z=ps[1].HookZ=2400;
             var f=s.Enemies.Piranhas.ToArray();f[0].X=700;f[0].Z=-1400;m.Restore(Replace(s,ps,new EnemyState(f,s.Enemies.Monster,s.Enemies.Waterballs)));
-            Step(m,Shoot(true));Require(m.Capture().Enemies.Piranhas[0].DamageTaken==35,"First bullet missed piranha");Wait(m,18);Step(m,Shoot(true));s=m.Capture();Require(s.Enemies.Piranhas[0].RespawnTicks>0 && s.Enemies.Captures==0 && s.Players[0].Catches==0 && s.Players[0].Coins==4700,"Gun kill generated fishing loot");
+            Step(m,Shoot(true));Require(m.Capture().Enemies.Piranhas[0].DamageTaken==35 && m.Capture().Players[0].Coins==4700,"Nonlethal shot missed or paid coins");Wait(m,18);
+            var events=Step(m,Shoot(true));s=m.Capture();int gold=PiranhaFishing.Coins(cfg,f[0]);
+            Require(s.Enemies.Piranhas[0].RespawnTicks>0 && s.Enemies.Captures==0 && s.Players[0].Catches==0 && s.Players[0].FishbonesEarned==0 && s.Players[0].Coins==4700+gold,"Gun kill reward/progress incorrect");
+            Require(events.Count(e=>e.Kind==HookGameplayEventKind.CoinsReceived && e.Slot==0 && e.Amount==gold)==1,"Missing confirmed kill income event");
+            m.Restore(new HookGame().Decode(new HookGame().Encode(s)));Wait(m,30);Require(m.Capture().Coins==s.Coins && m.Capture().Players[0].Coins==4700+gold,"Restored kill paid twice");
             Require(FirearmRules.RayBox(0,-1400,0,1000000,0,1000,800,12000)==1600,"Shop solid ray incorrect");new HookGame().Decode(new HookGame().Encode(s));
         });
         yield return ("friendly_protection_does_not_prevent_damage_or_downing",()=>{
@@ -148,5 +152,5 @@ internal static partial class Program
         });
     }
     private static int Main(string[] args)
-    {int count=0;try{foreach(var (name,test) in UnlimitedAmmoCases().Concat(StarterCases()).Concat(Cases()).Concat(BoundaryCases()).Concat(NetworkCases()).Where(c=>args.Length==0||args.Any(a=>c.Item1.Contains(a,StringComparison.OrdinalIgnoreCase)))){test();Console.WriteLine("PASS "+name);count++;}Require(count>0,"No matching firearm checks");Console.WriteLine($"Passed {count} firearm checks");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
+    {int count=0;try{foreach(var (name,test) in UnlimitedAmmoCases().Concat(StarterCases()).Concat(Cases()).Concat(BoundaryCases()).Concat(KillRewardCases()).Concat(NetworkCases()).Where(c=>args.Length==0||args.Any(a=>c.Item1.Contains(a,StringComparison.OrdinalIgnoreCase)))){test();Console.WriteLine("PASS "+name);count++;}Require(count>0,"No matching firearm checks");Console.WriteLine($"Passed {count} firearm checks");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
 }

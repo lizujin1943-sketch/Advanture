@@ -15,13 +15,15 @@ namespace Advanture.HookIsland
         private Vector3 aim;
         public Vector3 Aim=>aim;
         public bool ThirdPerson=>cameraView?.ThirdPerson==true;
+        public bool FirstPerson=>cameraView?.FirstPerson==true;
+        public bool CenterAim=>cameraView?.CenterAim==true;
         public bool CameraPointerCaptured=>cameraView?.PointerCaptured==true;
         public void Initialize(Camera camera,FishingCameraView view){viewCamera=camera;cameraView=view;}
         private static bool CameraControlsActive(IslandFishingController room)=>room.Playing && !room.Incapacitated && Application.isFocused &&
             !room.ShopOpen && room.Equipment?.InventoryOpen!=true && room.Construction?.Open!=true && room.Overlay?.MenuOpen!=true && !room.BeingPulled && room.InputProvider==null;
         public void TogglePerspective(IslandFishingController room)
         {
-            if(cameraView==null || !room.Playing || !room.TryGetLocalPlayer(out var player) || player.WaitingToJoin)return;
+            if(cameraView==null || FirstPerson || !room.Playing || !room.TryGetLocalPlayer(out var player) || player.WaitingToJoin)return;
             var feet=room.Presentation.PlayerPosition(room.LocalSlot);
             var facing=aim-feet;
             if(facing.sqrMagnitude<.001f)facing=new Vector3(player.AimX/1000f-feet.x,0,player.AimZ/1000f-feet.z);
@@ -31,11 +33,18 @@ namespace Advanture.HookIsland
         public void Follow(IslandFishingController room,Fisher local)
         {
             if(cameraView==null || local.WaitingToJoin)return;
-            if(entryPerspectivePending && room.Playing)
-            {if(!ThirdPerson)TogglePerspective(room);if(ThirdPerson)entryPerspectivePending=false;}
+            EnsureEntryPerspective(room);
+            // Poll 可能刚确认一次装备切换或倒地；本帧显示立即跟上确认态，不多推进过渡时间。
+            cameraView.UpdateFirearmFraming(room.Playing && room.HoldingFirearm && !room.Incapacitated,0);
             // Follow the same smoothed/predicted avatar that is rendered this frame, including
             // while a UI is open, swimming or being towed. Never feed camera position into authority.
             cameraView.Follow(room.Presentation.PlayerPosition(room.LocalSlot));
+        }
+        private void EnsureEntryPerspective(IslandFishingController room)
+        {
+            if(!entryPerspectivePending || !room.Playing || !room.TryGetLocalPlayer(out var player) || player.WaitingToJoin)return;
+            if(!CenterAim)TogglePerspective(room);
+            entryPerspectivePending=false;
         }
         private void CaptureCameraInput(IslandFishingController room)
         {
@@ -50,7 +59,9 @@ namespace Advanture.HookIsland
         public void Capture(IslandFishingController room)
         {
             cameraView?.PrepareInput();
-            cameraView?.UpdateFirearmFraming(room.HoldingFirearm,Time.unscaledDeltaTime);
+            EnsureEntryPerspective(room);
+            // 装备及库存使用同一份确认态，避免预测换装被回滚时镜头来回跳动。
+            cameraView?.UpdateFirearmFraming(room.Playing && room.HoldingFirearm && !room.Incapacitated,Time.unscaledDeltaTime);
             CaptureCameraInput(room);
             if(!room.Playing || room.Incapacitated || !Application.isFocused || room.ShopOpen || room.Equipment?.InventoryOpen==true || room.BeingPulled || (room.Overlay!=null && room.Overlay.MenuOpen))
             { moveX=moveZ=0;pendingFire=pendingCancel=pendingReload=false;return; }
@@ -59,9 +70,9 @@ namespace Advanture.HookIsland
             move=cameraView.Movement(move);moveX=(short)(move.x*1000);moveZ=(short)(move.y*1000);
             bool overUi=!CameraPointerCaptured && room.Overlay!=null && room.Overlay.PointerOverHud;
             // Apply zoom before ray sampling; do not move a grid out from under an active drag.
-            if(!ThirdPerson && !overUi && room.Construction?.Dragging!=true && Mathf.Abs(Input.mouseScrollDelta.y)>.01f)
+            if(!CenterAim && !overUi && room.Construction?.Dragging!=true && Mathf.Abs(Input.mouseScrollDelta.y)>.01f)
                 cameraView.Zoom(Input.mouseScrollDelta.y);
-            var pointer=ThirdPerson?(Vector3)viewCamera.pixelRect.center:Input.mousePosition;
+            var pointer=CenterAim?(Vector3)viewCamera.pixelRect.center:Input.mousePosition;
             var ray=viewCamera.ScreenPointToRay(pointer);
             // room.Equipment IDs and their inventory must come from the same confirmed timeline.
             if(room.TryGetLocalPlayer(out var shooter))aim=cameraView.Aim(ray,room.Presentation.PlayerPosition(room.LocalSlot),(ActiveToolView.Firearm(room.State,shooter)?.Range??MeleeRules.Equipped(room.State,shooter)?.Range??FishingRules.Range(room.Map,room.State,shooter))/1000f);

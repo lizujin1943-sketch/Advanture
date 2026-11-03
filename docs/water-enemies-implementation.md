@@ -2,6 +2,8 @@
 
 本轮按 `hook-island-game-design.md` 加入正式平台海域的食人鱼、水怪、水球、出钩打断和击退。沿用最新角色防御减伤，防御不抵挡水球击退。敌人规则、状态与结算位于 `samples/HookIsland.Simulation`，没有给通用帧同步核心引入玩法或 Unity 依赖。
 
+2026-11-03 更新：正式 `EnemySettings.asset` 暂停水怪生成，仍生成食人鱼。平底锅／枪械击杀食人鱼后，按 `PiranhaCoinsPerKg` 与重量计算金币，默认 6 金币/kg，沿用捕获价格的整数舍入；金币给最后造成致死伤害的玩家。同帧后续攻击不能命中已死亡对象，不额外发鱼骨或推进鱼获／连击。致死时记录稳定席位，全部武器更新完成后原子增加个人钱包、累计收入与全局余额，再消费待结算记录、发出确认 `CoinsReceived` 事件。金额溢出则保留待结算记录并暂停该鱼刷新，存档恢复不会丢奖或重复发奖。钓获仍沿用合钓金币与鱼骨结算。
+
 ## 配置与首版数值
 
 Unity 配置入口是 `Assets/HookIsland/Data/EnemySettings.asset`，由 `FishingSettings.enemies` 引用。调整资产后使用现有 `Tools/Hook Island/Install Fishing Equipment` 安装入口重新生成正式地图配置；同房间客户端必须使用一致配置。配置内容参与地图、握手及存档兼容校验。

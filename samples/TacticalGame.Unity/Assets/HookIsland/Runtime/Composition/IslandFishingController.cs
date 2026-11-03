@@ -137,7 +137,7 @@ namespace Advanture.HookIsland
         private void Update()
         {
             Revival?.Capture();playerInput.Capture(this);
-            if(!PollConnection()){CloseShop();return;}
+            if(!PollConnection()){presentation?.ClearFirstPerson();CloseShop();return;}
             try
             {
                 State=Client.Session.InspectState();
@@ -149,12 +149,14 @@ namespace Advanture.HookIsland
                 Finale?.Synchronize(State);
                 Merchants?.Synchronize(State);
                 if(ShopOpen && (!Playing || !CanShopAt(ShopMerchantId)))CloseShop();
-                presentation.Present(State,Client.Session.InspectPredictedState(),LocalSlot,Aim,
+                var predicted=Client.Session.InspectPredictedState();
+                presentation.Present(State,predicted,LocalSlot,Aim,
                     Playing && CanCast && !HoldingMelee && !HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null,
                     Playing && CanCast && HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null);
+                if(TryGetLocalPlayer(out var local))playerInput.Follow(this,local);
+                presentation.PresentFirstPerson(State,predicted,LocalSlot,FirstPerson,viewCamera,Aim);
                 Feedback.Update(Client,Client.RoundEpoch,Client.Session.ConfirmedTick,State,LocalSlot,Client.ConfirmedEvents,Time.unscaledTime,
                     overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true,PresentConfirmedEvent);
-                if(TryGetLocalPlayer(out var local))playerInput.Follow(this,local);
             }
             catch(Exception e)
             {

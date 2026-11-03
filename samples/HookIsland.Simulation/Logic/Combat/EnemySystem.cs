@@ -59,15 +59,18 @@ public sealed class EnemySystem
         piranhas[id].Owner=-1;piranhas[id].Target=-1;piranhas[id].StunTicks=0;piranhas[id].RespawnTicks=config.PiranhaRespawnTicks;
         Increment(ref captures);return true;
     }
-    internal bool Strike(int id,int damage,MeleeConfig melee)
-        =>Strike(id,damage,melee.PiranhaHealth,melee.StunTicks);
-    internal bool Strike(int id,int damage,int health,int stunTicks)
+    internal bool Strike(int id,int damage,int health,int stunTicks,int attacker)
     {
         ref var f=ref piranhas[id];
         if(f.Owner>=0 || f.RespawnTicks>0 || f.Escape.Active)return false;
         f.DamageTaken=Math.Min(health,f.DamageTaken+damage);f.Target=-1;f.StunTicks=stunTicks;
-        if(f.DamageTaken==health){f.RespawnTicks=config.PiranhaRespawnTicks;f.StunTicks=0;}
+        if(f.DamageTaken==health){f.RespawnTicks=config.PiranhaRespawnTicks;f.StunTicks=0;f.RewardOwner=attacker+1;}
         return true;
+    }
+    internal void MarkKillRewarded(int id)
+    {
+        if(piranhas[id].RewardOwner==0)throw new InvalidOperationException("Piranha kill reward is not pending.");
+        piranhas[id].RewardOwner=0;
     }
     public bool Interrupt()
     {
@@ -90,6 +93,7 @@ public sealed class EnemySystem
             }
             if(f.RespawnTicks>0)
             {
+                if(f.RewardOwner>0)continue; // Preserve owed income before this enemy can respawn.
                 if(--f.RespawnTicks==0){var home=EnemyPlacement.PiranhaHome(i);f.X=home.X;f.Z=home.Z;f.Cooldown=0;f.DamageTaken=f.StunTicks=0;f.TravelRemainder=f.MovementRemainderX=f.MovementRemainderZ=0;}
                 piranhas[i]=f;continue;
             }

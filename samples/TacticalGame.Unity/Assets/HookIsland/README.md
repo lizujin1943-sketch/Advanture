@@ -4,6 +4,8 @@
 
 当前钓鱼平台请打开 `HookPlatform.unity`。背包与材料共用格子，每人拥有独立金币；Tab / I 切换角色和背包，E 购物，F 拾取。实现与验收说明见仓库 `docs/backpack-implementation.md`。以下岛屿场景说明保留旧基础版规则。
 
+枪械现在自动使用第一人称：新开局按 **6** 切到沙漠之鹰，鼠标转头、WASD 按视角移动、左键开火、**R** 换弹；按 **1** 切回钓竿时恢复原来的视角。持枪期间 V 和滚轮不改变镜头模式，打开背包／菜单会释放鼠标。详见[第一人称实现说明](../../../../docs/first-person-firearm-implementation.md)。
+
 新增平台入口：**`Assets/HookIsland/Scenes/HookPlatform.unity`**。Play 后按 **B** 进入铺地，**1／2** 选择木板／鱼骨块，左键确认，右键取消预览。配方默认各花费自己的 4 份材料，详见[平台地块实现](../../../../docs/hook-platform-implementation.md)。以下说明保留给原岛屿场景。
 
 打开 **`Assets/HookIsland/Scenes/HookIsland.unity`**，点击 **Play**，选择“先自己玩”或创建 2～4 人联机房间。WASD 移动，鼠标瞄准，左键出钩，右键收回空钩或放开队友；鱼被拉上岸后自动获得全队金币。左键命中队友会将其拉到身边，岸边与障碍会阻止继续拖拽，释放后有 3 秒保护。靠近中央商店按 **E**，用共享金币为自己升级射程和出钩速度，各可升 3 级；购物期间受保护，联机同步扣款、等级与拉拽。完整连接和验证方法见仓库 [联机基础版说明](../../../../docs/hook-island-playable.md)。

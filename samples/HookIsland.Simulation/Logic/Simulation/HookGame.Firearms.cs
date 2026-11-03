@@ -114,6 +114,11 @@ public sealed partial class HookGame
                 var monster=enemies.Monster;
                 if(monster.Phase==MonsterPhase.Windup)Candidate(FirearmRules.RayCircle(shooter.X,shooter.Z,dx,dz,monster.X,monster.Z,EnemyGeometry.MonsterRadius,weapon.Range),4,-3);
             }
+            for(int i=0;i<crabs.Length;i++)
+            {
+                var crab=crabs[i].Capture();
+                if(crab.Damageable)Candidate(FirearmRules.RayCircle(shooter.X,shooter.Z,dx,dz,crab.X,crab.Z,CrabConfig.BodyRadius,weapon.Range),5,i);
+            }
             int hitX=shooter.X+(int)((long)dx*distance/EnemyGeometry.DirectionScale),hitZ=shooter.Z+(int)((long)dz*distance/EnemyGeometry.DirectionScale);
             if(kind==2)HitFriend(shooter,players[target],weapon,dx,dz,commands[target]);
             int damage=0,entity=0;
@@ -121,10 +126,15 @@ public sealed partial class HookGame
             {
                 var fish=enemies!.GetPiranha(target);entity=fish.Id;
                 damage=Math.Min(weapon.Damage,map.Fishing!.Melee.PiranhaHealth-fish.DamageTaken);
-                enemies.Strike(target,weapon.Damage,map.Fishing.Melee.PiranhaHealth,map.Fishing.Firearms.StunTicks);
+                enemies.Strike(target,weapon.Damage,map.Fishing.Melee.PiranhaHealth,map.Fishing.Firearms.StunTicks,shooter.Slot);
             }
             if(kind==4)enemies!.Interrupt();
-            Record(new HookGameplayEvent(HookGameplayEventKind.FirearmShot,shooter.Slot,amount:damage,value:entity,targetId:kind==3?-2:target,x:hitX,z:hitZ,itemKind:ItemKind.Firearm,itemType:type,originX:shooter.X,originZ:shooter.Z));
+            if(kind==5)
+            {
+                entity=target;damage=Math.Min(weapon.Damage,crabs[target].Capture().Health);
+                crabs[target].Strike(shooter.Slot,weapon.Damage);
+            }
+            Record(new HookGameplayEvent(HookGameplayEventKind.FirearmShot,shooter.Slot,amount:damage,value:entity,targetId:kind==3?-2:kind==5?-6:target,x:hitX,z:hitZ,itemKind:ItemKind.Firearm,itemType:type,originX:shooter.X,originZ:shooter.Z));
         }
         private void HitFriend(Fisher shooter,Fisher target,FirearmDefinition weapon,int dx,int dz,HookInput command)
         {

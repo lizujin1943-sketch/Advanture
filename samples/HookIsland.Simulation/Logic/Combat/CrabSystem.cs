@@ -7,11 +7,14 @@ public sealed class CrabSystem
 {
     private readonly CrabConfig config;
     private readonly CrabNavigation navigation;
+    private readonly int slot;
     private CrabState state;
-    public CrabSystem(IslandMap map,CrabState? restored=null)
+    public CrabSystem(IslandMap map,CrabState? restored=null,int slot=0)
     {
         config=map.Fishing!.Crabs;navigation=new CrabNavigation(map);
-        state=restored??new CrabState{Timer=config.InitialDelayTicks,Target=-1};
+        if(slot<0 || slot>=config.Count)throw new ArgumentOutOfRangeException(nameof(slot));
+        this.slot=slot;
+        state=restored??new CrabState{Timer=config.InitialDelayTicks+slot*config.SpawnStaggerTicks,Target=-1};
     }
     public CrabState Capture()=>state;
     public bool ReachableHit(IReadOnlyList<PlatformTile> tiles,int x,int z)
@@ -50,7 +53,7 @@ public sealed class CrabSystem
         if(state.Phase==CrabPhase.Waiting)
         {
             if(--state.Timer>0)return;
-            if(navigation.TrySpawn(players,state.Generation,out var land,out var water))
+            if(navigation.TrySpawn(players,state.Generation,out var land,out var water,slot,config.Count))
             {
                 if(state.Generation==uint.MaxValue)throw new InvalidOperationException("Crab generation exhausted.");
                 state=new CrabState{Generation=state.Generation+1,Phase=CrabPhase.Climbing,Health=config.Health,

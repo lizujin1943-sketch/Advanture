@@ -20,7 +20,7 @@ MonoBehaviour:
   swimMetresPerSecond: 1.92
   aggroMetres: 20
   biteMetres: 0.8
-  monsterEnabled: 1
+  monsterEnabled: 0
   monsterWeightKg: 50
   monsterPositionMetres: {x: 0, y: -6}
   waterballDamage: 20

@@ -14,8 +14,10 @@ namespace Advanture.HookIsland
         [SerializeField] private FishingOverheadSettings overheadCamera=new FishingOverheadSettings();
         [SerializeField] private FirearmCameraSettings firearmCamera=new FirearmCameraSettings();
         public bool ThirdPerson=>playerInput.ThirdPerson;
+        public bool FirstPerson=>playerInput.FirstPerson;
+        public bool CenterAim=>playerInput.CenterAim;
         public bool CameraPointerCaptured=>playerInput.CameraPointerCaptured;
         private void LateUpdate()=>playerInput.EndFrame(this);
-        private void OnDisable()=>playerInput.Reset();
+        private void OnDisable(){playerInput.Reset();presentation?.ClearFirstPerson();}
     }
 }

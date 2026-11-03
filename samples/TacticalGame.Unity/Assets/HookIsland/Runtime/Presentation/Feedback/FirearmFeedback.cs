@@ -65,7 +65,7 @@ namespace Advanture.HookIsland
                 audio.PlayOneShot(art.WaterImpact,value.Slot==local?.6f:.3f);
             }
             if(value.TargetId!=-1)audio.PlayOneShot(art.Impact,value.Slot==local?.45f:.2f);
-            if(value.TargetId==-2 && value.Amount>0)
+            if((value.TargetId==-2 || value.TargetId==-6) && value.Amount>0)
             {
                 effect.Label=new GameObject("Confirmed firearm damage").transform;effect.Label.SetParent(node,false);
                 var text=effect.Label.gameObject.AddComponent<TextMesh>();text.text="−"+value.Amount;text.characterSize=.065f;text.fontSize=40;text.anchor=TextAnchor.MiddleCenter;text.color=new Color(1,.94f,.74f);
@@ -116,6 +116,8 @@ namespace Advanture.HookIsland
                 if(friend.Slot!=local && !friend.WaitingToJoin && !friend.Vitals.Downed && !friend.Revival.Dead)reach=Math.Min(reach,FirearmRules.RayCircle(motion.X,motion.Z,dx,dz,friend.X,friend.Z,EnemyGeometry.PlayerRadius,reach));
             foreach(var fish in state.Enemies.Piranhas)
                 if(fish.Owner<0 && fish.RespawnTicks==0 && !fish.Escape.Active)reach=Math.Min(reach,FirearmRules.RayCircle(motion.X,motion.Z,dx,dz,fish.X,fish.Z,250,reach));
+            foreach(var crab in state.Crabs)
+                if(crab.Damageable)reach=Math.Min(reach,FirearmRules.RayCircle(motion.X,motion.Z,dx,dz,crab.X,crab.Z,CrabConfig.BodyRadius,reach));
             if(state.Enemies.Monster.Phase==MonsterPhase.Windup)reach=Math.Min(reach,FirearmRules.RayCircle(motion.X,motion.Z,dx,dz,state.Enemies.Monster.X,state.Enemies.Monster.Z,EnemyGeometry.MonsterRadius,reach));
             float halfAngle=motion.Firearm.Spread(item.Value.Type)/1000f,heading=Mathf.Atan2(direction.x,direction.z)*Mathf.Rad2Deg;
             var origin=new Vector3(motion.X/1000f,0,motion.Z/1000f);

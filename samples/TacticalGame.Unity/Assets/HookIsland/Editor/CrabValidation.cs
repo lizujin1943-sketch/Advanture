@@ -34,7 +34,7 @@ namespace Advanture.HookIsland.Editor
             {
                 var crab=new CrabState{Generation=1,Phase=phase,Health=phase==CrabPhase.Dead?0:75,DirectionZ=1000000,ShoreZ=-1000,
                     Timer=phase==CrabPhase.Dead?map.Fishing.Crabs.RespawnTicks-9:phase==CrabPhase.Climbing?22:phase==CrabPhase.Pinching?2:1};
-                view.Clear();view.Synchronize(new HookState(100,Array.Empty<Fisher>(),Array.Empty<Fish>(),0,crab:crab));
+                view.Clear();view.Synchronize(new HookState(100,Array.Empty<Fisher>(),Array.Empty<Fish>(),0,crabs:new[]{crab}));
                 var render=new RenderTexture(800,700,24);camera.targetTexture=render;camera.Render();
                 var previous=RenderTexture.active;RenderTexture.active=render;var image=new Texture2D(800,700,TextureFormat.RGB24,false);
                 image.ReadPixels(new Rect(0,0,800,700),0,0);image.Apply();File.WriteAllBytes(Path.Combine(output,"unity-crab-"+phase+".png"),image.EncodeToPNG());

@@ -17,9 +17,9 @@ namespace Advanture.HookIsland
             FirearmRules.CanMaintain(player,SwimRingCatalog.Equipped(state.Tackle.Inventory,player.Slot)!=null);
 
         // Use the same screen sample as FishingPlayerInput, including a non-fullscreen camera viewport.
-        public static Vector2 Position(bool thirdPerson,Rect viewport,Vector2 pointer,float screenHeight,float scale)
+        public static Vector2 Position(bool centerAim,Rect viewport,Vector2 pointer,float screenHeight,float scale)
         {
-            var point=thirdPerson?viewport.center:pointer;
+            var point=centerAim?viewport.center:pointer;
             return new Vector2(point.x,screenHeight-point.y)/scale;
         }
         public static float Gap(FirearmSpreadDefinition profile,int angle)=>Mathf.Lerp(4,16,
@@ -32,13 +32,13 @@ namespace Advanture.HookIsland
                 room.Overlay?.MenuOpen==true || room.Construction?.Open==true;
             if(!CanShow(room.State,player,blocked))return;
             var viewport=room.ViewCamera.pixelRect;
-            if(!room.ThirdPerson && (!viewport.Contains(Input.mousePosition) || room.Overlay?.PointerOverHud==true))return;
+            if(!room.CenterAim && (!viewport.Contains(Input.mousePosition) || room.Overlay?.PointerOverHud==true))return;
             var weapon=ActiveToolView.Firearm(room.State,player);
             var equipped=room.State.Tackle.Inventory.Equipped(player.Slot,EquipmentSlot.RightHand).Value;
             var motion=room.Client?.Session?.InspectPredictedState();
             int spread=motion!=null && player.Slot<motion.Players.Count?
                 motion.Players[player.Slot].Firearm.Spread(equipped.Type):player.Firearm.Spread(equipped.Type);
-            var center=Position(room.ThirdPerson,viewport,Input.mousePosition,Screen.height,scale);
+            var center=Position(room.CenterAim,viewport,Input.mousePosition,Screen.height,scale);
             float gap=Gap(weapon.Spread,spread),length=6,thickness=2;
             Stroke(new Rect(center.x-gap-length,center.y-thickness/2,length,thickness));
             Stroke(new Rect(center.x+gap,center.y-thickness/2,length,thickness));

@@ -34,7 +34,7 @@ public struct Fisher
     public HookPhase Phase;
     public int HookX, HookZ, DirectionX, DirectionZ, Distance, FishId, Cooldown;
     public int Catches, Coins, Casts;
-    // Equipment mode: Coins is spendable personal balance; CoinsEarned is lifetime catch income.
+    // Equipment mode: Coins is spendable personal balance; CoinsEarned is lifetime gameplay income.
     public int CoinsEarned;
     public int RangeLevel, SpeedLevel;
     public uint LastPurchaseId;
@@ -64,7 +64,7 @@ public struct Fish
 public sealed class HookState
 {
     public HookState(ulong steps, IEnumerable<Fisher> players, IEnumerable<Fish> fish, int coins,
-        IEnumerable<PlatformTile>? tiles=null,IEnumerable<Driftwood>? driftwood=null,TackleState? tackle=null,EnemyState? enemies=null,RoomRulesState? roomRules=null,TreasureState? treasure=null,CommissionState? commissions=null,OceanState? ocean=null,FinaleState? finale=null,CrabState crab=default)
+        IEnumerable<PlatformTile>? tiles=null,IEnumerable<Driftwood>? driftwood=null,TackleState? tackle=null,EnemyState? enemies=null,RoomRulesState? roomRules=null,TreasureState? treasure=null,CommissionState? commissions=null,OceanState? ocean=null,FinaleState? finale=null,IEnumerable<CrabState>? crabs=null)
     {
         Steps=steps;Players=Array.AsReadOnly(players.ToArray());Fish=Array.AsReadOnly(fish.ToArray());Coins=coins;
         Tiles=Array.AsReadOnly((tiles??Array.Empty<PlatformTile>()).ToArray());
@@ -75,7 +75,8 @@ public sealed class HookState
         Treasure=treasure??TreasureState.Empty;
         Commissions=commissions??CommissionState.Empty;
         Ocean=ocean??OceanState.Empty;
-        Finale=finale??FinaleState.Empty;Crab=crab;
+        Finale=finale??FinaleState.Empty;
+        Crabs=Array.AsReadOnly((crabs??Array.Empty<CrabState>()).ToArray());
     }
     public bool Won=>Finale.Phase==FinalePhase.Victory;
     public bool RoundFinished=>Won || GameOver;
@@ -93,5 +94,5 @@ public sealed class HookState
     public CommissionState Commissions { get; }
     public OceanState Ocean {get;}
     public FinaleState Finale {get;}
-    public CrabState Crab {get;}
+    public IReadOnlyList<CrabState> Crabs {get;}
 }

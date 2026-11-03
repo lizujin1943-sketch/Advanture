@@ -148,7 +148,7 @@ namespace Advanture.HookIsland
             var rect=layout.Help;ui.Surface(rect);ui.Text(new Rect(rect.x+26,rect.y+18,300,32),"操作指南",20,HudPainter.White,TextAnchor.MiddleLeft,true);
             if(ui.IconButton(new Rect(rect.xMax-48,rect.y+13,32,32),HudIcon.Close,"关闭 · Esc"))overlay.MenuOpen=false;
             string[] keys={"WASD","鼠标","左键","右键","V / J","R","E","Tab / I","B / 1–9","滚轮"};
-            string[] hints={"移动 · 第三人称按视角方向","俯视角瞄准 / 第三人称转向","使用当前物品 / 出钩 / 挥击","收钩 / 取消","V 切换视角 · J 收起 / 展开任务","R 换弹 · 按住优先救起队友","开箱 / 商店","角色与背包","B 扩建 · 1–9 选择快捷物品","俯视角缩放 / 第三人称拉近拉远"};
+            string[] hints={"移动 · 持枪时按视角方向","鼠标瞄准 / 转向","使用当前物品 / 开火 / 出钩","收钩 / 取消","V 切换视角 · 持枪第一人称 · J 任务","R 换弹 · 按住优先救起队友","开箱 / 商店","角色与背包","B 扩建 · 1–9 选择快捷物品","俯视角缩放 / 第三人称拉近拉远"};
             for(int i=0;i<keys.Length;i++)
             {float y=rect.y+65+i*32;ui.Surface(new Rect(rect.x+26,y+3,70,24),HudPainter.Track);ui.Text(new Rect(rect.x+26,y+3,70,24),keys[i],12,HudPainter.White,TextAnchor.MiddleCenter);ui.Text(new Rect(rect.x+116,y,280,30),hints[i],14,HudPainter.Muted);}
         }

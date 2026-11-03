@@ -9,16 +9,16 @@ namespace Advanture.HookIsland.CrabTests;
 internal static partial class Program
 {
     private static readonly Guid SessionId=new("9455fa3b-facd-47ca-baa6-1b561ef74519");
-    private static IslandMap Map(CrabConfig? config=null,bool firearms=false)
-    {var m=IslandMap.CreatePlatform();return new IslandMap(m.Shore,m.Pier,m.Spawns,m.FishSpots,m.Platform,new FishingConfig(melee:new MeleeConfig(),firearms:new FirearmConfig(firearms),crabs:config??new CrabConfig(initialDelayTicks:30)));}
+    private static IslandMap Map(CrabConfig? config=null,bool firearms=false,EnemyConfig? enemies=null)
+    {var m=IslandMap.CreatePlatform();return new IslandMap(m.Shore,m.Pier,m.Spawns,m.FishSpots,m.Platform,new FishingConfig(melee:new MeleeConfig(),firearms:new FirearmConfig(firearms),crabs:config??new CrabConfig(initialDelayTicks:30),enemies:enemies??EnemyConfig.Disabled));}
     private static IDeterministicSimulation<HookState> Model(int count=4,CrabConfig? config=null,bool firearms=false)
     {
         var model=new HookGame(false).Create();model.Initialize(new SimulationInitialization(new SessionDescriptor(SessionId,1,30,
             Enumerable.Range(0,count).Select(i=>new Participant((ushort)i,new Guid(i+1,0,0,new byte[8]))).ToArray()),new ByteString(Map(config,firearms).Encode())));return model;
     }
-    private static void Step(IDeterministicSimulation<HookState> m,params HookInput[] inputs)
-    {var s=m.Capture();m.Step(new FrameContext(s.Steps+1,s.Steps+1,30),s.Players.Select(p=>new SimulationInput(new Participant(p.Slot,new Guid(p.Slot+1,0,0,new byte[8])),new ByteString((p.Slot<inputs.Length?inputs[p.Slot]:default).Encode()))).ToArray());}
-    private static HookState Replace(HookState s,CrabState? crab=null,Fisher[]? players=null)=>new(s.Steps,players??s.Players.ToArray(),s.Fish,s.Coins,s.Tiles,s.Driftwood,s.Tackle,s.Enemies,s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale,crab??s.Crab);
+    private static HookGameplayEvent[] Step(IDeterministicSimulation<HookState> m,params HookInput[] inputs)
+    {var s=m.Capture();return m.Step(new FrameContext(s.Steps+1,s.Steps+1,30),s.Players.Select(p=>new SimulationInput(new Participant(p.Slot,new Guid(p.Slot+1,0,0,new byte[8])),new ByteString((p.Slot<inputs.Length?inputs[p.Slot]:default).Encode()))).ToArray()).Select(e=>HookGameplayEventCodec.Decode(e.Span)).ToArray();}
+    private static HookState Replace(HookState s,CrabState? crab=null,Fisher[]? players=null)=>new(s.Steps,players??s.Players.ToArray(),s.Fish,s.Coins,s.Tiles,s.Driftwood,s.Tackle,s.Enemies,s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale,crab.HasValue?new[]{crab.Value}:s.Crabs);
     private static void Equip(IDeterministicSimulation<HookState> m,int slot)
     {var s=m.Capture();var pan=s.Tackle!.Inventory.Items.First(i=>i.Owner==slot && i.Kind==ItemKind.Weapon);var inputs=new HookInput[s.Players.Count];inputs[slot]=new HookInput(0,0,inventory:new InventoryCommand(InventoryAction.Equip,pan.Id,requestId:s.Players[slot].LastInventoryRequest+1));Step(m,inputs);}
     private static CrabState Ready(int x=0,int z=-1400)=>new(){Phase=CrabPhase.Chasing,Generation=1,X=x,Z=z,DirectionX=1000000,Health=100,Target=-1};
@@ -43,10 +43,10 @@ internal static partial class Program
             for(int i=0;i<60;i++){Step(m);Step(restored);Same(m.Capture(),restored.Capture());}
         });
         yield return ("spawn_delay_climb_and_real_shore",()=>{
-            var m=Model();for(int i=0;i<29;i++)Step(m);Require(m.Capture().Crab.Phase==CrabPhase.Waiting,"Early spawn");
-            Step(m);var c=m.Capture().Crab;Require(c.Phase==CrabPhase.Climbing && c.Health==100,"No automatic spawn");
+            var m=Model();for(int i=0;i<29;i++)Step(m);Require(m.Capture().Crabs[0].Phase==CrabPhase.Waiting,"Early spawn");
+            Step(m);var c=m.Capture().Crabs[0];Require(c.Phase==CrabPhase.Climbing && c.Health==100,"No automatic spawn");
             Require(!PlatformRules.OnPlatform(m.Capture().Tiles,c.ShoreX,c.ShoreZ),"Spawn underwater path is on floor");
-            for(int i=0;i<44;i++)Step(m);Require(m.Capture().Crab.Phase==CrabPhase.Climbing,"Climb too fast");Step(m);Require(m.Capture().Crab.Phase==CrabPhase.Chasing,"No landing");
+            for(int i=0;i<44;i++)Step(m);Require(m.Capture().Crabs[0].Phase==CrabPhase.Climbing,"Climb too fast");Step(m);Require(m.Capture().Crabs[0].Phase==CrabPhase.Chasing,"No landing");
         });
         yield return ("pinch_windup_fixed_direction_multi_hit_once",()=>{
             var map=Map();var c=Ready();var system=new CrabSystem(map,c);var players=new[]{new Fisher{Vitals=new CharacterVitals{Health=100},Slot=0,X=1000,Z=-1400},new Fisher{Vitals=new CharacterVitals{Health=100},Slot=1,X=900,Z=-1100},new Fisher{Vitals=new CharacterVitals{Health=100},Slot=2,X=-1300,Z=-1400}};
@@ -75,19 +75,19 @@ internal static partial class Program
             var initial=m.Capture();var people=initial.Players.ToArray();people[0].Unavailable=true;
             m.Restore(Replace(initial,c,people));Step(m);var reward=m.Capture();
             for(int i=0;i<4;i++){Require(reward.Players[i].Coins==(i<count?CrabConfig.CoinsPerAttacker(count):0),"Reward distribution wrong");Require(reward.Players[i].FishbonesEarned==(i<count?2:0),"Bone reward wrong");Require(reward.Players[i].Combo.Count==0,"Kill advanced combo");}
-            Require(reward.Crab.Rewarded,"Missing receipt");var n=Model();n.Restore(new HookGame().Decode(new HookGame().Encode(reward)));
+            Require(reward.Crabs[0].Rewarded,"Missing receipt");var n=Model();n.Restore(new HookGame().Decode(new HookGame().Encode(reward)));
             for(int i=0;i<20;i++){Step(m);Step(n);}Same(m.Capture(),n.Capture());Require(n.Capture().Coins==count*CrabConfig.CoinsPerAttacker(count),"Duplicate reward");
         });
         yield return ("actual_pan_records_damage_and_settles_solo",()=>{
             var m=Model(1,new CrabConfig(initialDelayTicks:30,windupTicks:180));Equip(m,0);var c=Ready(-400,-1400);c.Phase=CrabPhase.Recovering;c.Timer=30;
             m.Restore(Replace(m.Capture(),c));
-            for(int i=0;i<110 && !m.Capture().Crab.Rewarded;i++)Step(m,new HookInput(0,0,aimX:2000,aimZ:-1400,fire:true));
-            var s=m.Capture();Require(s.Crab.Rewarded && s.Players[0].Coins==100,"Pan kill did not award 100");Require(s.Players[0].Melee.HitCount==4,"Expected four 25 point hits");
+            for(int i=0;i<110 && !m.Capture().Crabs[0].Rewarded;i++)Step(m,new HookInput(0,0,aimX:2000,aimZ:-1400,fire:true));
+            var s=m.Capture();Require(s.Crabs[0].Rewarded && s.Players[0].Coins==100,"Pan kill did not award 100");Require(s.Players[0].Melee.HitCount==4,"Expected four 25 point hits");
         });
         yield return ("checkpoint_every_action_phase_and_bad_receipts",()=>{
             var m=Model(1);for(int i=0;i<160;i++)
             {var n=Model(1);n.Restore(new HookGame().Decode(new HookGame().Encode(m.Capture())));Step(m);Step(n);Same(m.Capture(),n.Capture());}
-            var c=m.Capture().Crab;c.Attackers=16;Reject(()=>m.Restore(Replace(m.Capture(),c)));c=m.Capture().Crab;c.Timer=int.MaxValue;Reject(()=>m.Restore(Replace(m.Capture(),c)));
+            var c=m.Capture().Crabs[0];c.Attackers=16;Reject(()=>m.Restore(Replace(m.Capture(),c)));c=m.Capture().Crabs[0];c.Timer=int.MaxValue;Reject(()=>m.Restore(Replace(m.Capture(),c)));
         });
         yield return ("no_targets_retreat_without_reward",()=>{
             var map=Map();var c=Ready();var s=new CrabSystem(map,c);var people=new[]{new Fisher{Vitals=new CharacterVitals{Health=100},Slot=0,X=-1400,Z=-1400,Unavailable=true}};
@@ -109,5 +109,5 @@ internal static partial class Program
         });
     }
     private static int Main(string[] args)
-    {int count=0;try{foreach(var (name,test) in Cases().Concat(BoundaryCases()).Concat(NetworkCases()).Where(c=>args.Length==0||args.Any(a=>c.Item1.Contains(a,StringComparison.OrdinalIgnoreCase)))){test();Console.WriteLine("PASS "+name);count++;}Require(count>0,"No matching crab checks");Console.WriteLine($"Passed {count} crab checks");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
+    {int count=0;try{foreach(var (name,test) in Cases().Concat(BoundaryCases()).Concat(PopulationCases()).Concat(NetworkCases()).Where(c=>args.Length==0||args.Any(a=>c.Item1.Contains(a,StringComparison.OrdinalIgnoreCase)))){test();Console.WriteLine("PASS "+name);count++;}Require(count>0,"No matching crab checks");Console.WriteLine($"Passed {count} crab checks");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
 }

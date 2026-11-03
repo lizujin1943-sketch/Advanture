@@ -7,7 +7,9 @@ namespace Advanture.HookIsland
     public sealed class CrabSettings : ScriptableObject
     {
         public bool enabledInGame=true;
-        [Min(1)] public float firstSpawnSeconds=90;
+        [Range(1,8)] public int count=3;
+        [Min(0)] public float spawnStaggerSeconds=3;
+        [Min(1)] public float firstSpawnSeconds=10;
         [Min(1)] public float respawnSeconds=60;
         [Min(1)] public int health=100;
         [Min(.1f)] public float speed=2;
@@ -20,7 +22,7 @@ namespace Advanture.HookIsland
         [Min(.04f)] public float interruptProtectionSeconds=3;
         public CrabConfig CreateConfig()=>new CrabConfig(enabledInGame,Ticks(firstSpawnSeconds),Ticks(respawnSeconds),health,
             Mathf.RoundToInt(speed*1000),Ticks(windupSeconds),Ticks(recoverySeconds),damage,Mathf.RoundToInt(knockbackMetres*1000),
-            Ticks(climbSeconds),Ticks(noTargetSeconds),Ticks(interruptProtectionSeconds));
+            Ticks(climbSeconds),Ticks(noTargetSeconds),Ticks(interruptProtectionSeconds),count,Ticks(spawnStaggerSeconds));
         private static int Ticks(float seconds)=>Mathf.RoundToInt(seconds*HookGame.Rate);
     }
 }

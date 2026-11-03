@@ -24,17 +24,17 @@ public sealed partial class HookGame
                         for(int j=0;j<enemies.PiranhaCount;j++)
                         {
                             var fish=enemies.GetPiranha(j);
-                            if(MeleeRules.Contains(p,fish.X,fish.Z,weapon,250) && enemies.Strike(j,weapon.Damage,map.Fishing.Melee))Hit(-1,fish.X,fish.Z);
+                            if(MeleeRules.Contains(p,fish.X,fish.Z,weapon,250) && enemies.Strike(j,weapon.Damage,map.Fishing.Melee.PiranhaHealth,map.Fishing.Melee.StunTicks,p.Slot))Hit(-1,fish.X,fish.Z);
                         }
                         var monster=enemies.Monster;
                         if(monster.Phase==MonsterPhase.Windup && MeleeRules.Contains(p,monster.X,monster.Z,weapon,EnemyGeometry.MonsterRadius) && enemies.Interrupt())Hit(-2,monster.X,monster.Z);
                     }
-                    if(crabs!=null)
+                    foreach(var system in crabs)
                     {
-                        var crab=crabs.Capture();
+                        var crab=system.Capture();
                         if(crab.Damageable && MeleeRules.Contains(p,crab.X,crab.Z,weapon,CrabConfig.BodyRadius))
                         {
-                            if(crabs.ReachableHit(tiles,p.X,p.Z) && crabs.Strike(p.Slot,weapon.Damage))Hit(-3,crab.X,crab.Z);
+                            if(system.ReachableHit(tiles,p.X,p.Z) && system.Strike(p.Slot,weapon.Damage))Hit(-3,crab.X,crab.Z);
                         }
                     }
                     if(roomRules.FriendlyPranksEnabled)for(int j=0;j<players.Length;j++)

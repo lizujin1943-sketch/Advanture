@@ -335,48 +335,74 @@ namespace Advanture.HookIsland.Tests
             Assert.That(Vector3.Distance(camera.transform.position,before),Is.LessThan(.001f));
         }
 
-        [TestCase(16f/9,22f)] [TestCase(16f/9,40f)] [TestCase(4f/3,22f)] [TestCase(21f/9,40f)]
-        public void FirearmFramesTheBodyBelowLeftOfTheCentreAimRay(float aspect,float angle)
+        [TestCase(false)] [TestCase(true)]
+        public void EquippingGunPlacesTheLensAtThePlayerAndRestoresThePreviousPerspective(bool shoulder)
         {
-            camera.aspect=aspect;var feet=new Vector3(3,.465f,4);
-            view.Toggle(Vector3.forward,feet);view.Look(new Vector2(15,(40-angle)/2.55f));
+            var feet=new Vector3(3,.465f,4);view.Follow(feet);
+            if(shoulder)view.Toggle(Vector3.right,feet);
+            var before=camera.transform.position;var rotation=camera.transform.rotation;
+            bool orthographic=camera.orthographic;float fov=camera.fieldOfView;
             view.UpdateFirearmFraming(true,1);
-            var torso=camera.WorldToViewportPoint(feet+Vector3.up*.6f);
-            var head=camera.WorldToViewportPoint(feet+Vector3.up*1.03f);
-            Assert.That(torso.x,Is.EqualTo(.32f).Within(.001f));
-            Assert.That(torso.y,Is.EqualTo(.30f).Within(.001f));
-            Assert.That(head.x,Is.LessThan(.4f));Assert.That(head.y,Is.LessThan(.46f));
-            var target=view.Aim(camera.ViewportPointToRay(new Vector3(.5f,.5f)),feet,12);
-            var projected=camera.WorldToViewportPoint(target);
-            Assert.That(Vector2.Distance(new Vector2(projected.x,projected.y),new Vector2(.5f,.5f)),Is.LessThan(.001f),
-                "The central reticle must still sample the actual water aiming point.");
-            foreach(float scroll in new[]{1000f,-1000f})
-            {
-                view.Zoom(scroll);view.Follow(feet+Vector3.right*2);
-                torso=camera.WorldToViewportPoint(feet+Vector3.right*2+Vector3.up*.6f);
-                Assert.That(torso.x,Is.EqualTo(.32f).Within(.001f));
-                Assert.That(torso.y,Is.EqualTo(.30f).Within(.001f));
-            }
+            Assert.That(camera.orthographic,Is.False,"持枪时从俯视角也应进入透视的第一人称镜头。");
+            Assert.That(Vector2.Distance(new Vector2(camera.transform.position.x,camera.transform.position.z),new Vector2(feet.x,feet.z)),Is.LessThan(.001f),"镜头应在本地角色眼睛处，不能仍停在角色后方。");
+            Assert.That(camera.transform.position.y-feet.y,Is.InRange(.8f,1.3f));
+            var eye=camera.transform.position;view.Zoom(1000);
+            Assert.That(Vector3.Distance(eye,camera.transform.position),Is.LessThan(.001f),"持枪时滚轮不能把第一人称镜头拉出身体。");
+            view.Toggle(Vector3.forward,feet);
+            Assert.That(Vector3.Distance(eye,camera.transform.position),Is.LessThan(.001f),"持枪期间 V 不应离开第一人称。");
+            view.UpdateFirearmFraming(false,1);
+            Assert.That(camera.orthographic,Is.EqualTo(orthographic));
+            Assert.That(Vector3.Distance(before,camera.transform.position),Is.LessThan(.001f));
+            Assert.That(Quaternion.Angle(rotation,camera.transform.rotation),Is.LessThan(.001f));
+            Assert.That(camera.fieldOfView,Is.EqualTo(fov));
         }
 
-        [Test] public void FirearmFramingBlendsWithoutTurningAndRestoresTheFishingView()
+        [Test] public void GunLookTurnsMovementAndAimTogetherWithoutOrbitingTheHead()
         {
-            var feet=new Vector3(0,.465f,0);view.Toggle(Vector3.forward,feet);
-            var before=camera.transform.position;var rotation=camera.transform.rotation;
-            view.UpdateFirearmFraming(true,.11f);var middle=camera.transform.position;
-            view.UpdateFirearmFraming(true,.11f);var after=camera.transform.position;
-            Assert.That(Vector3.Distance(before,middle),Is.GreaterThan(.1f));
-            Assert.That(Vector3.Distance(before,middle),Is.LessThan(Vector3.Distance(before,after)));
-            Assert.That(Quaternion.Angle(rotation,camera.transform.rotation),Is.LessThan(.001f));
-            Assert.That(camera.fieldOfView,Is.EqualTo(65));
-            view.Toggle(Vector3.forward,feet);var overhead=camera.transform.position;
-            view.UpdateFirearmFraming(false,1);
-            Assert.That(camera.transform.position,Is.EqualTo(overhead),"A gun selection must not recompose the overhead view.");
-            view.Toggle(Vector3.forward,feet);
-            Assert.That(Vector3.Distance(before,camera.transform.position),Is.LessThan(.001f));
-            Assert.That(camera.fieldOfView,Is.EqualTo(75));
-            view.UpdateFirearmFraming(true,1);view.Reset();view.Toggle(Vector3.forward,feet);
-            Assert.That(Vector3.Distance(before,camera.transform.position),Is.LessThan(.001f),"New rounds must reset gun framing.");
+            var feet=new Vector3(3,SwimmingAppearance.FeetInWater,4);view.Follow(feet);
+            view.UpdateFirearmFraming(true,1);var eye=camera.transform.position;
+            view.Look(new Vector2(30,0));
+            Assert.That(Vector3.Distance(eye,camera.transform.position),Is.LessThan(.001f));
+            Assert.That(Vector2.Distance(view.Movement(Vector2.up),Vector2.right),Is.LessThan(.001f),"进入第一人称后 WASD 仍应跟随水平视角。");
+            var aim=view.Aim(camera.ViewportPointToRay(new Vector3(.5f,.5f)),feet,12);
+            Assert.That(aim.x,Is.GreaterThan(feet.x));
+            // 编辑器窗口宽度可能含半像素，中心射线与数学 forward 会有亚像素差异；
+            // 检查实际朝向和投影落点，不能假设世界坐标必须毫无偏差。
+            Assert.That(Vector3.Angle(new Vector3(aim.x-feet.x,0,aim.z-feet.z),Vector3.right),Is.LessThan(.1f));
+            var projected=camera.WorldToViewportPoint(aim);
+            Assert.That(Vector2.Distance(new Vector2(projected.x,projected.y),new Vector2(.5f,.5f)),Is.LessThan(.001f));
+            view.Look(new Vector2(0,1000));
+            Assert.That(camera.transform.position.y,Is.GreaterThan(.2f));
+            Assert.That(view.Movement(Vector2.one).magnitude,Is.EqualTo(1).Within(.001f));
+        }
+
+        [TestCase(16f/9)] [TestCase(4f/3)] [TestCase(9f/16)]
+        public void FirstPersonFollowsTheRenderedFeetAndSamplesTheCentreAtAnyAspect(float aspect)
+        {
+            camera.aspect=aspect;view.Follow(Vector3.zero);view.UpdateFirearmFraming(true,1);
+            foreach(var feet in new[]{new Vector3(3,.465f,4),new Vector3(-2,SwimmingAppearance.FeetInWater,-5)})
+            {
+                view.Follow(feet);
+                Assert.That(camera.transform.position.x,Is.EqualTo(feet.x).Within(.001f));
+                Assert.That(camera.transform.position.z,Is.EqualTo(feet.z).Within(.001f));
+                var target=view.Aim(camera.ViewportPointToRay(new Vector3(.5f,.5f)),feet,12);
+                var projected=camera.WorldToViewportPoint(target);
+                Assert.That(Vector2.Distance(new Vector2(projected.x,projected.y),new Vector2(.5f,.5f)),Is.LessThan(.001f));
+            }
+            Assert.That(view.FirstPerson,Is.True);Assert.That(view.ThirdPerson,Is.False);
+            Assert.That(view.CenterAim,Is.True);
+        }
+
+        [Test] public void ResetDuringGunUseRestoresProjectionAndAllowsTheNextRoundToChooseItsView()
+        {
+            float overheadNear=camera.nearClipPlane;
+            view.Toggle(Vector3.forward,Vector3.zero);view.UpdateFirearmFraming(true,1);
+            view.Look(new Vector2(30,20));view.Reset();
+            Assert.That(view.FirstPerson,Is.False);Assert.That(view.CenterAim,Is.False);
+            Assert.That(camera.orthographic,Is.True);Assert.That(camera.nearClipPlane,Is.EqualTo(overheadNear));
+            view.Toggle(Vector3.left,Vector3.zero);
+            Assert.That(view.ThirdPerson,Is.True);Assert.That(camera.fieldOfView,Is.EqualTo(75));
+            Assert.That(Vector2.Distance(view.Movement(Vector2.up),Vector2.left),Is.LessThan(.001f));
         }
 
         [Test] public void TwoUdpClientsWithDifferentPerspectivesMoveCastAndConfirmTheSameState()

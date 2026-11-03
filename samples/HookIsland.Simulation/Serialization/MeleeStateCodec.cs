@@ -8,13 +8,13 @@ internal static class MeleeStateCodec
 {
     internal static void Write(BinaryWriter w,HookState s)
     {
-        w.Write(0x314C454D); // MEL1
+        w.Write(0x324C454D); // MEL2: includes pending combat kill income
         foreach(var p in s.Players){var m=p.Melee;w.Write(m.Serial);w.Write(m.WeaponType);w.Write(m.RemainingTicks);w.Write(m.CooldownTicks);w.Write(m.DirectionX);w.Write(m.DirectionZ);w.Write(m.HitCount);}
-        foreach(var f in s.Enemies.Piranhas){w.Write(f.DamageTaken);w.Write(f.StunTicks);}
+        foreach(var f in s.Enemies.Piranhas){w.Write(f.DamageTaken);w.Write(f.StunTicks);w.Write(f.RewardOwner);}
     }
     internal static HookState Read(BinaryReader r,HookState s)
     {
-        if(r.ReadInt32()!=0x314C454D)throw new InvalidDataException("Melee state version mismatch.");
+        if(r.ReadInt32()!=0x324C454D)throw new InvalidDataException("Melee state version mismatch.");
         var config=s.Tackle?.Config.Melee??MeleeConfig.Disabled;var players=s.Players.ToArray();
         for(int i=0;i<players.Length;i++)
         {
@@ -33,9 +33,12 @@ internal static class MeleeStateCodec
         var fish=s.Enemies.Piranhas.ToArray();
         for(int i=0;i<fish.Length;i++)
         {
-            int damage=r.ReadInt32(),stun=r.ReadInt32();
+            int damage=r.ReadInt32(),stun=r.ReadInt32(),owner=r.ReadInt32();
             if(damage<0 || damage>config.PiranhaHealth || stun<0 || stun>Math.Max(config.StunTicks,s.Tackle?.Config.Firearms.StunTicks??0) || !config.Enabled && s.Tackle?.Config.Firearms.Enabled!=true && (damage!=0 || stun!=0) || damage==config.PiranhaHealth && fish[i].RespawnTicks==0 || stun>0 && (damage==0 || fish[i].RespawnTicks>0))throw new InvalidDataException("Invalid combat enemy damage.");
-            fish[i].DamageTaken=damage;fish[i].StunTicks=stun;
+            if(owner<0 || owner>players.Length || owner>0 &&
+                (players[owner-1].WaitingToJoin || damage!=config.PiranhaHealth || fish[i].RespawnTicks!=s.Tackle!.Config.Enemies.PiranhaRespawnTicks))
+                throw new InvalidDataException("Invalid piranha kill reward receipt.");
+            fish[i].DamageTaken=damage;fish[i].StunTicks=stun;fish[i].RewardOwner=owner;
         }
         var e=s.Enemies;return new HookState(s.Steps,players,s.Fish,s.Coins,s.Tiles,s.Driftwood,s.Tackle,new EnemyState(fish,e.Monster,e.Waterballs,e.Serial,e.Bites,e.Shots,e.Interruptions,e.WaterHits,e.Captures),s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale);
     }

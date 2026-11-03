@@ -7,17 +7,18 @@ public sealed partial class HookGame
 {
     private sealed partial class Model
     {
-        private CrabSystem? crabs;
+        private CrabSystem[] crabs=Array.Empty<CrabSystem>();
         private void AdvanceCrabs()
         {
-            if(crabs==null)return;
-            var c=crabs.Capture();
-            // An internal owed reward remains pending if bounded inventory storage is full.
-            // No partial money/material credit and no respawn before the receipt commits.
-            if(c.Phase==CrabPhase.Dead && !c.Rewarded)SettleCrab(c);
-            crabs.Advance(tiles,players,ApplyEnemyHit);
+            foreach(var crab in crabs)
+            {
+                var c=crab.Capture();
+                // No partial money/material credit and no respawn before the receipt commits.
+                if(c.Phase==CrabPhase.Dead && !c.Rewarded)SettleCrab(crab,c);
+                crab.Advance(tiles,players,ApplyEnemyHit);
+            }
         }
-        private void SettleCrab(CrabState c)
+        private void SettleCrab(CrabSystem crab,CrabState c)
         {
             int count=0;for(int slot=0;slot<players.Length;slot++)if((c.Attackers&(1<<slot))!=0)count++;
             int gold=CrabConfig.CoinsPerAttacker(count),bones=CrabConfig.BonesPerAttacker;
@@ -36,7 +37,7 @@ public sealed partial class HookGame
                 PersonalMaterialInventory.Refresh(ref p,equipment.Inventory);players[i]=p;
                 Record(HookGameplayEventKind.CoinsReceived,p,amount:gold);
             }
-            crabs!.MarkRewarded();
+            crab.MarkRewarded();
         }
     }
 }

@@ -8,6 +8,8 @@ public enum MonsterPhase : byte { Cooldown, Windup }
 public struct Piranha
 {
     public int DamageTaken,StunTicks;
+    // One-based killer slot. Cleared only after the confirmed coin transaction commits.
+    public int RewardOwner;
     public CatchEscapeState Escape;
     public int Id,X,Z,WeightGrams,Target,Cooldown,TravelRemainder,MovementRemainderX,MovementRemainderZ;
     public int Owner,RespawnTicks,PatrolPoint;
