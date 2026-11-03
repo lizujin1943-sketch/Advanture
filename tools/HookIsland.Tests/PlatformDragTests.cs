@@ -67,6 +67,22 @@ internal static partial class Program
             Require(batch.Advance(map,state,refused) && !batch.Pending && batch.Succeeded==1 && batch.Rejected==1,"Failure receipt did not complete the batch.");
             Require(batch.Compose(default,false).Build==TileKind.None,"A rejected cell was implicitly replayed.");
         });
+        yield return ("platform_drag_live_fish_can_enter_a_green_cell_on_the_delivery_frame",()=>{
+            var map=LegacyPlatformMap(4,2);var model=FundedPlatform(0,4,map:map);
+            for(int i=0;i<823;i++)ShopStep(model);
+            var state=model.Capture();var people=state.Players.ToArray();people[0].X=-2604;people[0].Z=1400;
+            var wood=state.Driftwood.Select(d=>DriftwoodMotion.Create(d.Id,300)).ToArray();
+            model.Restore(new HookState(state.Steps,people,state.Fish,state.Coins,state.Tiles,wood));state=model.Capture();
+            // 四客户端日志中的边界：鱼15本帧在格外，下一帧进入(-1,2)，权威拒绝必须保留。
+            var draft=new PlatformBuildDraft();draft.Begin(TileKind.Fishbone,-1,2);draft.Evaluate(map,state,state.Players[0]);
+            Require(draft.ValidCount==1,"Expected a clear preview before the moving fish enters.");
+            var batch=new PlatformBuildBatch();batch.TryStart(draft.Cells);batch.Advance(map,state,state.Players[0]);var command=batch.Compose(default,true);
+            ShopStep(model,command.Encode());state=model.Capture();
+            Require(state.Players[0].LastBuildResult==BuildResult.Occupied && state.Players[0].Fishbones==4 && state.Tiles.Count==9,"Moving occupancy was ignored or charged materials.");
+            Require(batch.Advance(map,state,state.Players[0]) && batch.Succeeded==0 && batch.Rejected==1 && batch.LastFailure==BuildResult.Occupied,"The explicit rejection did not finish its batch.");
+            for(int i=0;i<30;i++)ShopStep(model,command.Encode());
+            Require(model.Capture().Tiles.Count==9 && model.Capture().Players[0].Fishbones==4 && batch.Compose(default,false).Build==TileKind.None,"A failed cell replayed after the fish departed.");
+        });
         yield return ("platform_drag_batch_rechecks_contested_cells_and_cancellation_keeps_inflight_identity",()=>{
             var map=LegacyPlatformMap();var state=ConstructionPreviewState(12);var draft=new PlatformBuildDraft();
             draft.Begin(TileKind.Wood,2,0);draft.Visit(4,0);draft.Evaluate(map,state,state.Players[0]);

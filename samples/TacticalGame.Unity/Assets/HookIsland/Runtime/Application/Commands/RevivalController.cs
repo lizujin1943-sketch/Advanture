@@ -50,11 +50,13 @@ namespace Advanture.HookIsland
         }
         public HookInput Compose(HookInput input)
         {
-            if(requests.Pending)return new HookInput(0,0,revival:requests.Command,roomRules:input.RoomRules);
+            if(requests.Pending)return new HookInput(0,0,revival:requests.Command,roomRules:input.RoomRules,
+                aimVertical:input.AimVertical);
             if(!input.Treasure.IsEmpty || !input.Revival.IsEmpty || heldTarget<0 || input.Inventory.Action!=InventoryAction.None ||
                 input.RodAction!=RodAction.None || input.Build!=TileKind.None || input.Upgrade!=HookUpgrade.None)return input;
             return new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,false,input.Cancel,shopping:input.Shopping,
-                revival:new RevivalCommand(rescueSlot:heldTarget),roomRules:input.RoomRules);
+                revival:new RevivalCommand(rescueSlot:heldTarget),roomRules:input.RoomRules,
+                aimVertical:input.AimVertical);
         }
         public bool RequestRespawn()
         {

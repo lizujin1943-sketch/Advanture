@@ -1,0 +1,41 @@
+{
+    "status": "PASS",
+    "scope": "Unity importer, independent animation curves, canonical axes, collision pose agreement",
+    "meshCount": 44,
+    "boneCount": 185,
+    "clipCount": 24,
+    "metersScaleCorrection": 1.0,
+    "maxIdleJointCoordinateErrorMeters": 0.0004991292953491211,
+    "maxBlendShapeWeightError": 0.000001430511474609375,
+    "modelEulerCorrection": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "clipNames": [
+        "AW_Combination",
+        "AW_Death",
+        "AW_Emerge",
+        "AW_Enrage",
+        "AW_EnragedIdle",
+        "AW_Hit",
+        "AW_Idle",
+        "AW_Ink",
+        "AW_Sever_A01",
+        "AW_Sever_A02",
+        "AW_Sever_A03",
+        "AW_Sever_A04",
+        "AW_Sever_S01",
+        "AW_Sever_S02",
+        "AW_Sever_S03",
+        "AW_Sever_S04",
+        "AW_Slam_A01",
+        "AW_Slam_A02",
+        "AW_Slam_A03",
+        "AW_Slam_A04",
+        "AW_Sweep_A01",
+        "AW_Sweep_A02",
+        "AW_Sweep_A03",
+        "AW_Sweep_A04"
+    ]
+}

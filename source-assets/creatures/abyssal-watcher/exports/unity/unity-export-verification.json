@@ -1,0 +1,460 @@
+{
+  "status": "PASS",
+  "scope": "Background Blender FBX roundtrip; Unity import and actual game rendering remain root task verification",
+  "sourceHashesUnchanged": true,
+  "meshCount": 44,
+  "boneCount": 185,
+  "expectedClipCount": 24,
+  "maxJointCoordinateErrorMm": 1,
+  "clips": [
+    {
+      "name": "AW_Emerge",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        60,
+        73,
+        120
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        121.0
+      ]
+    },
+    {
+      "name": "AW_Idle",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        73,
+        90,
+        180
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        181.0
+      ]
+    },
+    {
+      "name": "AW_Slam_A01",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        73,
+        90
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        91.0
+      ]
+    },
+    {
+      "name": "AW_Sweep_A01",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        54,
+        73,
+        108
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        109.0
+      ]
+    },
+    {
+      "name": "AW_Slam_A02",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        73,
+        90
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        91.0
+      ]
+    },
+    {
+      "name": "AW_Sweep_A02",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        54,
+        73,
+        108
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        109.0
+      ]
+    },
+    {
+      "name": "AW_Slam_A03",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        73,
+        90
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        91.0
+      ]
+    },
+    {
+      "name": "AW_Sweep_A03",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        54,
+        73,
+        108
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        109.0
+      ]
+    },
+    {
+      "name": "AW_Slam_A04",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        73,
+        90
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        91.0
+      ]
+    },
+    {
+      "name": "AW_Sweep_A04",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        54,
+        73,
+        108
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        109.0
+      ]
+    },
+    {
+      "name": "AW_Ink",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        48,
+        73,
+        96
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        97.0
+      ]
+    },
+    {
+      "name": "AW_Hit",
+      "sampledFramesZeroBased": [
+        0,
+        15,
+        30
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        31.0
+      ]
+    },
+    {
+      "name": "AW_Enrage",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        73,
+        90
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        91.0
+      ]
+    },
+    {
+      "name": "AW_EnragedIdle",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        73,
+        75,
+        150
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        151.0
+      ]
+    },
+    {
+      "name": "AW_Sever_A01",
+      "sampledFramesZeroBased": [
+        0,
+        39,
+        45,
+        73,
+        78
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        79.0
+      ]
+    },
+    {
+      "name": "AW_Sever_A02",
+      "sampledFramesZeroBased": [
+        0,
+        39,
+        45,
+        73,
+        78
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        79.0
+      ]
+    },
+    {
+      "name": "AW_Sever_A03",
+      "sampledFramesZeroBased": [
+        0,
+        39,
+        45,
+        73,
+        78
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        79.0
+      ]
+    },
+    {
+      "name": "AW_Sever_A04",
+      "sampledFramesZeroBased": [
+        0,
+        39,
+        45,
+        73,
+        78
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        79.0
+      ]
+    },
+    {
+      "name": "AW_Sever_S01",
+      "sampledFramesZeroBased": [
+        0,
+        39,
+        45,
+        73,
+        78
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        79.0
+      ]
+    },
+    {
+      "name": "AW_Sever_S02",
+      "sampledFramesZeroBased": [
+        0,
+        39,
+        45,
+        73,
+        78
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        79.0
+      ]
+    },
+    {
+      "name": "AW_Sever_S03",
+      "sampledFramesZeroBased": [
+        0,
+        39,
+        45,
+        73,
+        78
+      ],
+      "maxJointCoordinateErrorMm": 0,
+      "importedFrameRange": [
+        1.0,
+        79.0
+      ]
+    },
+    {
+      "name": "AW_Sever_S04",
+      "sampledFramesZeroBased": [
+        0,
+        39,
+        45,
+        73,
+        78
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        79.0
+      ]
+    },
+    {
+      "name": "AW_Death",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        73,
+        90,
+        180
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        181.0
+      ]
+    },
+    {
+      "name": "AW_Combination",
+      "sampledFramesZeroBased": [
+        0,
+        45,
+        54,
+        73,
+        108
+      ],
+      "maxJointCoordinateErrorMm": 1,
+      "importedFrameRange": [
+        1.0,
+        109.0
+      ]
+    }
+  ],
+  "maxBlendShapeWeightError": 5.960464477539063e-08,
+  "maxHeadBoundsErrorMm": 2.778606414794922,
+  "maxEyeCenterErrorMm": 0.501305341720581,
+  "rawFbxBlendShapeWeightError": 1.0,
+  "blendShapeCurveSource": "Explicit source samples in unity-manifest.json; Unity installer replaces static FBX shape curves",
+  "headBlendShapes": [
+    "Basis",
+    "Ink_Aperture",
+    "Close_Center",
+    "Close_L",
+    "Close_R"
+  ],
+  "headColorAttributes": [
+    "TissueWeight"
+  ],
+  "sourceToUnityCoordinate": "(x,z,y)",
+  "allMeshesSkinned": true,
+  "importedActions": [
+    "AW_Rig|AW_Rig|AW_Combination",
+    "AW_Rig|AW_Rig|AW_Death",
+    "AW_Rig|AW_Rig|AW_Emerge",
+    "AW_Rig|AW_Rig|AW_Enrage",
+    "AW_Rig|AW_Rig|AW_EnragedIdle",
+    "AW_Rig|AW_Rig|AW_Hit",
+    "AW_Rig|AW_Rig|AW_Idle",
+    "AW_Rig|AW_Rig|AW_Ink",
+    "AW_Rig|AW_Rig|AW_Sever_A01",
+    "AW_Rig|AW_Rig|AW_Sever_A02",
+    "AW_Rig|AW_Rig|AW_Sever_A03",
+    "AW_Rig|AW_Rig|AW_Sever_A04",
+    "AW_Rig|AW_Rig|AW_Sever_S01",
+    "AW_Rig|AW_Rig|AW_Sever_S02",
+    "AW_Rig|AW_Rig|AW_Sever_S03",
+    "AW_Rig|AW_Rig|AW_Sever_S04",
+    "AW_Rig|AW_Rig|AW_Slam_A01",
+    "AW_Rig|AW_Rig|AW_Slam_A02",
+    "AW_Rig|AW_Rig|AW_Slam_A03",
+    "AW_Rig|AW_Rig|AW_Slam_A04",
+    "AW_Rig|AW_Rig|AW_Sweep_A01",
+    "AW_Rig|AW_Rig|AW_Sweep_A02",
+    "AW_Rig|AW_Rig|AW_Sweep_A03",
+    "AW_Rig|AW_Rig|AW_Sweep_A04",
+    "Key.001|AW_Rig|AW_Combination",
+    "Key.001|AW_Rig|AW_Death",
+    "Key.001|AW_Rig|AW_Emerge",
+    "Key.001|AW_Rig|AW_Enrage",
+    "Key.001|AW_Rig|AW_EnragedIdle",
+    "Key.001|AW_Rig|AW_Hit",
+    "Key.001|AW_Rig|AW_Idle",
+    "Key.001|AW_Rig|AW_Ink",
+    "Key.001|AW_Rig|AW_Sever_A01",
+    "Key.001|AW_Rig|AW_Sever_A02",
+    "Key.001|AW_Rig|AW_Sever_A03",
+    "Key.001|AW_Rig|AW_Sever_A04",
+    "Key.001|AW_Rig|AW_Sever_S01",
+    "Key.001|AW_Rig|AW_Sever_S02",
+    "Key.001|AW_Rig|AW_Sever_S03",
+    "Key.001|AW_Rig|AW_Sever_S04",
+    "Key.001|AW_Rig|AW_Slam_A01",
+    "Key.001|AW_Rig|AW_Slam_A02",
+    "Key.001|AW_Rig|AW_Slam_A03",
+    "Key.001|AW_Rig|AW_Slam_A04",
+    "Key.001|AW_Rig|AW_Sweep_A01",
+    "Key.001|AW_Rig|AW_Sweep_A02",
+    "Key.001|AW_Rig|AW_Sweep_A03",
+    "Key.001|AW_Rig|AW_Sweep_A04",
+    "Key|AW_Rig|AW_Combination",
+    "Key|AW_Rig|AW_Death",
+    "Key|AW_Rig|AW_Emerge",
+    "Key|AW_Rig|AW_Enrage",
+    "Key|AW_Rig|AW_EnragedIdle",
+    "Key|AW_Rig|AW_Hit",
+    "Key|AW_Rig|AW_Idle",
+    "Key|AW_Rig|AW_Ink",
+    "Key|AW_Rig|AW_Sever_A01",
+    "Key|AW_Rig|AW_Sever_A02",
+    "Key|AW_Rig|AW_Sever_A03",
+    "Key|AW_Rig|AW_Sever_A04",
+    "Key|AW_Rig|AW_Sever_S01",
+    "Key|AW_Rig|AW_Sever_S02",
+    "Key|AW_Rig|AW_Sever_S03",
+    "Key|AW_Rig|AW_Sever_S04",
+    "Key|AW_Rig|AW_Slam_A01",
+    "Key|AW_Rig|AW_Slam_A02",
+    "Key|AW_Rig|AW_Slam_A03",
+    "Key|AW_Rig|AW_Slam_A04",
+    "Key|AW_Rig|AW_Sweep_A01",
+    "Key|AW_Rig|AW_Sweep_A02",
+    "Key|AW_Rig|AW_Sweep_A03",
+    "Key|AW_Rig|AW_Sweep_A04"
+  ],
+  "limitations": [
+    "Unity 实际导入/材质编译/运行表现须在编辑器验证",
+    "碰撞半径是保守胶囊近似，非逐三角形碰撞",
+    "Blender 程序细颗粒与次表面散射以 Unity 贴图表面近似"
+  ]
+}

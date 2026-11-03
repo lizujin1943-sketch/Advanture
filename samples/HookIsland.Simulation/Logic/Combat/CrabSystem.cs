@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Advanture.HookIsland.Simulation;
 
@@ -19,6 +20,15 @@ public sealed class CrabSystem
     public CrabState Capture()=>state;
     public bool ReachableHit(IReadOnlyList<PlatformTile> tiles,int x,int z)
     {navigation.Refresh(tiles);return navigation.AttackLine(x,z,state.X,state.Z);}
+    /// <summary>平台被 BOSS 打碎后同帧退回水中；已死亡个体只移动尸体，保留待发和已发奖励回执。</summary>
+    internal void ReconcileTerrain(IReadOnlyList<PlatformTile> tiles)
+    {
+        if(!state.Visible)return;navigation.Refresh(tiles);if(navigation.CanStand(state.X,state.Z))return;
+        if(state.Phase!=CrabPhase.Dead){Reset(config.RespawnTicks);return;}
+        foreach(var tile in tiles.OrderBy(t=>IslandMap.DistanceSquared(state.X,state.Z,t.X*2000,t.Z*2000)).ThenBy(t=>t.Z).ThenBy(t=>t.X))
+            if(navigation.CanStand(tile.X*2000,tile.Z*2000)){state.X=tile.X*2000;state.Z=tile.Z*2000;return;}
+        throw new InvalidOperationException("No remaining platform for crab receipt.");
+    }
     public static bool Eligible(Fisher p)=>!p.Unavailable && !p.WaitingToJoin && !p.Vitals.Downed && !p.Revival.Dead && !p.Swimming.InWater;
     public bool Strike(int slot,int damage)
     {

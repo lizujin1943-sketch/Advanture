@@ -7,16 +7,20 @@ namespace Advanture.HookIsland.Simulation;
 /// <summary>毫米坐标、千分比移动方向。射击边沿只消费一次；取消也是确定性输入。</summary>
 public readonly struct HookInput
 {
-    public const int ByteCount = 40 + InventoryCommand.ByteCount + RevivalCommand.ByteCount + RoomRulesCommand.ByteCount + TreasureCommand.ByteCount;
+    public const int ByteCount = 46 + InventoryCommand.ByteCount + RevivalCommand.ByteCount + RoomRulesCommand.ByteCount + TreasureCommand.ByteCount;
     public HookInput(short moveX, short moveZ, int aimX = 0, int aimZ = 0, bool fire = false, bool cancel = false,
         HookUpgrade upgrade = HookUpgrade.None, uint purchaseId = 0, bool shopping = false,
         TileKind build=TileKind.None,short buildX=0,short buildZ=0,uint buildId=0,
-        RodAction rodAction=RodAction.None,int rodTarget=0,uint rodBatch=0,uint rodRequestId=0, InventoryCommand inventory=default,RevivalCommand revival=default,RoomRulesCommand roomRules=default,TreasureCommand treasure=default,bool reload=false)
+        RodAction rodAction=RodAction.None,int rodTarget=0,uint rodBatch=0,uint rodRequestId=0, InventoryCommand inventory=default,RevivalCommand revival=default,RoomRulesCommand roomRules=default,TreasureCommand treasure=default,bool reload=false,short aimVertical=0,uint bossRequest=0)
     {
-        MoveX=moveX;MoveZ=moveZ;AimX=aimX;AimZ=aimZ;Fire=fire;Cancel=cancel;Upgrade=upgrade;PurchaseId=purchaseId;Shopping=shopping;
+        AimVertical=aimVertical;BossRequest=bossRequest;MoveX=moveX;MoveZ=moveZ;AimX=aimX;AimZ=aimZ;Fire=fire;Cancel=cancel;Upgrade=upgrade;PurchaseId=purchaseId;Shopping=shopping;
         Build=build;BuildX=buildX;BuildZ=buildZ;BuildId=buildId;Reload=reload;
         RodAction=rodAction;RodTarget=rodTarget;RodBatch=rodBatch;RodRequestId=rodRequestId;Inventory=inventory;Revival=revival;RoomRules=roomRules;Treasure=treasure;
     }
+    /// <summary>单位瞄准方向的 Y 分量，千分比，限制在 [-995,995]；零表示水平射击。</summary>
+    public short AimVertical {get;}
+    /// <summary>本玩家的唤醒请求编号。零表示无请求，同号重发只读取既有回执。</summary>
+    public uint BossRequest {get;}
     public short MoveX { get; }
     public short MoveZ { get; }
     public int AimX { get; }
@@ -54,7 +58,9 @@ public readonly struct HookInput
         BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(32),RodBatch);BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(36),RodRequestId);
         Inventory.Encode().CopyTo(b,40);Revival.Encode().CopyTo(b,40+InventoryCommand.ByteCount);
         RoomRules.Encode().CopyTo(b,40+InventoryCommand.ByteCount+RevivalCommand.ByteCount);
-        Treasure.Encode().CopyTo(b,ByteCount-TreasureCommand.ByteCount);
+        Treasure.Encode().CopyTo(b,ByteCount-6-TreasureCommand.ByteCount);
+        BinaryPrimitives.WriteInt16LittleEndian(b.AsSpan(ByteCount-6),AimVertical);
+        BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(ByteCount-4),BossRequest);
         Decode(b); return b;
     }
     public static HookInput Decode(ReadOnlySpan<byte> b)
@@ -82,13 +88,17 @@ public readonly struct HookInput
         var inventory=InventoryCommand.Decode(b.Slice(40,InventoryCommand.ByteCount));
         var revival=RevivalCommand.Decode(b.Slice(40+InventoryCommand.ByteCount,RevivalCommand.ByteCount));
         var roomRules=RoomRulesCommand.Decode(b.Slice(40+InventoryCommand.ByteCount+RevivalCommand.ByteCount,RoomRulesCommand.ByteCount));
-        var treasure=TreasureCommand.Decode(b.Slice(ByteCount-TreasureCommand.ByteCount));
+        var treasure=TreasureCommand.Decode(b.Slice(ByteCount-6-TreasureCommand.ByteCount,TreasureCommand.ByteCount));
+        short vertical=BinaryPrimitives.ReadInt16LittleEndian(b.Slice(ByteCount-6));
+        uint bossRequest=BinaryPrimitives.ReadUInt32LittleEndian(b.Slice(ByteCount-4));
+        if(vertical< -995 || vertical>995)throw new InvalidDataException("Invalid vertical aim.");
+        if(bossRequest!=0 && (!treasure.IsEmpty || !revival.IsEmpty || inventory.Action!=InventoryAction.None || action!=RodAction.None || b[13]!=0 || b[18]!=0))throw new InvalidDataException("Boss request cannot share another transaction.");
         if(!treasure.IsEmpty && (!revival.IsEmpty || inventory.Action!=InventoryAction.None || action!=RodAction.None || b[13]!=0 || b[18]!=0))
             throw new InvalidDataException("Treasure cannot share another transaction.");
         if(!revival.IsEmpty && (inventory.Action!=InventoryAction.None || action!=RodAction.None || b[13]!=0 || b[18]!=0))
             throw new InvalidDataException("Revival cannot share an inventory transaction.");
         if(inventory.Action!=InventoryAction.None && (action!=RodAction.None || b[13]!=0 || b[18]!=0))
             throw new InvalidDataException("Multiple transaction families in one input.");
-        return new HookInput(x,z,ax,az,(b[12]&1)!=0,(b[12]&2)!=0,(HookUpgrade)b[13],request,(b[12]&4)!=0,(TileKind)b[18],bx,bz,buildId,action,target,batch,rodRequest,inventory,revival,roomRules,treasure,(b[12]&8)!=0);
+        return new HookInput(x,z,ax,az,(b[12]&1)!=0,(b[12]&2)!=0,(HookUpgrade)b[13],request,(b[12]&4)!=0,(TileKind)b[18],bx,bz,buildId,action,target,batch,rodRequest,inventory,revival,roomRules,treasure,(b[12]&8)!=0,vertical,bossRequest);
     }
 }

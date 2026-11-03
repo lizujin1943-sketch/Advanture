@@ -2,6 +2,8 @@
 
 2026-10-21。Unity 2022.3.62f1，Built-in 管线。
 
+2026-11-03：现有 `HookPlatform` 北侧新增[深渊凝视者可选挑战](abyssal-watcher-implementation.md)。靠近绿色入口标记按 E 唤醒，沿用个人金币和落水救援规则。最新游戏规则／输入／状态版本为 **35／14／32**，旧档不自动迁移；下文带日期的旧版本记录保留作历史说明。
+
 可扩建平台的入口是 `HookPlatform.unity`，木板／鱼骨铺设、材料与联机规则见[平台地块实现](hook-platform-implementation.md)。下文记录原 `HookIsland.unity` 的岛屿玩法和数值。
 
 平台的 31 支钓竿、个人金币购买、捕鱼耐力及恢复规则见[钓竿系统实现](fishing-rods-implementation.md)。格子背包、材料转交、换包与个人钱包见[背包实现](backpack-implementation.md)，角色属性与装备页见[角色实现](hook-character-implementation.md)。

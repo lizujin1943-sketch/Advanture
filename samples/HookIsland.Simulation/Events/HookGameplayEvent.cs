@@ -18,8 +18,8 @@ public enum HookGameplayEventKind : byte
 public readonly struct HookGameplayEvent
 {
     public HookGameplayEvent(HookGameplayEventKind kind, ushort slot, int amount = 0, int value = 0,
-        int targetId = -1, int x = 0, int z = 0, ItemKind itemKind = default, int itemType = 0,int originX=0,int originZ=0)
-    { Kind=kind;Slot=slot;Amount=amount;Value=value;TargetId=targetId;X=x;Z=z;ItemKind=itemKind;ItemType=itemType;OriginX=originX;OriginZ=originZ; }
+        int targetId = -1, int x = 0, int z = 0, ItemKind itemKind = default, int itemType = 0,int originX=0,int originZ=0,int y=0,int originY=0)
+    { Kind=kind;Slot=slot;Amount=amount;Value=value;TargetId=targetId;X=x;Z=z;ItemKind=itemKind;ItemType=itemType;OriginX=originX;OriginZ=originZ;Y=y;OriginY=originY; }
     public HookGameplayEventKind Kind { get; }
     public ushort Slot { get; }
     public int Amount { get; }
@@ -29,6 +29,8 @@ public readonly struct HookGameplayEvent
     public int Z { get; }
     public ItemKind ItemKind { get; }
     public int ItemType { get; }
+    public int Y {get;}
+    public int OriginY {get;}
     public int OriginX {get;}
     public int OriginZ {get;}
 }
@@ -36,25 +38,25 @@ public readonly struct HookGameplayEvent
 /// <summary>Versioned event payload only; does not participate in checkpoint/save encoding.</summary>
 public static class HookGameplayEventCodec
 {
-    public const int ByteCount = 37;
+    public const int ByteCount = 45;
     public static byte[] Encode(HookGameplayEvent value)
     {
         Validate(value);
         using var stream=new MemoryStream(ByteCount);using var writer=new BinaryWriter(stream);
-        writer.Write((byte)2);writer.Write((byte)value.Kind);writer.Write(value.Slot);
+        writer.Write((byte)3);writer.Write((byte)value.Kind);writer.Write(value.Slot);
         writer.Write(value.Amount);writer.Write(value.Value);writer.Write(value.TargetId);
         writer.Write(value.X);writer.Write(value.Z);writer.Write((byte)value.ItemKind);writer.Write(value.ItemType);
-        writer.Write(value.OriginX);writer.Write(value.OriginZ);
+        writer.Write(value.OriginX);writer.Write(value.OriginZ);writer.Write(value.Y);writer.Write(value.OriginY);
         return stream.ToArray();
     }
     public static HookGameplayEvent Decode(ReadOnlySpan<byte> payload)
     {
         if(payload.Length!=ByteCount)throw new InvalidDataException("Invalid gameplay event length.");
         using var reader=new BinaryReader(new MemoryStream(payload.ToArray(),false));
-        if(reader.ReadByte()!=2)throw new InvalidDataException("Unsupported gameplay event version.");
+        if(reader.ReadByte()!=3)throw new InvalidDataException("Unsupported gameplay event version.");
         var value=new HookGameplayEvent((HookGameplayEventKind)reader.ReadByte(),reader.ReadUInt16(),
             reader.ReadInt32(),reader.ReadInt32(),reader.ReadInt32(),reader.ReadInt32(),reader.ReadInt32(),
-            (ItemKind)reader.ReadByte(),reader.ReadInt32(),reader.ReadInt32(),reader.ReadInt32());
+            (ItemKind)reader.ReadByte(),reader.ReadInt32(),reader.ReadInt32(),reader.ReadInt32(),reader.ReadInt32(),reader.ReadInt32());
         Validate(value);return value;
     }
     private static void Validate(HookGameplayEvent value)

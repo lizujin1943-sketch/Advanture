@@ -22,7 +22,7 @@ internal static class PlatformStateCodec
         int woodCount=r.ReadInt32();if(woodCount!=0 && woodCount!=DriftwoodMotion.Count)throw new InvalidDataException("Invalid driftwood count.");
         var wood=new Driftwood[woodCount];
         for(int i=0;i<woodCount;i++)wood[i]=new Driftwood{Id=r.ReadInt32(),X=r.ReadInt32(),Z=r.ReadInt32(),Timer=r.ReadInt32(),Owner=r.ReadInt32(),Phase=(DriftwoodPhase)r.ReadByte()};
-        var s=new HookState(tick,players,fish,coins,tiles,wood);Validate(s);return s;
+        return new HookState(tick,players,fish,coins,tiles,wood); // 地图配置与损毁账本在后续尾段读取后统一校验。
     }
     /// <summary>统一库存允许转交与地面余料，因此材料在全局守恒；个人 Earned 只记录本人收获。</summary>
     internal static void ValidateBalances(HookState s)
@@ -43,26 +43,30 @@ internal static class PlatformStateCodec
         {
             long earned=s.Players.Sum(p=>kind==ItemKind.Wood?(long)p.WoodEarned:p.FishbonesEarned);
             long remaining=inventory.Items.Where(i=>i.Kind==kind).Sum(i=>(long)i.Count);
-            long spent=s.Tiles.Where(t=>t.Kind==(kind==ItemKind.Wood?TileKind.Wood:TileKind.Fishbone)).Sum(t=>(long)t.Paid);
+            long spent=s.Tiles.Where(t=>t.Kind==(kind==ItemKind.Wood?TileKind.Wood:TileKind.Fishbone)).Sum(t=>(long)t.Paid)
+                +s.Boss.DestroyedTiles.Where(t=>t.Kind==(kind==ItemKind.Wood?TileKind.Wood:TileKind.Fishbone)).Sum(t=>t.Paid);
             if(earned!=remaining+spent)throw new InvalidDataException("Global material conservation failed.");
         }
     }
-    private static void Validate(HookState s)
+    internal static void Validate(HookState s)
     {
         if((s.Tiles.Count==0)!=(s.Driftwood.Count==0))throw new InvalidDataException("Incomplete platform world.");
+        var initialTiles=s.Tackle?.Config.Boss.Enabled==true?BossArena.InitialTiles(s.Tackle?.Config):PlatformRules.InitialTiles();
         var cells=new HashSet<(int,int)>();var reachable=new HashSet<(int,int)>();
         var queue=new Queue<(int,int)>();
         foreach(var t in s.Tiles)
         {
             if(!PlatformRules.InBounds(t.X,t.Z) || !cells.Add((t.X,t.Z)) || t.Kind<TileKind.Wood || t.Kind>TileKind.Fishbone ||
                 t.Builder< -1 || t.Builder>=s.Players.Count || t.Paid<0 || t.Paid>1000 || (t.Builder<0)!=(t.Paid==0) ||
-                (t.Builder<0 && (Math.Abs(t.X)>1 || Math.Abs(t.Z)>1 || t.Kind!=TileKind.Wood)))
+                (t.Builder<0 && (!initialTiles.Any(initial=>initial.X==t.X && initial.Z==t.Z) || t.Kind!=TileKind.Wood)))
                 throw new InvalidDataException("Invalid platform tile.");
         }
         if(s.Tiles.Count>0)
         {
-            foreach(var initial in PlatformRules.InitialTiles())
-                if(!s.Tiles.Any(t=>t.X==initial.X && t.Z==initial.Z && t.Builder==-1))throw new InvalidDataException("Missing initial platform tile.");
+            foreach(var initial in initialTiles)
+                if(!s.Tiles.Any(t=>t.X==initial.X && t.Z==initial.Z && t.Builder==-1) && !s.Boss.DestroyedTiles.Any(t=>t.X==initial.X && t.Z==initial.Z && t.Builder==-1))throw new InvalidDataException("Missing initial platform tile.");
+            // 损毁格只为证明原连通性参与遍历；它们不会变回可站立地板。
+            foreach(var loss in s.Boss.DestroyedTiles)cells.Add((loss.X,loss.Z));
             queue.Enqueue((0,0));reachable.Add((0,0));
             while(queue.Count>0)
             {

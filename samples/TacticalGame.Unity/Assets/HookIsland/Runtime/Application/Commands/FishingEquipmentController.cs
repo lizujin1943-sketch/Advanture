@@ -93,7 +93,8 @@ namespace Advanture.HookIsland
         public HookInput Compose(HookInput input)
         {
             if(inventoryRequests.Pending)return new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,
-                shopping:input.Shopping,inventory:inventoryRequests.Command,roomRules:input.RoomRules);
+                shopping:input.Shopping,inventory:inventoryRequests.Command,roomRules:input.RoomRules,
+                aimVertical:input.AimVertical);
             return requests.Compose(input);
         }
         public void ResetSession(){Close();GetComponent<FishingEquipmentOverlay>()?.ResetSession();requests.Reset();inventoryRequests.Reset();message=null;previousEscapes=0;}

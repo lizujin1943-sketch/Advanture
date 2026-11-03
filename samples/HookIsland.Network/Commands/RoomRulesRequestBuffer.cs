@@ -16,6 +16,6 @@ public sealed class RoomRulesRequestBuffer
     {if(Pending && confirmed.LastRequest>=Command.RequestId)Reset();}
     public HookInput Compose(HookInput input)=>!Pending?input:new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,
         input.Fire,input.Cancel,input.Upgrade,input.PurchaseId,input.Shopping,input.Build,input.BuildX,input.BuildZ,input.BuildId,
-        input.RodAction,input.RodTarget,input.RodBatch,input.RodRequestId,input.Inventory,input.Revival,Command,input.Treasure,input.Reload);
+        input.RodAction,input.RodTarget,input.RodBatch,input.RodRequestId,input.Inventory,input.Revival,Command,input.Treasure,input.Reload,input.AimVertical,input.BossRequest);
     public void Reset()=>Command=default;
 }

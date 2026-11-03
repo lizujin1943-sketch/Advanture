@@ -1,0 +1,1861 @@
+{
+  "schema": 1,
+  "fps": 30,
+  "coordinateSystem": "Unity local meters (x,z,y from Blender), forward -Z; binary values in millimeters",
+  "worldTranslationIncluded": false,
+  "binaryFormat": "raw little-endian int32, frame-major/limb-major/joint-major, each point x,y,z,radiusMm",
+  "jointsFile": "collision-joints.bin",
+  "bodyFile": "collision-body.bin",
+  "jointCount": 152,
+  "frameStrideBytes": 2432,
+  "bodyFrameStrideBytes": 40,
+  "bodyRecord": [
+    "headMinX",
+    "headMinY",
+    "headMinZ",
+    "headMaxX",
+    "headMaxY",
+    "headMaxZ",
+    "eyeX",
+    "eyeY",
+    "eyeZ",
+    "eyeRadius"
+  ],
+  "radiusApproximation": "authored cross-section radius × 1.18 covers skin/suckers; capsule endpoints use consecutive points",
+  "limbs": [
+    {
+      "id": "A01",
+      "pointOffset": 0,
+      "pointCount": 25,
+      "boneRoot": "DEF_A01_00",
+      "control": "CTRL_A01",
+      "azimuthDegreesFromNegativeZ": -65,
+      "authoredDirectionPermilleXZ": [
+        -906,
+        -423
+      ],
+      "uncoiledLengthMm": 24000,
+      "radiiMm": [
+        1139,
+        1109,
+        1075,
+        1035,
+        988,
+        934,
+        874,
+        807,
+        734,
+        657,
+        576,
+        491,
+        405,
+        379,
+        353,
+        327,
+        301,
+        275,
+        249,
+        222,
+        194,
+        166,
+        136,
+        105,
+        65
+      ]
+    },
+    {
+      "id": "A02",
+      "pointOffset": 25,
+      "pointCount": 25,
+      "boneRoot": "DEF_A02_00",
+      "control": "CTRL_A02",
+      "azimuthDegreesFromNegativeZ": -24,
+      "authoredDirectionPermilleXZ": [
+        -407,
+        -914
+      ],
+      "uncoiledLengthMm": 24000,
+      "radiiMm": [
+        1139,
+        1109,
+        1075,
+        1035,
+        988,
+        934,
+        874,
+        807,
+        734,
+        657,
+        576,
+        491,
+        405,
+        379,
+        353,
+        327,
+        301,
+        275,
+        249,
+        222,
+        194,
+        166,
+        136,
+        105,
+        65
+      ]
+    },
+    {
+      "id": "A03",
+      "pointOffset": 50,
+      "pointCount": 25,
+      "boneRoot": "DEF_A03_00",
+      "control": "CTRL_A03",
+      "azimuthDegreesFromNegativeZ": 24,
+      "authoredDirectionPermilleXZ": [
+        407,
+        -914
+      ],
+      "uncoiledLengthMm": 24000,
+      "radiiMm": [
+        1139,
+        1109,
+        1075,
+        1035,
+        988,
+        934,
+        874,
+        807,
+        734,
+        657,
+        576,
+        491,
+        405,
+        379,
+        353,
+        327,
+        301,
+        275,
+        249,
+        222,
+        194,
+        166,
+        136,
+        105,
+        65
+      ]
+    },
+    {
+      "id": "A04",
+      "pointOffset": 75,
+      "pointCount": 25,
+      "boneRoot": "DEF_A04_00",
+      "control": "CTRL_A04",
+      "azimuthDegreesFromNegativeZ": 65,
+      "authoredDirectionPermilleXZ": [
+        906,
+        -423
+      ],
+      "uncoiledLengthMm": 24000,
+      "radiiMm": [
+        1139,
+        1109,
+        1075,
+        1035,
+        988,
+        934,
+        874,
+        807,
+        734,
+        657,
+        576,
+        491,
+        405,
+        379,
+        353,
+        327,
+        301,
+        275,
+        249,
+        222,
+        194,
+        166,
+        136,
+        105,
+        65
+      ]
+    },
+    {
+      "id": "S01",
+      "pointOffset": 100,
+      "pointCount": 13,
+      "boneRoot": "DEF_S01_00",
+      "control": "CTRL_S01",
+      "azimuthDegreesFromNegativeZ": -115,
+      "authoredDirectionPermilleXZ": [
+        -906,
+        423
+      ],
+      "uncoiledLengthMm": 18000,
+      "radiiMm": [
+        1139,
+        1100,
+        1053,
+        994,
+        925,
+        844,
+        754,
+        654,
+        549,
+        438,
+        325,
+        206,
+        65
+      ]
+    },
+    {
+      "id": "S02",
+      "pointOffset": 113,
+      "pointCount": 13,
+      "boneRoot": "DEF_S02_00",
+      "control": "CTRL_S02",
+      "azimuthDegreesFromNegativeZ": -158,
+      "authoredDirectionPermilleXZ": [
+        -375,
+        927
+      ],
+      "uncoiledLengthMm": 18000,
+      "radiiMm": [
+        1139,
+        1100,
+        1053,
+        994,
+        925,
+        844,
+        754,
+        654,
+        549,
+        438,
+        325,
+        206,
+        65
+      ]
+    },
+    {
+      "id": "S03",
+      "pointOffset": 126,
+      "pointCount": 13,
+      "boneRoot": "DEF_S03_00",
+      "control": "CTRL_S03",
+      "azimuthDegreesFromNegativeZ": 158,
+      "authoredDirectionPermilleXZ": [
+        375,
+        927
+      ],
+      "uncoiledLengthMm": 18000,
+      "radiiMm": [
+        1139,
+        1100,
+        1053,
+        994,
+        925,
+        844,
+        754,
+        654,
+        549,
+        438,
+        325,
+        206,
+        65
+      ]
+    },
+    {
+      "id": "S04",
+      "pointOffset": 139,
+      "pointCount": 13,
+      "boneRoot": "DEF_S04_00",
+      "control": "CTRL_S04",
+      "azimuthDegreesFromNegativeZ": 115,
+      "authoredDirectionPermilleXZ": [
+        906,
+        423
+      ],
+      "uncoiledLengthMm": 18000,
+      "radiiMm": [
+        1139,
+        1100,
+        1053,
+        994,
+        925,
+        844,
+        754,
+        654,
+        549,
+        438,
+        325,
+        206,
+        65
+      ]
+    }
+  ],
+  "clips": [
+    {
+      "name": "AW_Emerge",
+      "frameCount": 121,
+      "offsetBytes": 0,
+      "bodyOffsetBytes": 0,
+      "durationSeconds": 4,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          -5550,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          -12523,
+          -10027
+        ],
+        "A03": [
+          2780,
+          -12482,
+          -11898
+        ],
+        "A04": [
+          8934,
+          -6819,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          -12760,
+          4668
+        ],
+        "S02": [
+          -2407,
+          -12842,
+          8627
+        ],
+        "S03": [
+          4261,
+          -12905,
+          7877
+        ],
+        "S04": [
+          8489,
+          -12918,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -13600,
+        -2404,
+        3516,
+        -2612,
+        4782
+      ],
+      "eyeSphereMm": [
+        0,
+        -7021,
+        -1891,
+        977
+      ]
+    },
+    {
+      "name": "AW_Idle",
+      "frameCount": 181,
+      "offsetBytes": 294272,
+      "bodyOffsetBytes": 4840,
+      "durationSeconds": 6,
+      "loop": true,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Slam_A01",
+      "frameCount": 91,
+      "offsetBytes": 734464,
+      "bodyOffsetBytes": 12080,
+      "durationSeconds": 3,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ],
+      "impactEndpointMm": [
+        -19395,
+        550,
+        -9044
+      ]
+    },
+    {
+      "name": "AW_Sweep_A01",
+      "frameCount": 109,
+      "offsetBytes": 955776,
+      "bodyOffsetBytes": 15720,
+      "durationSeconds": 3.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Slam_A02",
+      "frameCount": 91,
+      "offsetBytes": 1220864,
+      "bodyOffsetBytes": 20080,
+      "durationSeconds": 3,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ],
+      "impactEndpointMm": [
+        -8704,
+        550,
+        -19550
+      ]
+    },
+    {
+      "name": "AW_Sweep_A02",
+      "frameCount": 109,
+      "offsetBytes": 1442176,
+      "bodyOffsetBytes": 23720,
+      "durationSeconds": 3.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Slam_A03",
+      "frameCount": 91,
+      "offsetBytes": 1707264,
+      "bodyOffsetBytes": 28080,
+      "durationSeconds": 3,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ],
+      "impactEndpointMm": [
+        8704,
+        550,
+        -19550
+      ]
+    },
+    {
+      "name": "AW_Sweep_A03",
+      "frameCount": 109,
+      "offsetBytes": 1928576,
+      "bodyOffsetBytes": 31720,
+      "durationSeconds": 3.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Slam_A04",
+      "frameCount": 91,
+      "offsetBytes": 2193664,
+      "bodyOffsetBytes": 36080,
+      "durationSeconds": 3,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ],
+      "impactEndpointMm": [
+        19395,
+        550,
+        -9044
+      ]
+    },
+    {
+      "name": "AW_Sweep_A04",
+      "frameCount": 109,
+      "offsetBytes": 2414976,
+      "bodyOffsetBytes": 39720,
+      "durationSeconds": 3.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Ink",
+      "frameCount": 97,
+      "offsetBytes": 2680064,
+      "bodyOffsetBytes": 44080,
+      "durationSeconds": 3.2,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Hit",
+      "frameCount": 31,
+      "offsetBytes": 2915968,
+      "bodyOffsetBytes": 47960,
+      "durationSeconds": 1,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Enrage",
+      "frameCount": 91,
+      "offsetBytes": 2991360,
+      "bodyOffsetBytes": 49200,
+      "durationSeconds": 3,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_EnragedIdle",
+      "frameCount": 151,
+      "offsetBytes": 3212672,
+      "bodyOffsetBytes": 52840,
+      "durationSeconds": 5,
+      "loop": true,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Sever_A01",
+      "frameCount": 79,
+      "offsetBytes": 3579904,
+      "bodyOffsetBytes": 58880,
+      "durationSeconds": 2.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Sever_A02",
+      "frameCount": 79,
+      "offsetBytes": 3772032,
+      "bodyOffsetBytes": 62040,
+      "durationSeconds": 2.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Sever_A03",
+      "frameCount": 79,
+      "offsetBytes": 3964160,
+      "bodyOffsetBytes": 65200,
+      "durationSeconds": 2.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Sever_A04",
+      "frameCount": 79,
+      "offsetBytes": 4156288,
+      "bodyOffsetBytes": 68360,
+      "durationSeconds": 2.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Sever_S01",
+      "frameCount": 79,
+      "offsetBytes": 4348416,
+      "bodyOffsetBytes": 71520,
+      "durationSeconds": 2.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Sever_S02",
+      "frameCount": 79,
+      "offsetBytes": 4540544,
+      "bodyOffsetBytes": 74680,
+      "durationSeconds": 2.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Sever_S03",
+      "frameCount": 79,
+      "offsetBytes": 4732672,
+      "bodyOffsetBytes": 77840,
+      "durationSeconds": 2.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Sever_S04",
+      "frameCount": 79,
+      "offsetBytes": 4924800,
+      "bodyOffsetBytes": 81000,
+      "durationSeconds": 2.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Death",
+      "frameCount": 181,
+      "offsetBytes": 5116928,
+      "bodyOffsetBytes": 84160,
+      "durationSeconds": 6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    },
+    {
+      "name": "AW_Combination",
+      "frameCount": 109,
+      "offsetBytes": 5557120,
+      "bodyOffsetBytes": 91400,
+      "durationSeconds": 3.6,
+      "loop": false,
+      "neutralEndpointsMm": {
+        "A01": [
+          -8882,
+          9150,
+          -4142
+        ],
+        "A02": [
+          -6982,
+          2177,
+          -10027
+        ],
+        "A03": [
+          2780,
+          2218,
+          -11898
+        ],
+        "A04": [
+          8934,
+          7881,
+          -4030
+        ],
+        "S01": [
+          -7644,
+          1940,
+          4668
+        ],
+        "S02": [
+          -2407,
+          1858,
+          8627
+        ],
+        "S03": [
+          4261,
+          1795,
+          7877
+        ],
+        "S04": [
+          8489,
+          1782,
+          2855
+        ]
+      },
+      "headBoundsMm": [
+        -3621,
+        -600,
+        -2288,
+        3516,
+        10000,
+        5311
+      ],
+      "eyeSphereMm": [
+        0,
+        6120,
+        -1639,
+        940
+      ]
+    }
+  ],
+  "sourceHashes": {
+    "AbyssalWatcher.blend": "438cc512b28ad4ecfa631aab68dcd66e3e7042edea8a318b1aee1930de7ad55a",
+    "AbyssalWatcher_ModelApproved.blend": "9f84c45c104b6912cf9864fd0d2645f94a0c48179da9597cc8446a22a3e4e0e8"
+  }
+}

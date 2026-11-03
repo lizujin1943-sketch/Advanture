@@ -22,6 +22,13 @@ MonoBehaviour:
   finale: {fileID: 11400000, guid: 572a2ad7497d84281bd6d0b3ff8066fc, type: 2}
   merchants: {fileID: 11400000, guid: 5e8ff500481794127baa3b38ddcab46a, type: 2}
   combo: {fileID: 11400000, guid: a829978f5b844422fa5c8aa39bc8f332, type: 2}
+  crabs: {fileID: 11400000, guid: 991bb99abef8439a992eb3c1c47720b4, type: 2}
+  boss: {fileID: 11400000, guid: b4d59e92a9dbd430eb0d54bde01b8612, type: 2}
+  enableMelee: 1
+  enableFirearms: 1
+  startWithFryingPan: 1
+  piranhaHealth: 50
+  meleeStunSeconds: 0.5
   characterBaseStamina: 100
   recoveryDelaySeconds: 2
   recoveryPointsPerSecond: 5
@@ -29,9 +36,5 @@ MonoBehaviour:
   additionalAnglerSpeedBonus: 0.5
   merchantLevel: 1
   restockSeconds: 600
+  foodCooldownSeconds: 8
   worldSeed: 7381
-  crabs: {fileID: 11400000, guid: 991bb99abef8439a992eb3c1c47720b4, type: 2}
-  enableMelee: 1
-  startWithFryingPan: 1
-  piranhaHealth: 50
-  meleeStunSeconds: 0.5

@@ -64,8 +64,9 @@ public struct Fish
 public sealed class HookState
 {
     public HookState(ulong steps, IEnumerable<Fisher> players, IEnumerable<Fish> fish, int coins,
-        IEnumerable<PlatformTile>? tiles=null,IEnumerable<Driftwood>? driftwood=null,TackleState? tackle=null,EnemyState? enemies=null,RoomRulesState? roomRules=null,TreasureState? treasure=null,CommissionState? commissions=null,OceanState? ocean=null,FinaleState? finale=null,IEnumerable<CrabState>? crabs=null)
+        IEnumerable<PlatformTile>? tiles=null,IEnumerable<Driftwood>? driftwood=null,TackleState? tackle=null,EnemyState? enemies=null,RoomRulesState? roomRules=null,TreasureState? treasure=null,CommissionState? commissions=null,OceanState? ocean=null,FinaleState? finale=null,IEnumerable<CrabState>? crabs=null,BossState? boss=null)
     {
+        Boss=boss??BossState.Empty;
         Steps=steps;Players=Array.AsReadOnly(players.ToArray());Fish=Array.AsReadOnly(fish.ToArray());Coins=coins;
         Tiles=Array.AsReadOnly((tiles??Array.Empty<PlatformTile>()).ToArray());
         Driftwood=Array.AsReadOnly((driftwood??Array.Empty<Driftwood>()).ToArray());
@@ -78,6 +79,7 @@ public sealed class HookState
         Finale=finale??FinaleState.Empty;
         Crabs=Array.AsReadOnly((crabs??Array.Empty<CrabState>()).ToArray());
     }
+    public BossState Boss {get;}
     public bool Won=>Finale.Phase==FinalePhase.Victory;
     public bool RoundFinished=>Won || GameOver;
     public bool GameOver => !Won && Tackle!=null && RevivalSystem.GameOver(Players);

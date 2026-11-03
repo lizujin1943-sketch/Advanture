@@ -46,7 +46,8 @@ public sealed class PlatformBuildRequestBuffer
             Pending ? RodAction.None : input.RodAction, Pending ? 0 : input.RodTarget,
             Pending ? 0 : input.RodBatch, Pending ? 0 : input.RodRequestId,
             // 仅打开建造面板不能吞掉已有库存请求；建造回执到达后应继续重试原意图。
-            Pending ? default : input.Inventory,revival:Pending?default:input.Revival,roomRules:input.RoomRules,treasure:Pending?default:input.Treasure);
+            Pending ? default : input.Inventory,revival:Pending?default:input.Revival,roomRules:input.RoomRules,treasure:Pending?default:input.Treasure,
+            aimVertical:input.AimVertical,bossRequest:Pending?0:input.BossRequest);
     }
 
     public void Reset()

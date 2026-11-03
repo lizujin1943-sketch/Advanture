@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1510" viewBox="0 0 1600 1510" role="img" aria-labelledby="title desc">
+<title id="title">营地俯视布局方案 A</title>
+<desc id="desc">约40乘34米的城墙营地，南主门宽6米，东西侧门宽4米。五处建筑及城门整备区，中央集结广场，连续沿墙通道和两条绕行路线。蓝色双向箭头为支援通道。仅为建议布局，未进行游戏试玩。</desc>
+<defs>
+  <pattern id="ground-grid" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0V60" fill="none" stroke="#d4cfc1" stroke-width="1" opacity=".25"/></pattern>
+  <pattern id="stone" width="60" height="30" patternUnits="userSpaceOnUse"><rect width="60" height="30" fill="#8b9288"/><path d="M0 0H60M0 30H60M30 0V15M0 15H60M15 15V30M45 15V30" stroke="#727e73" stroke-width="1.4"/></pattern>
+  <marker id="blue-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M1 1L7 4.5L1 8" fill="none" stroke="#317d9b" stroke-width="1.6" stroke-linejoin="round"/></marker>
+  <marker id="green-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth"><path d="M1 1L7 4.5L1 8" fill="none" stroke="#3b9675" stroke-width="1.5" stroke-linejoin="round"/></marker>
+</defs>
+<style>text{font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;letter-spacing:.2px} .small{font-size:22px}</style>
+<rect width="1600" height="1510" fill="#faf8f1"/>
+
+<text x="78" y="83" text-anchor="start" font-size="50" font-weight="800" fill="#263d40" >营地俯视布局</text>
+<text x="78" y="130" text-anchor="start" font-size="26" font-weight="500" fill="#61736d" >方案 A  /  六个功能区 · 双向支援 · 建筑绕行</text>
+<text x="1522" y="85" text-anchor="end" font-size="40" font-weight="700" fill="#9ca79a" >01</text>
+<text x="1522" y="128" text-anchor="end" font-size="24" font-weight="500" fill="#61736d" >建议尺寸 · 待试玩</text>
+<path d="M78 155H1522" stroke="#cfd5c8" stroke-width="1.5"/>
+<path d="M200 184H1400M200 174V207M1400 174V207" fill="none" stroke="#849187" stroke-width="1.6"/>
+<text x="800" y="178" text-anchor="middle" font-size="25" font-weight="500" fill="#5c7166" >约 40 m</text>
+<path d="M51 230V1250M41 230H76M41 1250H76" fill="none" stroke="#849187" stroke-width="1.6"/>
+<text x="34" y="740" text-anchor="middle" font-size="25" font-weight="500" fill="#5c7166" transform="rotate(-90 34 740)">约 34 m</text>
+<text x="1480" y="207" text-anchor="middle" font-size="23" font-weight="500" fill="#506c61" >N / 北</text>
+<path d="M1480 268V227M1471 240L1480 226L1489 240" fill="none" stroke="#506c61" stroke-width="3"/>
+<path d="M 245.0 230 L 1355.0 230 L 1400 275.0 L 1400 1205.0 L 1355.0 1250 L 245.0 1250 L 200 1205.0 L 200 275.0 Z" fill="url(#stone)" stroke="#657568" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 260 260 L 1340 260 L 1370 290 L 1370 1190 L 1340 1220 L 260 1220 L 230 1190 L 230 290 Z" fill="#ebe6d8" stroke="#7f8a7b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 290 320 L 1310 320 L 1310 1160 L 290 1160 L 290 320" fill="none" stroke="#f5f1e7" stroke-width="120" stroke-linejoin="round" stroke-linecap="round" />
+<rect x="230" y="680" width="1140" height="120" rx="0" fill="#f7f4ed" stroke="none" stroke-width="1" />
+<rect x="710" y="560" width="180" height="660" rx="0" fill="#f7f4ed" stroke="none" stroke-width="1" />
+<rect x="230" y="260" width="1140" height="960" rx="0" fill="url(#ground-grid)" stroke="none" stroke-width="1" />
+<rect x="194.0" y="680" width="39.0" height="120" rx="0" fill="#f7f4ed" stroke="none" stroke-width="1" />
+<rect x="1367.0" y="680" width="39.0" height="120" rx="0" fill="#f7f4ed" stroke="none" stroke-width="1" />
+<rect x="710" y="1217.0" width="180" height="39.0" rx="0" fill="#f7f4ed" stroke="none" stroke-width="1" />
+<rect x="150.5" y="671.6" width="51.0" height="8.4" rx="2" fill="#af8351" stroke="#7d6547" stroke-width="1.5" />
+<rect x="150.5" y="800" width="51.0" height="8.4" rx="2" fill="#af8351" stroke="#7d6547" stroke-width="1.5" />
+<rect x="1398.5" y="671.6" width="51.0" height="8.4" rx="2" fill="#af8351" stroke="#7d6547" stroke-width="1.5" />
+<rect x="1398.5" y="800" width="51.0" height="8.4" rx="2" fill="#af8351" stroke="#7d6547" stroke-width="1.5" />
+<rect x="701.0" y="1248.5" width="9.0" height="54.0" rx="2" fill="#af8351" stroke="#7d6547" stroke-width="1.5" />
+<rect x="890" y="1248.5" width="9.0" height="54.0" rx="2" fill="#af8351" stroke="#7d6547" stroke-width="1.5" />
+<text x="800" y="251.6" text-anchor="middle" font-size="23" font-weight="600" fill="#ffffff" >城墙</text>
+<text x="800" y="327.5" text-anchor="middle" font-size="25" font-weight="500" fill="#697a69" >沿墙巡逻通道 · 净宽 ≥ 4 m</text>
+<rect x="650" y="650" width="360" height="240" rx="12" fill="#e6dfc5" stroke="none" stroke-width="1" fill-opacity=".55"/>
+<rect x="650" y="1040" width="300" height="180" rx="9" fill="#e9d8b9" stroke="none" stroke-width="1" fill-opacity=".68"/>
+<path d="M 674.0 650 L 650 650 L 650 674.0" fill="none" stroke="#b5ab8b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 986.0 650 L 1010 650 L 1010 674.0" fill="none" stroke="#b5ab8b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 674.0 890 L 650 890 L 650 866.0" fill="none" stroke="#b5ab8b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 986.0 890 L 1010 890 L 1010 866.0" fill="none" stroke="#b5ab8b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+<rect x="683.0" y="383.0" width="270" height="180" rx="4" fill="#7a7767" stroke="none" stroke-width="1" opacity=".12"/>
+<rect x="680" y="380" width="270" height="180" rx="4" fill="#d9aa95" stroke="#8e6556" stroke-width="2.5" />
+<path d="M 680 380 L 719.0 416.0 L 911.0 416.0 L 950 380" fill="#e3bcaa" stroke="#8e6556" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 680 560 L 719.0 524.0 L 911.0 524.0 L 950 560" fill="#c89982" stroke="#8e6556" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 680 380 L 719.0 416.0 L 719.0 524.0 L 680 560" fill="none" stroke="#8e6556" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 950 380 L 911.0 416.0 L 911.0 524.0 L 950 560" fill="none" stroke="#8e6556" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" />
+<circle cx="702.5" cy="403.4" r="20" fill="#8e6556"/>
+<text x="702.5" y="410.4" text-anchor="middle" font-size="20" font-weight="750" fill="#fffdf7" >01</text>
+<text x="815.0" y="475.4" text-anchor="middle" font-size="27" font-weight="750" fill="#2a4141" >营地主屋</text>
+<text x="815.0" y="513.8" text-anchor="middle" font-size="22" font-weight="500" fill="#415853" >任务 · 集合</text>
+<path d="M 791.0 560 L 839.0 560" fill="none" stroke="#fff9ea" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" />
+<rect x="788.0" y="561.8" width="54.0" height="6.6" rx="2" fill="#b7a48a" stroke="none" stroke-width="1" />
+<rect x="353.0" y="833.0" width="240" height="180" rx="4" fill="#7a7767" stroke="none" stroke-width="1" opacity=".12"/>
+<rect x="350" y="830" width="240" height="180" rx="4" fill="#afc2cc" stroke="#5a7c8b" stroke-width="2.5" />
+<path d="M 350 852.5 L 590 852.5" fill="none" stroke="#5a7c8b" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 350 987.5 L 590 987.5" fill="none" stroke="#5a7c8b" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" />
+<circle cx="372.5" cy="853.4000000000001" r="20" fill="#5a7c8b"/>
+<text x="372.5" y="860.4000000000001" text-anchor="middle" font-size="20" font-weight="750" fill="#fffdf7" >02</text>
+<text x="470.0" y="925.4" text-anchor="middle" font-size="27" font-weight="750" fill="#2a4141" >物资仓库</text>
+<text x="470.0" y="963.8000000000001" text-anchor="middle" font-size="22" font-weight="500" fill="#415853" >公共材料</text>
+<path d="M 590 890 L 590 950" fill="none" stroke="#f8f4e8" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" />
+<rect x="353.0" y="413.0" width="210" height="180" rx="4" fill="#7a7767" stroke="none" stroke-width="1" opacity=".12"/>
+<rect x="350" y="410" width="210" height="180" rx="4" fill="#ddc394" stroke="#9a7e4c" stroke-width="2.5" />
+<path d="M 350 432.5 L 560 432.5" fill="none" stroke="#9a7e4c" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 350 567.5 L 560 567.5" fill="none" stroke="#9a7e4c" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" />
+<circle cx="372.5" cy="433.4" r="20" fill="#9a7e4c"/>
+<text x="372.5" y="440.4" text-anchor="middle" font-size="20" font-weight="750" fill="#fffdf7" >03</text>
+<text x="455.0" y="505.4" text-anchor="middle" font-size="27" font-weight="750" fill="#2a4141" >制作工坊</text>
+<text x="455.0" y="543.8" text-anchor="middle" font-size="22" font-weight="500" fill="#415853" >制作 · 升级</text>
+<path d="M 431.0 590 L 479.0 590" fill="none" stroke="#fff9ea" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" />
+<rect x="428.0" y="591.8" width="54.0" height="6.6" rx="2" fill="#b7a48a" stroke="none" stroke-width="1" />
+<rect x="1073.0" y="413.0" width="180" height="150" rx="4" fill="#7a7767" stroke="none" stroke-width="1" opacity=".12"/>
+<rect x="1070" y="410" width="180" height="150" rx="4" fill="#bdd0bb" stroke="#698766" stroke-width="2.5" />
+<path d="M 1070 432.5 L 1250 432.5" fill="none" stroke="#698766" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 1070 537.5 L 1250 537.5" fill="none" stroke="#698766" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" />
+<circle cx="1092.5" cy="433.4" r="20" fill="#698766"/>
+<text x="1092.5" y="440.4" text-anchor="middle" font-size="20" font-weight="750" fill="#fffdf7" >04</text>
+<text x="1160.0" y="489.5" text-anchor="middle" font-size="25" font-weight="750" fill="#2a4141" >医疗与厨房</text>
+<text x="1160.0" y="527.9" text-anchor="middle" font-size="22" font-weight="500" fill="#415853" >治疗 · 食物</text>
+<path d="M 1136.0 560 L 1184.0 560" fill="none" stroke="#fff9ea" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" />
+<rect x="1133.0" y="561.8" width="54.0" height="6.6" rx="2" fill="#b7a48a" stroke="none" stroke-width="1" />
+<rect x="1073.0" y="923.0" width="180" height="120" rx="4" fill="#7a7767" stroke="none" stroke-width="1" opacity=".12"/>
+<rect x="1070" y="920" width="180" height="120" rx="4" fill="#e8c9ab" stroke="#a27a58" stroke-width="2.5" />
+<rect x="1070.0" y="920" width="22.5" height="120" rx="0" fill="#f2e4cb" stroke="none" stroke-width="1" opacity=".65"/>
+<rect x="1115.0" y="920" width="22.5" height="120" rx="0" fill="#f2e4cb" stroke="none" stroke-width="1" opacity=".65"/>
+<rect x="1160.0" y="920" width="22.5" height="120" rx="0" fill="#f2e4cb" stroke="none" stroke-width="1" opacity=".65"/>
+<rect x="1205.0" y="920" width="22.5" height="120" rx="0" fill="#f2e4cb" stroke="none" stroke-width="1" opacity=".65"/>
+<circle cx="1092.5" cy="943.4000000000001" r="20" fill="#a27a58"/>
+<text x="1092.5" y="950.4000000000001" text-anchor="middle" font-size="20" font-weight="750" fill="#fffdf7" >05</text>
+<text x="1160.0" y="983.6" text-anchor="middle" font-size="25" font-weight="750" fill="#2a4141" >商人交易区</text>
+<text x="1160.0" y="1022.0000000000001" text-anchor="middle" font-size="22" font-weight="500" fill="#415853" >买卖 · 回收</text>
+<path d="M 1070 953.0 L 1070 1007.0" fill="none" stroke="#fff9ea" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" />
+<path d="M 650 770 L 650 1100 L 290 1100 L 290 770 L 650 770" fill="none" stroke="#faf8f1" stroke-width="8" stroke-linejoin="round" stroke-linecap="round" opacity=".85"/>
+<path d="M 650 770 L 650 1100 L 290 1100 L 290 770 L 650 770" fill="none" stroke="#3b9675" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="12 10"/>
+<path d="M 1010 830 L 1310 830 L 1310 1130 L 1010 1130 L 1010 830" fill="none" stroke="#faf8f1" stroke-width="8" stroke-linejoin="round" stroke-linecap="round" opacity=".85"/>
+<path d="M 1010 830 L 1310 830 L 1310 1130 L 1010 1130 L 1010 830" fill="none" stroke="#3b9675" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="12 10"/>
+<path d="M 650 956.0 L 650 1007.0" fill="none" stroke="#3b9675" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#green-arrow)"/>
+<path d="M 425.0 1100 L 374.0 1100" fill="none" stroke="#3b9675" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#green-arrow)"/>
+<path d="M 290 920 L 290 875.0" fill="none" stroke="#3b9675" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#green-arrow)"/>
+<path d="M 1100 830 L 1160 830" fill="none" stroke="#3b9675" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#green-arrow)"/>
+<path d="M 1310 980 L 1310 1040" fill="none" stroke="#3b9675" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#green-arrow)"/>
+<path d="M 1175.0 1130 L 1115.0 1130" fill="none" stroke="#3b9675" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#green-arrow)"/>
+<path d="M 254.0 729.5 L 1346.0 729.5" fill="none" stroke="#317d9b" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" marker-start="url(#blue-arrow)" marker-end="url(#blue-arrow)"/>
+<path d="M 830 797.0 L 830 1193.0" fill="none" stroke="#317d9b" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" marker-start="url(#blue-arrow)" marker-end="url(#blue-arrow)"/>
+<path d="M 830 581.0 L 830 629.0" fill="none" stroke="#317d9b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#blue-arrow)"/>
+<rect x="692.4399999999999" y="650.5999999999999" width="275.1200000000001" height="42" rx="6" fill="#eee8d5"/>
+<text x="830" y="683.5999999999999" text-anchor="middle" font-size="28" font-weight="500" fill="#5a5e4c" >集结广场 · 12×8 m</text>
+<rect x="702.0" y="746.0" width="256.0000000000001" height="39" rx="6" fill="#eee8d5"/>
+<text x="830" y="776.0" text-anchor="middle" font-size="25" font-weight="500" fill="#31748e" >横向支援通道 · 4 m</text>
+<rect x="847.5" y="944.0" width="181.00000000000003" height="39" rx="6" fill="#f7f3e9"/>
+<text x="938.0" y="974.0" text-anchor="middle" font-size="25" font-weight="500" fill="#31748e" >主通道 · 6 m</text>
+<rect x="401.0" y="1115.5" width="126" height="40" rx="6" fill="#f7f3e9"/>
+<text x="464.0" y="1146.5" text-anchor="middle" font-size="26" font-weight="500" fill="#31805f" >西侧绕行</text>
+<rect x="1109.0" y="1145.5" width="126" height="40" rx="6" fill="#f7f3e9"/>
+<text x="1172.0" y="1176.5" text-anchor="middle" font-size="26" font-weight="500" fill="#31805f" >东侧绕行</text>
+<circle cx="722.0" cy="845.0" r="13" fill="#317d9b" stroke="#faf8f1" stroke-width="2"/>
+<text x="722.0" y="850.0" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff" >1</text>
+<circle cx="773.0" cy="845.0" r="13" fill="#317d9b" stroke="#faf8f1" stroke-width="2"/>
+<text x="773.0" y="850.0" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff" >2</text>
+<circle cx="887.0" cy="845.0" r="13" fill="#317d9b" stroke="#faf8f1" stroke-width="2"/>
+<text x="887.0" y="850.0" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff" >3</text>
+<circle cx="938.0" cy="845.0" r="13" fill="#317d9b" stroke="#faf8f1" stroke-width="2"/>
+<text x="938.0" y="850.0" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff" >4</text>
+<circle cx="683.0" cy="1070" r="20" fill="#a88149"/>
+<text x="683.0" y="1077" text-anchor="middle" font-size="20" font-weight="750" fill="#fffdf7" >06</text>
+<rect x="722.0" y="1092.5" width="162" height="42" rx="6" fill="#e9d8b9"/>
+<text x="803.0" y="1125.5" text-anchor="middle" font-size="28" font-weight="500" fill="#765f3b" >城门整备区</text>
+<rect x="668.72" y="1133.5" width="268.56000000000006" height="37" rx="6" fill="#e9d8b9"/>
+<text x="803.0" y="1161.5" text-anchor="middle" font-size="23" font-weight="500" fill="#765f3b" >10×6 m · 出发 / 接应</text>
+<text x="170" y="732.5" text-anchor="end" font-size="25" font-weight="650" fill="#263d40" >西侧门</text>
+<text x="170" y="770" text-anchor="end" font-size="25" font-weight="500" fill="#61736d" >4 m</text>
+<text x="1430" y="732.5" text-anchor="start" font-size="25" font-weight="650" fill="#263d40" >东侧门</text>
+<text x="1430" y="770" text-anchor="start" font-size="25" font-weight="500" fill="#61736d" >4 m</text>
+<text x="800" y="1326.5" text-anchor="middle" font-size="29" font-weight="650" fill="#263d40" >南主门 · 6 m</text>
+<path d="M200 1367H500M200 1361V1375M350 1361V1375M500 1361V1375" fill="none" stroke="#61736d" stroke-width="2.5"/>
+<text x="200" y="1400" text-anchor="middle" font-size="22" font-weight="500" fill="#61736d" >0</text>
+<text x="350" y="1400" text-anchor="middle" font-size="22" font-weight="500" fill="#61736d" >5</text>
+<text x="500" y="1400" text-anchor="middle" font-size="22" font-weight="500" fill="#61736d" >10 m</text>
+<path d="M660 1370H744" fill="none" stroke="#317d9b" stroke-width="3" marker-start="url(#blue-arrow)" marker-end="url(#blue-arrow)"/>
+<text x="770" y="1378" text-anchor="start" font-size="25" font-weight="500" fill="#31748e" >队友支援</text>
+<path d="M1050 1370H1130" fill="none" stroke="#3b9675" stroke-width="3.5" stroke-dasharray="12 9"/>
+<text x="1152" y="1378" text-anchor="start" font-size="25" font-weight="500" fill="#31805f" >绕行路线</text>
+<path d="M78 1420H1522" stroke="#cfd5c8" stroke-width="1.5"/>
+<text x="80" y="1465" text-anchor="start" font-size="27" font-weight="600" fill="#263d40" >城墙争取时间，玩家移动消灭丧尸。</text>
+<text x="1520" y="1465" text-anchor="end" font-size="24" font-weight="500" fill="#61736d" >仅布局设计 · 未实现</text>
+</svg>

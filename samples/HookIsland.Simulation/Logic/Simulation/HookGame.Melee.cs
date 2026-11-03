@@ -37,6 +37,15 @@ public sealed partial class HookGame
                             if(system.ReachableHit(tiles,p.X,p.Z) && system.Strike(p.Slot,weapon.Damage))Hit(-3,crab.X,crab.Z);
                         }
                     }
+                    var abyss=boss.Capture();
+                    if(abyss.Damageable)
+                    {
+                        var hitLimbs=new System.Collections.Generic.HashSet<int>();
+                        foreach(var proxy in BossGeometry.Proxies(abyss))
+                            if(proxy.LimbId>=0 && proxy.Y-proxy.RadiusY<=BossGeometry.MuzzleHeight(p)+700 && proxy.Y+proxy.RadiusY>=0 &&
+                                !hitLimbs.Contains(proxy.LimbId) && MeleeRules.Contains(p,proxy.X,proxy.Z,weapon,proxy.RadiusX))
+                            {if(boss.Strike(p.Slot,weapon.Damage,proxy.LimbId)){hitLimbs.Add(proxy.LimbId);Hit(-7,proxy.X,proxy.Z);}}
+                    }
                     if(roomRules.FriendlyPranksEnabled)for(int j=0;j<players.Length;j++)
                     {
                         var target=players[j];

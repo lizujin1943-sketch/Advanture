@@ -28,6 +28,8 @@ public sealed class IslandMap
             platform=new PlatformConfig(platform.WoodTileCost,platform.FishboneTileCost,cells);
         }
         Platform=platform;
+        if(Fishing?.Boss.Enabled==true && Platform==null)throw new InvalidDataException("Boss requires a platform.");
+        if(Fishing?.Boss.Enabled==true && Platform!.BlockedCells.Any(p=>BossArena.InitialTiles(Fishing).Any(t=>t.X==p.X && t.Z==p.Z)))throw new InvalidDataException("Boss arena overlaps a reserved cell.");
         if(Fishing?.Crabs.Enabled==true && Platform==null)throw new InvalidDataException("Crabs require a platform.");
         if(Fishing?.Finale.Enabled==true && Platform==null)throw new InvalidDataException("Finale requires a platform.");
         if (Shore.Count < 3 || Shore.Count > 512 || Pier.Count != 4 || Spawns.Count != 4 || FishSpots.Count < 1 || FishSpots.Count > 32)
@@ -44,7 +46,7 @@ public sealed class IslandMap
     public PlatformConfig? Platform { get; }
     public FishingConfig? Fishing { get; }
     public int HookRange(int level)=>Platform==null?HookUpgrades.Range(level):4000+level*4000;
-    public bool OnLand(int x, int z) => Platform!=null?PlatformRules.OnPlatform(PlatformRules.InitialTiles(),x,z):Inside(Shore,x,z) || Inside(Pier,x,z);
+    public bool OnLand(int x, int z) => Platform!=null?PlatformRules.OnPlatform(PlatformRules.InitialTiles(this),x,z):Inside(Shore,x,z) || Inside(Pier,x,z);
     public bool CanStand(HookState state,int x,int z)=>Platform==null?CanStand(x,z):PlatformRules.CanStand(state.Tiles,x,z);
     public static IslandMap CreatePlatform(int woodTileCost=4,int fishboneTileCost=4)
     {
@@ -70,7 +72,7 @@ public sealed class IslandMap
     }
     public bool CanStand(int x, int z)
     {
-        if(Platform!=null)return PlatformRules.CanStand(PlatformRules.InitialTiles(),x,z);
+        if(Platform!=null)return PlatformRules.CanStand(PlatformRules.InitialTiles(this),x,z);
         const int r = 330;
         return OnLand(x-r,z-r) && OnLand(x-r,z+r) && OnLand(x+r,z-r) && OnLand(x+r,z+r)
             && !Blocked(x,z,r);
@@ -94,7 +96,7 @@ public sealed class IslandMap
     public byte[] Encode()
     {
         using var stream=new MemoryStream(); using var w=new BinaryWriter(stream);
-        w.Write(Fishing!=null?0x4B4D4948:Platform==null?0x314D4948:0x324D4948);
+        w.Write(Fishing!=null?0x4C4D4948:Platform==null?0x314D4948:0x324D4948);
         if(Fishing!=null)w.Write(Platform!=null);
         foreach(var list in new[]{Shore,Pier,Spawns,FishSpots})
         { w.Write(list.Count); foreach(var p in list){w.Write(p.X);w.Write(p.Z);} }
@@ -111,8 +113,8 @@ public sealed class IslandMap
         if(data.Length<64 || data.Length>8192)throw new InvalidDataException("Invalid island map size.");
         using var r=new BinaryReader(new MemoryStream(data.ToArray(),false));
         int version=r.ReadInt32();
-        if(version!=0x314D4948 && version!=0x324D4948 && version!=0x4B4D4948)throw new InvalidDataException("Map version mismatch.");
-        bool platformPresent=version==0x4B4D4948?r.ReadBoolean():version==0x324D4948;
+        if(version!=0x314D4948 && version!=0x324D4948 && version!=0x4C4D4948)throw new InvalidDataException("Map version mismatch.");
+        bool platformPresent=version==0x4C4D4948?r.ReadBoolean():version==0x324D4948;
         var lists=new Point[4][];
         for(int i=0;i<4;i++)
         {
@@ -128,7 +130,7 @@ public sealed class IslandMap
             var blocked=new Point[count];for(int i=0;i<count;i++)blocked[i]=new Point(r.ReadInt32(),r.ReadInt32());
             platform=new PlatformConfig(wood,bone,blocked);
         }
-        FishingConfig? fishing=version==0x4B4D4948?FishingConfig.Read(r):null;
+        FishingConfig? fishing=version==0x4C4D4948?FishingConfig.Read(r):null;
         if(r.BaseStream.Position!=data.Length)throw new InvalidDataException("Trailing map bytes.");
         return new IslandMap(lists[0],lists[1],lists[2],lists[3],platform,fishing);
     }

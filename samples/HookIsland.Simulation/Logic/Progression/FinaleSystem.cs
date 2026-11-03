@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -45,6 +46,18 @@ public sealed class FinaleSystem
         state=new FinaleState(completed==3?FinalePhase.Victory:FinalePhase.Submerged,completed,
             timer:completed==3?0:config.RelocateTicks,spentBait:state.SpentBait,x:state.X,z:state.Z,
             previousX:state.PreviousX,previousZ:state.PreviousZ,direction:state.Direction,victoryTick:completed==3?now:0);
+    }
+    /// <summary>岸线损毁后重选合法站点；保留已完成阶段和已支付诱饵，仅中断当前拉钩。</summary>
+    internal void ReconcileTerrain(IslandMap map,IReadOnlyList<PlatformTile> tiles,Fisher[] players)
+    {
+        if(state.Phase!=FinalePhase.Surfaced && state.Phase!=FinalePhase.Submerged)return;
+        var d=FinaleRules.Direction(state.Direction);var anchor=FinaleRules.Anchor(config,state);
+        if(PlatformRules.Contains(tiles,(state.X-d.X*config.EdgeOffset)/2000,(state.Z-d.Z*config.EdgeOffset)/2000) &&
+            (state.Phase!=FinalePhase.Surfaced || PlatformRules.CanStand(tiles,anchor.X,anchor.Z)))return;
+        if(!FinalePlacement.Find(map,config,tiles,players,state.Completed,new Point(state.PreviousX,state.PreviousZ),out var site,allowEmptyParticipants:true))
+            throw new InvalidOperationException("No remaining finale bank after terrain change.");
+        foreach(var p in players)if(p.HookedFinale)FinaleRules.ClearLine(ref players[p.Slot]);
+        state=new FinaleState(state.Phase,state.Completed,state.Timer,0,state.SpentBait,site.Position.X,site.Position.Z,state.PreviousX,state.PreviousZ,site.Direction,state.VictoryTick);
     }
     private FinaleState Copy(int? timer=null,int? progress=null)=>new FinaleState(state.Phase,state.Completed,timer??state.Timer,
         progress??state.Progress,state.SpentBait,state.X,state.Z,state.PreviousX,state.PreviousZ,state.Direction,state.VictoryTick);

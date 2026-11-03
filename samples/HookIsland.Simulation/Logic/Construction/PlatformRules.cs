@@ -46,6 +46,7 @@ public static class PlatformRules
     // Floor division (including negative world coordinates); centres are integer multiples of two metres.
     public static int CellAt(int millimetres)
     {long shifted=millimetres+1000L;return (int)(shifted>=0?shifted/2000:(shifted-1999)/2000);}
+    public static PlatformTile[] InitialTiles(IslandMap map)=>map.Fishing?.Boss.Enabled==true?BossArena.InitialTiles(map.Fishing):InitialTiles();
     public static PlatformTile[] InitialTiles()=>Enumerable.Range(-1,3)
         .SelectMany(z=>Enumerable.Range(-1,3).Select(x=>new PlatformTile(x,z,TileKind.Wood))).ToArray();
     public static bool Contains(IReadOnlyList<PlatformTile> tiles,int x,int z)=>tiles.Any(t=>t.X==x && t.Z==z);

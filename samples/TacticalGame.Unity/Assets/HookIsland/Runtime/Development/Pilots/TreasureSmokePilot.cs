@@ -50,10 +50,15 @@ namespace Advanture.HookIsland
             if(Math.Abs(dz)>60)return new HookInput(0,Approach(dz,delay));
             if(c.Phase==TreasurePhase.Landed)
                 return new HookInput(0,0,treasure:new TreasureCommand(c.Id+1,c.Generation,p.LastTreasureRequest+1));
-            if(Stage==2)
+            if(Stage==2 && c.Phase==TreasurePhase.Floating)
             {
+                // 开始合作前，全员必须真正结束移动和前一次动作；已挂钩后允许迟到的输入补钩。
                 foreach(var q in s.Players)
-                {var at=Stand(c,q.Slot,s.Players.Count);if(IslandMap.DistanceSquared(q.X,q.Z,at.X,at.Z)>140L*140)return default;}
+                {
+                    var at=Stand(c,q.Slot,s.Players.Count);
+                    if(q.WaitingToJoin || q.Unavailable || q.Phase!=HookPhase.Ready || q.Cooldown>0 ||
+                        Math.Abs(q.X-at.X)>60 || Math.Abs(q.Z-at.Z)>60)return default;
+                }
             }
             return new HookInput(0,0,c.X,c.Z,true);
         }

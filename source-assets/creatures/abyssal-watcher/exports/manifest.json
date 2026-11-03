@@ -1,0 +1,231 @@
+{
+  "asset": "AbyssalWatcher",
+  "version": 4,
+  "style": "organic_high_detail",
+  "head_shape": "cuttlefish_inspired_swept_mantle",
+  "revision_focus": [
+    "head",
+    "eyes",
+    "mouth"
+  ],
+  "units": "meters",
+  "forward": "-Y",
+  "fps": 30,
+  "limbs": {
+    "A01": {
+      "mesh": "AW_Arm_A01",
+      "stump": "AW_Stump_A01",
+      "role": "attack",
+      "bones": 24,
+      "uncoiled_length_m": 24.0
+    },
+    "A02": {
+      "mesh": "AW_Arm_A02",
+      "stump": "AW_Stump_A02",
+      "role": "attack",
+      "bones": 24,
+      "uncoiled_length_m": 24.0
+    },
+    "A03": {
+      "mesh": "AW_Arm_A03",
+      "stump": "AW_Stump_A03",
+      "role": "attack",
+      "bones": 24,
+      "uncoiled_length_m": 24.0
+    },
+    "A04": {
+      "mesh": "AW_Arm_A04",
+      "stump": "AW_Stump_A04",
+      "role": "attack",
+      "bones": 24,
+      "uncoiled_length_m": 24.0
+    },
+    "S01": {
+      "mesh": "AW_Arm_S01",
+      "stump": "AW_Stump_S01",
+      "role": "support",
+      "bones": 12,
+      "uncoiled_length_m": 18.0
+    },
+    "S02": {
+      "mesh": "AW_Arm_S02",
+      "stump": "AW_Stump_S02",
+      "role": "support",
+      "bones": 12,
+      "uncoiled_length_m": 18.0
+    },
+    "S03": {
+      "mesh": "AW_Arm_S03",
+      "stump": "AW_Stump_S03",
+      "role": "support",
+      "bones": 12,
+      "uncoiled_length_m": 18.0
+    },
+    "S04": {
+      "mesh": "AW_Arm_S04",
+      "stump": "AW_Stump_S04",
+      "role": "support",
+      "bones": 12,
+      "uncoiled_length_m": 18.0
+    }
+  },
+  "status": "model_approved",
+  "animation_status": "animation_preview",
+  "clips": {
+    "AW_Emerge": {
+      "frame_start": 1,
+      "frame_end": 121,
+      "duration_seconds": 4,
+      "loop": false
+    },
+    "AW_Idle": {
+      "frame_start": 1,
+      "frame_end": 181,
+      "duration_seconds": 6,
+      "loop": true
+    },
+    "AW_Slam_A01": {
+      "frame_start": 1,
+      "frame_end": 91,
+      "duration_seconds": 3,
+      "loop": false
+    },
+    "AW_Sweep_A01": {
+      "frame_start": 1,
+      "frame_end": 109,
+      "duration_seconds": 3.6,
+      "loop": false
+    },
+    "AW_Slam_A02": {
+      "frame_start": 1,
+      "frame_end": 91,
+      "duration_seconds": 3,
+      "loop": false
+    },
+    "AW_Sweep_A02": {
+      "frame_start": 1,
+      "frame_end": 109,
+      "duration_seconds": 3.6,
+      "loop": false
+    },
+    "AW_Slam_A03": {
+      "frame_start": 1,
+      "frame_end": 91,
+      "duration_seconds": 3,
+      "loop": false
+    },
+    "AW_Sweep_A03": {
+      "frame_start": 1,
+      "frame_end": 109,
+      "duration_seconds": 3.6,
+      "loop": false
+    },
+    "AW_Slam_A04": {
+      "frame_start": 1,
+      "frame_end": 91,
+      "duration_seconds": 3,
+      "loop": false
+    },
+    "AW_Sweep_A04": {
+      "frame_start": 1,
+      "frame_end": 109,
+      "duration_seconds": 3.6,
+      "loop": false
+    },
+    "AW_Ink": {
+      "frame_start": 1,
+      "frame_end": 97,
+      "duration_seconds": 3.2,
+      "loop": false
+    },
+    "AW_Hit": {
+      "frame_start": 1,
+      "frame_end": 31,
+      "duration_seconds": 1,
+      "loop": false
+    },
+    "AW_Enrage": {
+      "frame_start": 1,
+      "frame_end": 91,
+      "duration_seconds": 3,
+      "loop": false
+    },
+    "AW_EnragedIdle": {
+      "frame_start": 1,
+      "frame_end": 151,
+      "duration_seconds": 5,
+      "loop": true
+    },
+    "AW_Sever_A01": {
+      "frame_start": 1,
+      "frame_end": 79,
+      "duration_seconds": 2.6,
+      "loop": false
+    },
+    "AW_Sever_A02": {
+      "frame_start": 1,
+      "frame_end": 79,
+      "duration_seconds": 2.6,
+      "loop": false
+    },
+    "AW_Sever_A03": {
+      "frame_start": 1,
+      "frame_end": 79,
+      "duration_seconds": 2.6,
+      "loop": false
+    },
+    "AW_Sever_A04": {
+      "frame_start": 1,
+      "frame_end": 79,
+      "duration_seconds": 2.6,
+      "loop": false
+    },
+    "AW_Sever_S01": {
+      "frame_start": 1,
+      "frame_end": 79,
+      "duration_seconds": 2.6,
+      "loop": false
+    },
+    "AW_Sever_S02": {
+      "frame_start": 1,
+      "frame_end": 79,
+      "duration_seconds": 2.6,
+      "loop": false
+    },
+    "AW_Sever_S03": {
+      "frame_start": 1,
+      "frame_end": 79,
+      "duration_seconds": 2.6,
+      "loop": false
+    },
+    "AW_Sever_S04": {
+      "frame_start": 1,
+      "frame_end": 79,
+      "duration_seconds": 2.6,
+      "loop": false
+    },
+    "AW_Death": {
+      "frame_start": 1,
+      "frame_end": 181,
+      "duration_seconds": 6,
+      "loop": false
+    },
+    "AW_Combination": {
+      "frame_start": 1,
+      "frame_end": 109,
+      "duration_seconds": 3.6,
+      "loop": false
+    }
+  },
+  "arena": {
+    "inner_radius_m": 12,
+    "outer_radius_m": 20,
+    "deck_height_m": 0.57
+  },
+  "integration": "Blender 动作预览；游戏事件、运行时断肢、FBX/Unity 尚未接入",
+  "excluded_actions": [
+    "player_grab",
+    "player_lift",
+    "player_throw"
+  ]
+}

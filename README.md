@@ -8,6 +8,8 @@
 
 [七号转运站](samples/TacticalGame.Unity/README.md) 已接入框架：两个独立客户端可互见移动和转向，游戏模拟仍是独立纯 C#。运行 `./scripts/sync-unity-libraries.sh` 后打开 Unity 工程；当前 macOS 构建可通过 `python3 scripts/run-yard-pair.py` 一次启动两端。首次构建方法、各层职责与源文件阅读顺序见 [接入说明](docs/yard-network-implementation.md)。
 
+另一个游戏示例是[钩索小岛](docs/hook-island-playable.md)，支持最多四人联机、背包、钓鱼和平台扩建。现有钓鱼地图已加入[深渊凝视者可选 BOSS](docs/abyssal-watcher-implementation.md)，游戏规则仍独立于 Unity 和通用帧同步框架。
+
 ## 先体验两个客户端同步
 
 ```bash

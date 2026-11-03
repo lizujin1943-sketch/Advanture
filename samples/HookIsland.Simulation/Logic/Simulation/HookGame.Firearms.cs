@@ -65,7 +65,7 @@ public sealed partial class HookGame
                     int angle=FirearmSpread.Sample(map.Fishing!.Seed,p.Slot,p.Firearm.ShotSequence,gun.Id,p.Firearm.Spread(gun.Type),definition.Spread.Sampling);
                     FirearmSpread.Direction(p.AimX-p.X,p.AimZ-p.Z,angle,out int dx,out int dz);
                     // Commit shooter before impacts; subsequent players observe earlier hits in stable slot order.
-                    players[i]=p;Shoot(p,gun.Type,dx,dz,commands);
+                    players[i]=p;Shoot(p,gun.Type,dx,dz,c.AimVertical,commands);
                 }
                 players[i]=p;
             }
@@ -88,37 +88,54 @@ public sealed partial class HookGame
                 players[i]=p;
             }
         }
-        private void Shoot(Fisher shooter,int type,int dx,int dz,HookInput[] commands)
+        private void Shoot(Fisher shooter,int type,int horizontalX,int horizontalZ,short vertical,HookInput[] commands)
         {
             var weapon=FirearmCatalog.Get(type);int distance=weapon.Range,kind=0,target=-1;
+            BossGeometry.Direction3(horizontalX,horizontalZ,vertical,out int dx,out int dy,out int dz);
+            int muzzleY=BossGeometry.MuzzleHeight(shooter),horizontalScale=Sqrt((long)dx*dx+(long)dz*dz);
+            int Circle(int x,int z,int radius,int bottom=-700,int top=2200)
+            {
+                int horizontalRange=(int)((long)weapon.Range*horizontalScale/EnemyGeometry.DirectionScale);
+                int entry=FirearmRules.RayCircle(shooter.X,shooter.Z,horizontalX,horizontalZ,x,z,radius,horizontalRange);
+                if(entry==int.MaxValue)return entry;
+                int range=(int)((long)entry*EnemyGeometry.DirectionScale/Math.Max(1,horizontalScale));
+                int y=muzzleY+(int)((long)dy*range/EnemyGeometry.DirectionScale);return y>=bottom && y<=top?range:int.MaxValue;
+            }
             void Candidate(int entry,int nextKind,int id){if(entry<=weapon.Range && (entry<distance || kind==0)){distance=entry;kind=nextKind;target=id;}}
             // Solids win exact ties. Platform decking is below the horizontal firing plane.
             if(map.Platform==null)
             {
-                Candidate(FirearmRules.RayCircle(shooter.X,shooter.Z,dx,dz,0,1050,2050,weapon.Range),1,-4);
-                Candidate(FirearmRules.RayCircle(shooter.X,shooter.Z,dx,dz,-2150,1550,390,weapon.Range),1,-4);
+                Candidate(Circle(0,1050,2050,0,7000),1,-4);
+                Candidate(Circle(-2150,1550,390,0,3000),1,-4);
             }
             if(map.Fishing!=null)for(int id=0;id<=map.Fishing.Merchants.Definitions.Count;id++)
-            {var center=MerchantRules.Position(map.Fishing,id);Candidate(FirearmRules.RayBox(shooter.X,shooter.Z,dx,dz,center.X,center.Z,MerchantRules.BodyHalfSize,weapon.Range),1,-4);}
-            var boss=finale?.Capture();
-            if(boss?.Phase==FinalePhase.Surfaced)Candidate(FirearmRules.RayCircle(shooter.X,shooter.Z,dx,dz,boss.X,boss.Z,map.Fishing!.Finale.BodyRadius,weapon.Range),1,-5);
+            {var center=MerchantRules.Position(map.Fishing,id);Candidate(FirearmRules.RayBox3(shooter.X,muzzleY,shooter.Z,dx,dy,dz,center.X,1000,center.Z,MerchantRules.BodyHalfSize,1000,MerchantRules.BodyHalfSize,weapon.Range),1,-4);}
+            var giant=finale?.Capture();
+            if(giant?.Phase==FinalePhase.Surfaced)Candidate(Circle(giant.X,giant.Z,map.Fishing!.Finale.BodyRadius),1,-5);
+            if(dy<0 && muzzleY>=450)
+            {int floor=(int)((450L-muzzleY)*EnemyGeometry.DirectionScale/dy);int x=shooter.X+(int)((long)dx*floor/EnemyGeometry.DirectionScale),z=shooter.Z+(int)((long)dz*floor/EnemyGeometry.DirectionScale);
+                if(floor<=weapon.Range && PlatformRules.OnPlatform(tiles,x,z))Candidate(floor,1,-4);
+            }
             for(int i=0;i<players.Length;i++)
             {
                 var p=players[i];if(i==shooter.Slot || p.WaitingToJoin || p.Vitals.Downed || p.Revival.Dead)continue;
-                Candidate(FirearmRules.RayCircle(shooter.X,shooter.Z,dx,dz,p.X,p.Z,EnemyGeometry.PlayerRadius,weapon.Range),2,i);
+                Candidate(Circle(p.X,p.Z,EnemyGeometry.PlayerRadius),2,i);
             }
             if(enemies!=null)
             {
                 for(int i=0;i<enemies.PiranhaCount;i++)
-                {var f=enemies.GetPiranha(i);if(f.Owner>=0 || f.RespawnTicks>0 || f.Escape.Active)continue;Candidate(FirearmRules.RayCircle(shooter.X,shooter.Z,dx,dz,f.X,f.Z,250,weapon.Range),3,i);}
+                {var f=enemies.GetPiranha(i);if(f.Owner>=0 || f.RespawnTicks>0 || f.Escape.Active)continue;Candidate(Circle(f.X,f.Z,250),3,i);}
                 var monster=enemies.Monster;
-                if(monster.Phase==MonsterPhase.Windup)Candidate(FirearmRules.RayCircle(shooter.X,shooter.Z,dx,dz,monster.X,monster.Z,EnemyGeometry.MonsterRadius,weapon.Range),4,-3);
+                if(monster.Phase==MonsterPhase.Windup)Candidate(Circle(monster.X,monster.Z,EnemyGeometry.MonsterRadius),4,-3);
             }
             for(int i=0;i<crabs.Length;i++)
             {
                 var crab=crabs[i].Capture();
-                if(crab.Damageable)Candidate(FirearmRules.RayCircle(shooter.X,shooter.Z,dx,dz,crab.X,crab.Z,CrabConfig.BodyRadius,weapon.Range),5,i);
+                if(crab.Damageable)Candidate(Circle(crab.X,crab.Z,CrabConfig.BodyRadius),5,i);
             }
+            var abyss=boss.Capture();int bossEntry=BossGeometry.RayHit(abyss,shooter.X,muzzleY,shooter.Z,dx,dy,dz,weapon.Range,out int limbId,out bool eye);
+            Candidate(bossEntry,6,limbId);
+            int hitY=muzzleY+(int)((long)dy*distance/EnemyGeometry.DirectionScale);
             int hitX=shooter.X+(int)((long)dx*distance/EnemyGeometry.DirectionScale),hitZ=shooter.Z+(int)((long)dz*distance/EnemyGeometry.DirectionScale);
             if(kind==2)HitFriend(shooter,players[target],weapon,dx,dz,commands[target]);
             int damage=0,entity=0;
@@ -134,7 +151,12 @@ public sealed partial class HookGame
                 entity=target;damage=Math.Min(weapon.Damage,crabs[target].Capture().Health);
                 crabs[target].Strike(shooter.Slot,weapon.Damage);
             }
-            Record(new HookGameplayEvent(HookGameplayEventKind.FirearmShot,shooter.Slot,amount:damage,value:entity,targetId:kind==3?-2:kind==5?-6:target,x:hitX,z:hitZ,itemKind:ItemKind.Firearm,itemType:type,originX:shooter.X,originZ:shooter.Z));
+            if(kind==6)
+            {
+                entity=target+1;int hp=target<0?abyss.Health:abyss.Limbs[target].Health;
+                if(boss.Strike(shooter.Slot,weapon.Damage,target,eye))damage=Math.Min(hp,eye?(weapon.Damage*3+1)/2:weapon.Damage);
+            }
+            Record(new HookGameplayEvent(HookGameplayEventKind.FirearmShot,shooter.Slot,amount:damage,value:entity,targetId:kind==3?-2:kind==5?-6:kind==6?-7:target,x:hitX,z:hitZ,itemKind:ItemKind.Firearm,itemType:type,originX:shooter.X,originZ:shooter.Z,y:hitY,originY:muzzleY));
         }
         private void HitFriend(Fisher shooter,Fisher target,FirearmDefinition weapon,int dx,int dz,HookInput command)
         {

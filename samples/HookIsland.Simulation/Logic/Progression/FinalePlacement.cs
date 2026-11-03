@@ -15,11 +15,13 @@ public readonly struct FinaleSite
 public static class FinalePlacement
 {
     public static bool Find(IslandMap map,FinaleConfig config,IReadOnlyList<PlatformTile> tiles,
-        IReadOnlyList<Fisher> players,int completed,Point previous,out FinaleSite site)
+        IReadOnlyList<Fisher> players,int completed,Point previous,out FinaleSite site,bool allowEmptyParticipants=false)
     {
         site=default;
         var ready=players.Where(p=>!p.Unavailable && !p.Vitals.Downed && !p.Revival.Dead && PlatformRules.CanStand(tiles,p.X,p.Z)).ToArray();
-        if(ready.Length==0 || map.Platform==null)return false;
+        if(map.Platform==null || ready.Length==0 && !allowEmptyParticipants)return false;
+        // 地形损毁修复不能依赖仍有清醒玩家；无玩家时仅用原出生点排序候选岸线。
+        if(ready.Length==0)ready=new[]{new Fisher{X=map.Spawns[0].X,Z=map.Spawns[0].Z}};
         var occupied=new HashSet<(int,int)>(tiles.Select(t=>(t.X,t.Z)));
         foreach(var p in map.Platform.BlockedCells)occupied.Add((p.X,p.Z));
         var candidates=tiles.SelectMany(t=>Enumerable.Range(0,4).Select(d=>(tile:t,direction:d)))

@@ -24,7 +24,8 @@ public sealed class RodRequestBuffer
     {
         if(!Pending)return input;
         return new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,false,false,shopping:input.Shopping,
-            rodAction:action,rodTarget:target,rodBatch:batch,rodRequestId:id,roomRules:input.RoomRules);
+            rodAction:action,rodTarget:target,rodBatch:batch,rodRequestId:id,roomRules:input.RoomRules,
+            aimVertical:input.AimVertical);
     }
     public void Reset(){id=batch=0;target=0;action=RodAction.None;}
 }

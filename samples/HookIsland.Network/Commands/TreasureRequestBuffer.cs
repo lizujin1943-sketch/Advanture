@@ -20,7 +20,8 @@ public sealed class TreasureRequestBuffer
     {
         if(!Pending || input.Build!=TileKind.None || input.Upgrade!=HookUpgrade.None || input.RodAction!=RodAction.None ||
             input.Inventory.Action!=InventoryAction.None || !input.Revival.IsEmpty)return input;
-        return new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,shopping:input.Shopping,roomRules:input.RoomRules,treasure:Command);
+        return new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,shopping:input.Shopping,roomRules:input.RoomRules,treasure:Command,
+            aimVertical:input.AimVertical);
     }
     public void Reset()=>Command=default;
 }

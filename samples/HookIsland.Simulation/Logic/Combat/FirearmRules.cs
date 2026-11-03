@@ -35,4 +35,17 @@ public static class FirearmRules
         }
         return Axis(ox,dx,x) && Axis(oz,dz,z)?(int)near:int.MaxValue;
     }
+    /// <summary>三维实体遮挡使用三个整数平板区间，俯仰不会绕过同距离的商店墙。</summary>
+    public static int RayBox3(int ox,int oy,int oz,int dx,int dy,int dz,int x,int y,int z,int halfX,int halfY,int halfZ,int range)
+    {
+        long near=0,far=range;
+        bool Axis(int origin,int direction,int center,int half)
+        {
+            if(direction==0)return origin>=center-half && origin<=center+half;
+            long a=((long)center-half-origin)*EnemyGeometry.DirectionScale/direction,b=((long)center+half-origin)*EnemyGeometry.DirectionScale/direction;
+            near=Math.Max(near,Math.Min(a,b));far=Math.Min(far,Math.Max(a,b));return near<=far;
+        }
+        return Axis(ox,dx,x,halfX) && Axis(oy,dy,y,halfY) && Axis(oz,dz,z,halfZ)?(int)near:int.MaxValue;
+    }
+
 }

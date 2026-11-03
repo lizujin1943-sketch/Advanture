@@ -45,7 +45,7 @@ namespace Advanture.HookIsland
             else if(Input.GetKeyDown(KeyCode.F1)) { if(helpOpen)MenuOpen=false;else OpenHelp(); }
             else if(Input.GetKeyDown(KeyCode.J) && room.Playing && !MenuOpen && !room.ShopOpen && room.Equipment?.InventoryOpen!=true)hud?.ToggleObjectives();
             else if(Input.GetKeyDown(KeyCode.E) && !MenuOpen)
-            {if(room.ShopOpen)room.CloseShop();else if(room.Treasures?.TryOpenNearest()!=true)room.OpenShop();}
+            {if(room.ShopOpen)room.CloseShop();else if(room.Boss?.TryAwakenNearest()!=true && room.Treasures?.TryOpenNearest()!=true)room.OpenShop();}
         }
         private GUIStyle Style(GUIStyle source,int size,Color color)
         {return new GUIStyle(source){font=font,fontSize=size,normal={textColor=color},wordWrap=true};}
@@ -64,7 +64,7 @@ namespace Advanture.HookIsland
             float w=Screen.width/scale,h=Screen.height/scale;
             if(hudPainter==null){hudPainter=new HudPainter(font);hud=new GameplayHud(room,this,hudPainter);acquisitions=new AcquisitionHud(hudPainter,room.Feedback.Acquisitions);}
             hudPainter.BeginFrame();var layout=new HudLayout(w,h);
-            if(room.Playing && !MenuOpen && !room.ShopOpen && room.Equipment?.InventoryOpen!=true){hud.Draw(layout,scale);if(!room.State.Won)room.Treasures?.Draw(scale,small); }
+            if(room.Playing && !MenuOpen && !room.ShopOpen && room.Equipment?.InventoryOpen!=true){hud.Draw(layout,scale);if(!room.State.Won){room.Treasures?.Draw(scale,small);room.Boss?.Draw(w,h,body,small);} }
             else hud.Hide();
             if(!room.InRoom)DrawLobby(w,h);
             else if(!room.Playing || MenuOpen)

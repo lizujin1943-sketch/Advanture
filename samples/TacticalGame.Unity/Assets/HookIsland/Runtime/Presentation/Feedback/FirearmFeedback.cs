@@ -43,11 +43,11 @@ namespace Advanture.HookIsland
             // Surface membership, not the wider character standing footprint: a bullet
             // at a deck lip still hits wood even when a player cannot stand there safely.
             bool water=map.Platform==null?!map.CanStand(value.X,value.Z):!PlatformRules.OnPlatform(state.Tiles,value.X,value.Z);
-            float originHeight=map.Platform==null?1.3f:PlatformGeometry.DeckHeight+.65f;
-            if(value.Slot<state.Players.Count && state.Players[value.Slot].Swimming.InWater)originHeight=.48f;
+            // 命中的高度来自同一条权威三维射线；不能把打中主眼的弹道画回海平面。
+            float originHeight=value.OriginY/1000f;
             var start=new Vector3(value.OriginX/1000f,originHeight,value.OriginZ/1000f);
-            bool splash=value.TargetId==-1 && water;
-            float hitHeight=splash?waterImpacts.SurfaceHeight:value.TargetId==-2 || value.TargetId==-3?.14f:originHeight;
+            bool splash=value.TargetId==-1 && water && value.Y<=200;
+            float hitHeight=splash?waterImpacts.SurfaceHeight:value.Y/1000f;
             var end=new Vector3(value.X/1000f,hitHeight,value.Z/1000f);
             var delta=end-start;var direction=new Vector3(delta.x,0,delta.z).normalized;
             // Only the visual origin follows the rendered gun. Never move the confirmed hit
@@ -65,7 +65,7 @@ namespace Advanture.HookIsland
                 audio.PlayOneShot(art.WaterImpact,value.Slot==local?.6f:.3f);
             }
             if(value.TargetId!=-1)audio.PlayOneShot(art.Impact,value.Slot==local?.45f:.2f);
-            if((value.TargetId==-2 || value.TargetId==-6) && value.Amount>0)
+            if((value.TargetId==-2 || value.TargetId==-6 || value.TargetId<=-7) && value.Amount>0)
             {
                 effect.Label=new GameObject("Confirmed firearm damage").transform;effect.Label.SetParent(node,false);
                 var text=effect.Label.gameObject.AddComponent<TextMesh>();text.text="−"+value.Amount;text.characterSize=.065f;text.fontSize=40;text.anchor=TextAnchor.MiddleCenter;text.color=new Color(1,.94f,.74f);

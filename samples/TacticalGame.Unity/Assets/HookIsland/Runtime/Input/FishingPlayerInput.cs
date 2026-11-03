@@ -10,7 +10,7 @@ namespace Advanture.HookIsland
         private Camera viewCamera;
         private FishingCameraView cameraView;
         private readonly FishingCameraInput cameraInput=new FishingCameraInput();
-        private short moveX,moveZ;
+        private short moveX,moveZ,aimVertical;
         private bool pendingFire,pendingCancel,pendingReload,skipPointerFrame,entryPerspectivePending=true;
         private Vector3 aim;
         public Vector3 Aim=>aim;
@@ -75,7 +75,23 @@ namespace Advanture.HookIsland
             var pointer=CenterAim?(Vector3)viewCamera.pixelRect.center:Input.mousePosition;
             var ray=viewCamera.ScreenPointToRay(pointer);
             // room.Equipment IDs and their inventory must come from the same confirmed timeline.
-            if(room.TryGetLocalPlayer(out var shooter))aim=cameraView.Aim(ray,room.Presentation.PlayerPosition(room.LocalSlot),(ActiveToolView.Firearm(room.State,shooter)?.Range??MeleeRules.Equipped(room.State,shooter)?.Range??FishingRules.Range(room.Map,room.State,shooter))/1000f);
+            if(room.TryGetLocalPlayer(out var shooter))
+            {
+                var feet=room.Presentation.PlayerPosition(room.LocalSlot);
+                float range=(ActiveToolView.Firearm(room.State,shooter)?.Range??MeleeRules.Equipped(room.State,shooter)?.Range??FishingRules.Range(room.Map,room.State,shooter))/1000f;
+                if(room.HoldingFirearm)
+                {
+                    // 枪械采集真正的上下方向，才能命中海面之上的头部和主眼。
+                    // 本地只提交量化方向，不提交 Unity 碰撞体或命中结果；服务器重新计算射线。
+                    aimVertical=QuantizeVerticalAim(ray.direction);
+                    aim=feet+Vector3.up*(shooter.Swimming.InWater?.35f-feet.y:1.03f)+ray.direction*range;
+                }
+                else
+                {
+                    aimVertical=0;
+                    aim=cameraView.Aim(ray,feet,range);
+                }
+            }
             if(!room.HoldingFirearm)aim=FishingAimAssist.Resolve(room,viewCamera,pointer,aim);
             aim.x=Mathf.Clamp(aim.x,-90,90);aim.z=Mathf.Clamp(aim.z,-90,90);
             if(!skipPointerFrame && !overUi && room.Construction?.Open!=true && Input.GetMouseButtonDown(0))
@@ -87,13 +103,15 @@ namespace Advanture.HookIsland
         public HookInput Consume(ulong tick,Func<ulong,HookInput> provider,bool won)
         {
             if(won){ClearCommands();return default;}
-            var result=provider!=null?provider(tick):new HookInput(moveX,moveZ,Mathf.RoundToInt(aim.x*1000),Mathf.RoundToInt(aim.z*1000),pendingFire,pendingCancel,reload:pendingReload);
+            var result=provider!=null?provider(tick):new HookInput(moveX,moveZ,Mathf.RoundToInt(aim.x*1000),Mathf.RoundToInt(aim.z*1000),pendingFire,pendingCancel,reload:pendingReload,aimVertical:aimVertical);
             pendingFire=pendingCancel=pendingReload=false;return result;
         }
         public void ConfirmFirearmShot()=>cameraView?.ConfirmFirearmShot();
+        /// <summary>方向的 Y 分量以千分比传输；限制极点，保证水平瞄准方向仍然有定义。</summary>
+        public static short QuantizeVerticalAim(Vector3 direction)=>(short)Mathf.Clamp(Mathf.RoundToInt(direction.normalized.y*1000),-995,995);
         public void ClearCommands(){moveX=moveZ=0;pendingFire=pendingCancel=pendingReload=false;}
         public void Reset()
-        {ClearCommands();aim=Vector3.zero;cameraView?.Reset();cameraInput.Reset();entryPerspectivePending=true;skipPointerFrame=true;}
+        {ClearCommands();aim=Vector3.zero;aimVertical=0;cameraView?.Reset();cameraInput.Reset();entryPerspectivePending=true;skipPointerFrame=true;}
         public void ReleaseFocus(){ClearCommands();cameraView?.SetLookInputActive(false);cameraInput.Reset();}
         public void EndFrame(IslandFishingController room)
         {

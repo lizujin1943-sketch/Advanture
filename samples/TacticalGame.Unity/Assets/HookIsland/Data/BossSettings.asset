@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd1135152cd0b49a29a86ba279357ccd, type: 3}
+  m_Name: BossSettings
+  m_EditorClassIdentifier: 
+  enableChallenge: 1
+  soloBodyHealth: 2400
+  soloAttackLimbHealth: 300
+  soloSupportLimbHealth: 220
+  coinsPerContributor: 600
+  modelPrefab: {fileID: 6044871221019673162, guid: 6034d8479d55b4551a6f02aa7382950b, type: 3}
+  clips:
+  - {fileID: 7400000, guid: 963ce435a9f3e428788d34bd94685703, type: 2}
+  - {fileID: 7400000, guid: e772f07e1e9d94248a3d023c11520df2, type: 2}
+  - {fileID: 7400000, guid: 480db0de5a1834223a6aee29d457f817, type: 2}
+  - {fileID: 7400000, guid: ca8460dc4fc22479facd3afd0a18747e, type: 2}
+  - {fileID: 7400000, guid: 970ac0e8833ef4d2d98d8d223ab00eb2, type: 2}
+  - {fileID: 7400000, guid: eb8dbeadc1c4e4d58bcfd74b7912f3bd, type: 2}
+  - {fileID: 7400000, guid: 02777b9b255bb45bdaace6902f3c5d27, type: 2}
+  - {fileID: 7400000, guid: 96cbb039fa2804263a7d2e84bcbfa3f0, type: 2}
+  - {fileID: 7400000, guid: 18ea53aa0cb4a4470af7d390d34decb4, type: 2}
+  - {fileID: 7400000, guid: 30f42c1ed3bd441e3b797a29bcaf21d8, type: 2}
+  - {fileID: 7400000, guid: 7b86181b053154ee6a58c5c949fc479d, type: 2}
+  - {fileID: 7400000, guid: 8ffdf464641d94c0ca1b537725509678, type: 2}
+  - {fileID: 7400000, guid: 5258ecf6f436948dc9fdeb7f07aab922, type: 2}
+  - {fileID: 7400000, guid: f0c6318127c5f414481bcc784bab5e57, type: 2}
+  - {fileID: 7400000, guid: a2039f951e6934303ac11d8785eaf2e2, type: 2}
+  - {fileID: 7400000, guid: 409f5fc96cb2a4528a04fa391453a705, type: 2}
+  - {fileID: 7400000, guid: a7c3a0175379f4f1f998e0f3e2ece9e7, type: 2}
+  - {fileID: 7400000, guid: 0c65ce304ff68477ba5d1f239f8693e9, type: 2}
+  - {fileID: 7400000, guid: 0d77c1358838b40678c99ebe4c111f5c, type: 2}
+  - {fileID: 7400000, guid: 5203292ae502d4100825c1b140af22a3, type: 2}
+  - {fileID: 7400000, guid: 9298dc97a75144e35bdd7c36cc764424, type: 2}
+  - {fileID: 7400000, guid: 393c762f2db9148ae830dd0ddb1dbdb6, type: 2}
+  - {fileID: 7400000, guid: ba9baa8aed3e54e879b56fdf96ebdebb, type: 2}
+  - {fileID: 7400000, guid: 5f8f0f9ebda414c6bbc80ac88fbe86b0, type: 2}

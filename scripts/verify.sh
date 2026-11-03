@@ -74,3 +74,6 @@ done
 
 # 全队失败后保留连接重开、旧局隔离与单人／四人连续换局。
 ./scripts/verify-hook-restart.sh
+
+# 海上可选 BOSS：三维命中、毁板与存档守恒、输入重试、四客户端完整战斗。
+./scripts/verify-hook-boss.sh

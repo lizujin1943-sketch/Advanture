@@ -16,15 +16,15 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     public static SimulationModule<HookState> CreateModule(bool initialFriendlyPranks=true)
     {
         var game=new HookGame(initialFriendlyPranks);
-        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"34",inputFormatVersion:"13",
-            stateFormatVersion:"31",contentHash:CatalogData.Hash(),determinismHash:"integer-mm-combat-rewards-crabs-v34"),game,game,game);
+        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"35",inputFormatVersion:"14",
+            stateFormatVersion:"32",contentHash:CatalogData.Hash()+"/"+BossPoseData.Hash,determinismHash:"integer-mm-abyssal-3d-v35"),game,game,game);
     }
     public IDeterministicSimulation<HookState> Create()=>new Model(initialFriendlyPranks);
     public void ValidateCanonical(ReadOnlySpan<byte> bytes)=>HookInput.Decode(bytes);
     public byte[] Encode(HookState s)
     {
         using var stream=new MemoryStream();using var w=new BinaryWriter(stream);
-        w.Write(0x4B534948);w.Write(s.Steps);w.Write(s.Coins);w.Write(s.Players.Count);
+        w.Write(0x4C534948);w.Write(s.Steps);w.Write(s.Coins);w.Write(s.Players.Count);
         foreach(var p in s.Players)
         {
             w.Write(p.Slot);w.Write(p.X);w.Write(p.Z);w.Write(p.AimX);w.Write(p.AimZ);w.Write(p.RemainderX);w.Write(p.RemainderZ);
@@ -53,13 +53,14 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         MeleeStateCodec.Write(w,s);
         FirearmStateCodec.Write(w,s);
         CrabStateCodec.Write(w,s);
+        BossStateCodec.Write(w,s);
         return stream.ToArray();
     }
     public HookState Decode(ReadOnlySpan<byte> bytes)
     {
         if(bytes.Length<24 || bytes.Length>MaximumStateBytes)throw new InvalidDataException("Invalid state length.");
         using var r=new BinaryReader(new MemoryStream(bytes.ToArray(),false));
-        if(r.ReadInt32()!=0x4B534948)throw new InvalidDataException("State version mismatch.");
+        if(r.ReadInt32()!=0x4C534948)throw new InvalidDataException("State version mismatch.");
         ulong tick=r.ReadUInt64();int coins=r.ReadInt32(),count=r.ReadInt32();
         if(count<1 || count>4 || coins<0)throw new InvalidDataException("Invalid players/wallet.");
         var players=new Fisher[count];
@@ -117,6 +118,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         state=MeleeStateCodec.Read(r,state);
         state=FirearmStateCodec.Read(r,state);
         state=CrabStateCodec.Read(r,state);
+        state=BossStateCodec.Read(r,state);
+        PlatformStateCodec.Validate(state);
         PlatformStateCodec.ValidateBalances(state);
         if(state.Tackle!=null)foreach(var p in state.Players)RevivalStateCodec.Validate(state,p);
         foreach(var p in state.Players)
@@ -185,7 +188,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         {
             if(init.Session.TickRate!=Rate)throw new InvalidDataException("Hook Island requires 30 Hz.");
             map=IslandMap.Decode(init.Data.Span);
-            tiles=map.Platform==null?new List<PlatformTile>():PlatformRules.InitialTiles().ToList();
+            tiles=map.Platform==null?new List<PlatformTile>():PlatformRules.InitialTiles(map).ToList();
             driftwood=map.Platform==null?Array.Empty<Driftwood>():Enumerable.Range(0,DriftwoodMotion.Count).Select(i=>DriftwoodMotion.Create(i)).ToArray();
             players=init.Session.Participants.Select(p=>{
                 if(p.Slot>=4)throw new InvalidDataException("Invalid slot.");
@@ -199,6 +202,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             commissions=CommissionSystem.Create(map.Fishing?.Commissions??CommissionConfig.Disabled);
             InitializeOcean();
             InitializeFinale();
+            boss=new BossSystem(map.Fishing?.Boss??BossConfig.Disabled,players.Length);
             fish=map.FishSpots.Select((p,i)=>CreateFish(i,i*5,0)).ToArray();
             tick=0;coins=0;roomRules=new RoomRulesState(initialFriendlyPranks);
             InitializeTreasure();
@@ -224,7 +228,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                     {var absent=players[i];StopCharacterHook(ref absent);absent.Swimming.Active=false;absent.Unavailable=true;absent.Shopping=false;players[i]=absent;}
             // A previous-round identity can reconnect to inspect the result, but a reserved
             // body must not enter a finished world and turn defeat back into a playable round.
-            if(finished)return Array.Empty<ByteString>();
+            if(finished){AdvanceBossWhileFinished();return Array.Empty<ByteString>();}
             equipment?.Advance(map,tiles,players,tick+1);
             var healthAtFrameStart=players.Select(p=>p.Vitals.Health).ToArray();
             var previousReloads=players.Select(p=>p.Firearm.ReloadTicks).ToArray();
@@ -240,6 +244,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 if(!players[i].WaitingToJoin && players[i].ProtectionTicks>0)players[i].ProtectionTicks--;
             }
             ApplyRoomRules(commands[0].RoomRules);
+            for(int i=0;i<players.Length;i++)if(commands[i].BossRequest!=0)boss.Request(i,commands[i].BossRequest,players);
             // All voluntary actions precede hook collisions; claims remain in stable slot order.
             for(int i=0;i<players.Length;i++)
             {
@@ -288,7 +293,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                         Record(HookGameplayEventKind.HookCast,p);
                     }
                 }
-                int movementPermille=CharacterMovement.HookSpeedPermille(p)*FirearmRules.MovementPermille(p,recoveryMovement)/1000;
+                int movementPermille=CharacterMovement.HookSpeedPermille(p)*FirearmRules.MovementPermille(p,recoveryMovement)/1000*boss.MovementPermille(p)/1000;
                 int voluntaryStartX=p.X,voluntaryStartZ=p.Z;
                 bool canMove=canAct && !knockedBack && p.PulledBy<0 && !p.Shopping && !p.Melee.Active && movementPermille>0;
                 p.Swimming.Active=false;
@@ -358,6 +363,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             AdvanceFirearms(commands);
             SettlePiranhaKills();
             AdvanceCrabs();
+            AdvanceBoss();
             enemies?.Advance(players,ApplyEnemyHit,IsMonsterWater,ocean?.AllowNewAttacks(tick+1)??true);
             if(equipment!=null)for(int i=0;i<players.Length;i++)
             {
@@ -725,7 +731,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             players[owner.HookedPlayer]=target;owner.HookedPlayer=-1;owner.PullTicks=0;
         }
         private bool CanStand(int x,int z)=>map.Platform==null?map.CanStand(x,z):PlatformRules.CanStand(tiles,x,z);
-        public HookState Capture()=>new HookState(tick,players,fish,coins,tiles,driftwood,equipment?.Capture(),enemies?.Capture(),roomRules,new TreasureState(chests),commissions,ocean?.Capture(),finale?.Capture(),crabs.Select(c=>c.Capture()));
+        public HookState Capture()=>new HookState(tick,players,fish,coins,tiles,driftwood,equipment?.Capture(),enemies?.Capture(),roomRules,new TreasureState(chests),commissions,ocean?.Capture(),finale?.Capture(),crabs.Select(c=>c.Capture()),boss.Capture());
         public void Restore(HookState state)
         {
             // Validate ownership as well as positions before using a received checkpoint.
@@ -746,6 +752,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             tiles=state.Tiles.ToList();driftwood=state.Driftwood.ToArray();equipment=state.Tackle==null?null:new EquipmentSystem(state.Tackle);
             enemies=map.Fishing?.Enemies.Enabled==true?new EnemySystem(map.Fishing.Enemies,state.Enemies):null;
             crabs=state.Crabs.Select((c,i)=>new CrabSystem(map,c,i)).ToArray();
+            boss=new BossSystem(map.Fishing?.Boss??BossConfig.Disabled,players.Length,state.Boss);
             events.Clear();ObserveInventory();
         }
     }
