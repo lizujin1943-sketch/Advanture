@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace Advanture.HookIsland
 {
@@ -8,25 +9,34 @@ namespace Advanture.HookIsland
     /// </summary>
     internal sealed class FirstPersonAvatarVisibility
     {
-        private readonly Renderer[] renderers;
-        private readonly bool[] previous;
+        private readonly Dictionary<Renderer,bool> previous=new Dictionary<Renderer,bool>();
         private bool hidden;
 
         public FirstPersonAvatarVisibility(Transform body)
         {
-            renderers=body.GetComponentsInChildren<Renderer>(true);
-            previous=new bool[renderers.Length];
+            Register(body);
+        }
+
+        public void Register(Transform additional)
+        {
+            foreach(var renderer in additional.GetComponentsInChildren<Renderer>(true))
+            {
+                if(previous.ContainsKey(renderer))continue;
+                previous.Add(renderer,renderer.forceRenderingOff);
+                if(hidden)renderer.forceRenderingOff=true;
+            }
         }
 
         public void SetHidden(bool value)
         {
             if(hidden==value)return;
             hidden=value;
-            for(int i=0;i<renderers.Length;i++)
+            // Snapshot keys only on visibility transitions, never on every rendered frame.
+            foreach(var renderer in new List<Renderer>(previous.Keys))
             {
-                if(renderers[i]==null)continue;
-                if(value){previous[i]=renderers[i].forceRenderingOff;renderers[i].forceRenderingOff=true;}
-                else renderers[i].forceRenderingOff=previous[i];
+                if(renderer==null)continue;
+                if(value){previous[renderer]=renderer.forceRenderingOff;renderer.forceRenderingOff=true;}
+                else renderer.forceRenderingOff=previous[renderer];
             }
         }
     }

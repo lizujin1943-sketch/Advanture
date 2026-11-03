@@ -1,4 +1,5 @@
 using System;
+using Advanture.HookIsland.Simulation;
 using UnityEngine;
 
 namespace Advanture.HookIsland
@@ -18,7 +19,23 @@ namespace Advanture.HookIsland
         private float returnPitch;
         private Vector3 renderedFeet,lastKick;
         private float kickStarted=float.NegativeInfinity;
-        public void ConfirmFirearmShot()=>kickStarted=Time.unscaledTime;
+        private float scopeBlend,kickStrength=1;
+        public int ScopeMagnification {get;private set;}=1;
+        public bool Scoped=>FirstPerson && scopeBlend>0;
+        public float LookSensitivityScale=>Scoped?Mathf.Tan(camera.fieldOfView*Mathf.Deg2Rad*.5f)/Mathf.Tan(Mathf.Clamp(firearmSettings.fieldOfView,50,90)*Mathf.Deg2Rad*.5f):1;
+        public void ConfirmFirearmShot(float strength=1){kickStarted=Time.unscaledTime;kickStrength=strength;}
+        public static float ScopedFieldOfView(float normal,int magnification)=>2*Mathf.Atan(Mathf.Tan(normal*Mathf.Deg2Rad*.5f)/Mathf.Max(1,magnification))*Mathf.Rad2Deg;
+        public void UpdateScope(FirearmDefinition gun,bool held,bool allowed,float deltaTime)
+        {
+            if(!FirstPerson || !allowed || gun==null || gun.ScopeMagnification<=1)
+            {scopeBlend=0;ScopeMagnification=1;}
+            else
+            {
+                ScopeMagnification=gun.ScopeMagnification;
+                scopeBlend=Mathf.MoveTowards(scopeBlend,held?1:0,Mathf.Max(0,deltaTime)/.16f);
+            }
+            if(CenterAim)UpdatePerspectivePose();
+        }
         public void PrepareInput(){if(camera!=null)camera.transform.position-=lastKick;lastKick=Vector3.zero;}
         /// <summary>持枪时临时覆盖镜头模式，不覆盖玩家之前选择的俯视/第三人称模式。</summary>
         public bool FirstPerson { get; private set; }
@@ -68,9 +85,10 @@ namespace Advanture.HookIsland
         public void Look(Vector2 delta)
         {
             if(!CenterAim)return;
-            yaw=Mathf.Repeat(yaw+delta.x*sensitivity,360);
+            float scopedSensitivity=LookSensitivityScale;
+            yaw=Mathf.Repeat(yaw+delta.x*sensitivity*scopedSensitivity,360);
             // Free look in both directions; avoid flipping through the vertical poles.
-            pitch=Mathf.Clamp(pitch-delta.y*sensitivity*verticalSensitivityMultiplier,-89,89);
+            pitch=Mathf.Clamp(pitch-delta.y*sensitivity*verticalSensitivityMultiplier*scopedSensitivity,-89,89);
             UpdatePerspectivePose();
         }
         public void Zoom(float scroll)
@@ -100,7 +118,7 @@ namespace Advanture.HookIsland
                 }
                 else
                 {
-                    FirstPerson=false;pitch=returnPitch;
+                    FirstPerson=false;scopeBlend=0;ScopeMagnification=1;pitch=returnPitch;
                     if(thirdPerson){camera.fieldOfView=fieldOfView;camera.nearClipPlane=.04f;}
                     else
                     {
@@ -149,7 +167,7 @@ namespace Advanture.HookIsland
             else stageCamera?.Follow(renderedFeet);
             float age=Time.unscaledTime-kickStarted;
             if(camera!=null && age>=0 && age<.13f)
-            {lastKick=(camera.transform.right*Mathf.Sin(age*105)+camera.transform.up*Mathf.Cos(age*85))*(.012f*(1-age/.13f));camera.transform.position+=lastKick;}
+            {lastKick=(camera.transform.right*Mathf.Sin(age*105)+camera.transform.up*Mathf.Cos(age*85))*(.012f*kickStrength*(1-age/.13f));camera.transform.position+=lastKick;}
         }
         private void UpdatePerspectivePose()
         {
@@ -158,6 +176,7 @@ namespace Advanture.HookIsland
             var eye=renderedFeet+Vector3.up*Mathf.Clamp(firearmSettings.eyeHeight,.8f,1.3f);
             eye.y=Mathf.Max(.35f,eye.y);
             camera.fieldOfView=Mathf.Lerp(fieldOfView,Mathf.Clamp(firearmSettings.fieldOfView,50,90),Mathf.SmoothStep(0,1,firearmBlend));
+            camera.fieldOfView=Mathf.Lerp(camera.fieldOfView,ScopedFieldOfView(Mathf.Clamp(firearmSettings.fieldOfView,50,90),ScopeMagnification),Mathf.SmoothStep(0,1,scopeBlend));
             camera.transform.SetPositionAndRotation(eye,Quaternion.Euler(pitch,yaw,0));
         }
         private void UpdateThirdPersonPose()
@@ -175,6 +194,7 @@ namespace Advanture.HookIsland
         public bool SetLookInputActive(bool active)
         {
             active&=CenterAim;
+            if(!active && Scoped)UpdateScope(null,false,false,0);
             var target=active?CursorLockMode.Locked:CursorLockMode.None;
             bool changed=LookInputActive!=active || Cursor.lockState!=target || Cursor.visible==active;
             LookInputActive=active;
@@ -193,7 +213,7 @@ namespace Advanture.HookIsland
         }
         public void Reset()
         {
-            PrepareInput();kickStarted=float.NegativeInfinity;firearmBlend=0;FirstPerson=false;RestoreOverhead();orbitInitialized=false;distance=initialDistance;
+            PrepareInput();kickStarted=float.NegativeInfinity;firearmBlend=scopeBlend=0;ScopeMagnification=1;FirstPerson=false;RestoreOverhead();orbitInitialized=false;distance=initialDistance;
             if(camera!=null)
             {
                 if(stageCamera!=null)stageCamera.Reset();

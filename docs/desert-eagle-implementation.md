@@ -23,7 +23,7 @@
 | 弹匣与补给账本的库存事务 | `Logic/Inventory/InventorySystem.Firearms.cs` |
 | 状态、库存与动作编码校验 | `Data/State/FirearmState.cs`、`Serialization/InventoryStateCodec.cs`、`FirearmStateCodec.cs` |
 | 不依赖玩法的检查点迁移封装 | `framework/src/FrameSync.Runtime/CheckpointMigration.cs` |
-| 枪模型、双手、滑套／弹匣动画 | Unity `Presentation/Art/DesertEagleArt.cs`、`Presentation/Characters/FirearmAvatarView.cs` |
+| 枪模型、双手、滑套／弹匣动画 | Unity `Presentation/Art/FirearmArt.cs`、`Presentation/Characters/FirearmAvatarView.cs` |
 | 确认枪声、弹道、枪焰、弹壳、命中和短弧 | Unity `Presentation/Feedback/FirearmFeedback.cs` |
 | 准星与弹药 HUD | Unity `Presentation/UI/Hud/FirearmReticleHud.cs`、`QuickbarHud.cs` |
 
@@ -81,7 +81,7 @@
 
 ## 验证边界
 
-当前只提供一种手枪；程序合成枪声，动作叠加在现有角色骨架上。品质、配件、爆头、穿透及长期平衡不在本次范围。局域网四客户端验证不等于 Steam、NAT 穿透或四台实体设备验收；第三人称显示已在实际场景查看，俯视准星的坐标映射另外由 EditMode 测试覆盖。
+本节记录的是手枪接入时的范围。2026-11-04 已扩展 AK47、AWM 与巴雷特，并为狙击枪增加开镜瞄准，详见[长枪实施记录](long-guns-implementation.md)。共用表现入口已从 `DesertEagleArt` 更名为 `FirearmArt`。程序合成枪声，动作叠加在现有角色骨架上。品质、配件、额外爆头、穿透及长期平衡不在本次范围。局域网四客户端验证不等于 Steam、NAT 穿透或四台实体设备验收。
 
 ## 枪械、螃蟹与食物合并（2026-11-03）
 

@@ -7,15 +7,18 @@ namespace Advanture.HookIsland
     public sealed class FirearmAvatarView
     {
         private readonly Transform body,rightUpper,rightForearm,rightHand,leftUpper,leftForearm,leftHand,chest;
-        private readonly DesertEagleArt.Model model;
+        private FirearmArt.Model model;
+        private readonly FirearmModelSelection models;
+        private int weaponId=-1;
+        public event System.Action<Transform> ModelChanged;
         private int reloadTicks=-1,recoveryTicks=-1,drawTicks=-1;
         private float reloadObserved,recoveryObserved,drawObserved,confirmedShot=float.NegativeInfinity;
         public void ConfirmShot()=>confirmedShot=Time.unscaledTime;
         public Transform Muzzle=>model.Muzzle;
         public bool Visible=>model.Root.gameObject.activeSelf;
-        public FirearmAvatarView(Transform body,DesertEagleArt art)
+        public FirearmAvatarView(Transform body,FirearmArt art)
         {
-            this.body=body;model=art.Create(body);
+            this.body=body;models=new FirearmModelSelection(body,art);model=models.Select(FirearmCatalog.Get(0));model.Root.gameObject.SetActive(false);
             foreach(var bone in body.GetComponentsInChildren<Transform>(true))
             {
                 switch(bone.name)
@@ -29,7 +32,11 @@ namespace Advanture.HookIsland
         public void Present(Fisher confirmed,Fisher motion,FirearmDefinition gun,bool interrupted)
         {
             bool visible=gun!=null && rightHand!=null && leftHand!=null;
-            model.Root.gameObject.SetActive(visible);if(!visible)return;
+            if(!visible){models.Select(null);return;}
+            var selected=models.Select(gun);
+            if(selected!=model){model=selected;ModelChanged?.Invoke(model.Root);}
+            if(weaponId!=confirmed.Firearm.WeaponId)
+            {weaponId=confirmed.Firearm.WeaponId;confirmedShot=float.NegativeInfinity;reloadTicks=recoveryTicks=drawTicks=-1;}
             // Equipment identity comes from the same confirmed inventory as the definition.
             // Only local action phase may be predicted; a speculative new gun cannot borrow this prop.
             var action=motion.Firearm.WeaponId==confirmed.Firearm.WeaponId?motion.Firearm:confirmed.Firearm;
@@ -44,6 +51,8 @@ namespace Advanture.HookIsland
             var leftGoal=new Vector3(.025f,.60f-lowered+breath,.31f-recoil*.055f);
             // A lowered free hand follows the removable magazine and returns to the support grip.
             float remove=reloading?Mathf.Sin(Mathf.Clamp01((phase-.10f)/.70f)*Mathf.PI):0;
+            recoil*=FirearmArt.Recoil(gun);
+            if(gun.Category!=FirearmCategory.Pistol)leftGoal=new Vector3(.015f,.59f-lowered+breath,.49f-recoil*.055f);
             leftGoal+=new Vector3(-.07f,-.17f,-.035f)*remove;
             if(interrupted){rightGoal=new Vector3(-.24f,.43f,.12f);leftGoal=new Vector3(.19f,.43f,.12f);}
             FisherArmPose.Reach(body,rightUpper,rightForearm,rightHand,body.TransformPoint(rightGoal));

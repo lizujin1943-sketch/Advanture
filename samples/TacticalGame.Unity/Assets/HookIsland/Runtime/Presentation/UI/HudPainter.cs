@@ -17,6 +17,7 @@ namespace Advanture.HookIsland
         public static Color DisplayColor(Color srgb) => QualitySettings.activeColorSpace==ColorSpace.Linear?srgb.linear:srgb;
         private readonly Font font;
         private readonly Texture2D atlas, coin;
+        private Texture2D scopeMask;
         private readonly Dictionary<int,GUIStyle> styles=new Dictionary<int,GUIStyle>();
         private string tooltip;
         private Rect tooltipAnchor;
@@ -27,6 +28,33 @@ namespace Advanture.HookIsland
             coin=UnityEngine.Resources.Load<Texture2D>("UI/CoinIcon");
         }
         public void BeginFrame() { tooltip=null; }
+        public void Scope(Rect viewport,int magnification)
+        {
+            if(scopeMask==null)
+            {
+                const int size=512;var pixels=new Color32[size*size];
+                for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+                {float distance=new Vector2(x+.5f-size/2f,y+.5f-size/2f).magnitude;pixels[y*size+x]=new Color32(0,0,0,(byte)Mathf.RoundToInt(Mathf.Clamp01(distance-(size/2f-2))*255));}
+                scopeMask=new Texture2D(size,size,TextureFormat.RGBA32,false){name="Optical scope aperture",wrapMode=TextureWrapMode.Clamp,filterMode=FilterMode.Bilinear};
+                scopeMask.SetPixels32(pixels);scopeMask.Apply(false,true);
+            }
+            float diameter=Mathf.Min(viewport.width,viewport.height)*.92f,radius=diameter*.5f;var center=viewport.center;
+            var aperture=new Rect(center.x-radius,center.y-radius,diameter,diameter);
+            Fill(new Rect(viewport.x,viewport.y,viewport.width,aperture.y-viewport.y),Color.black);
+            Fill(new Rect(viewport.x,aperture.yMax,viewport.width,viewport.yMax-aperture.yMax),Color.black);
+            Fill(new Rect(viewport.x,aperture.y,aperture.x-viewport.x,diameter),Color.black);
+            Fill(new Rect(aperture.xMax,aperture.y,viewport.xMax-aperture.xMax,diameter),Color.black);
+            var old=GUI.color;GUI.color=Color.white;GUI.DrawTexture(aperture,scopeMask);GUI.color=old;
+            void Line(Rect rect){Fill(new Rect(rect.x-.5f,rect.y-.5f,rect.width+1,rect.height+1),new Color(1,1,1,.4f));Fill(rect,new Color(.02f,.025f,.025f,.96f));}
+            Line(new Rect(center.x-radius*.92f,center.y-.6f,radius*.92f-4,1.2f));
+            Line(new Rect(center.x+4,center.y-.6f,radius*.92f-4,1.2f));
+            Line(new Rect(center.x-.6f,center.y-radius*.92f,1.2f,radius*.92f-4));
+            Line(new Rect(center.x-.6f,center.y+4,1.2f,radius*.92f-4));
+            for(int n=1;n<=5;n++)for(int side=-1;side<=1;side+=2)
+            {float offset=side*n*radius*.1f;Line(new Rect(center.x+offset-.5f,center.y-4,1,8));Line(new Rect(center.x-4,center.y+offset-.5f,8,1));}
+            Fill(new Rect(center.x-1,center.y-1,2,2),new Color(.85f,.15f,.12f));
+            Text(new Rect(center.x-100,center.y+radius*.68f,200,26),$"{magnification}×  ·  松开右键退出",13,White,TextAnchor.MiddleCenter);
+        }
         public void Surface(Rect rect,Color? color=null)
         {
             if(rect.width<=0 || rect.height<=0)return;
@@ -110,6 +138,6 @@ namespace Advanture.HookIsland
             Surface(rect);Text(rect,tooltip,12,White,TextAnchor.MiddleCenter);
         }
         public void Dispose()
-        {styles.Clear();}
+        {styles.Clear();if(scopeMask!=null){if(Application.isPlaying)UnityEngine.Object.Destroy(scopeMask);else UnityEngine.Object.DestroyImmediate(scopeMask);scopeMask=null;}}
     }
 }

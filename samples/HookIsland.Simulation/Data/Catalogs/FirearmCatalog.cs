@@ -7,6 +7,7 @@ using System.Linq;
 namespace Advanture.HookIsland.Simulation;
 
 public enum FirearmSpreadSampling : byte { Triangular }
+public enum FirearmCategory : byte { Pistol, Rifle, Sniper }
 
 public readonly struct MovementSpreadNode
 {
@@ -56,18 +57,26 @@ public sealed class FirearmDefinition
 {
     internal FirearmDefinition(string[] c)
     {
-        if(c.Length!=20)throw new InvalidDataException("Invalid firearm catalog columns.");
+        if(c.Length!=23)throw new InvalidDataException("Invalid firearm catalog columns.");
         Id=c[0];Name=c[1];var n=c.Skip(2).Take(13).Select(v=>int.Parse(v,CultureInfo.InvariantCulture)).ToArray();
         Tier=n[0];Range=n[1];Damage=n[2];CooldownTicks=n[3];ReloadTicks=n[4];DrawTicks=n[5];RecoveryTicks=n[6];Capacity=n[7];AmmoType=n[8];Price=n[9];Width=n[10];Height=n[11];Stock=n[12];
         if(string.IsNullOrWhiteSpace(Id) || string.IsNullOrWhiteSpace(Name) || Tier<1 || Tier>5 || Range<100 || Range>50000 || Damage<1 || Damage>1000 || CooldownTicks<1 || CooldownTicks>18000 || ReloadTicks<1 || ReloadTicks>18000 || DrawTicks<1 || DrawTicks>18000 || RecoveryTicks<1 || RecoveryTicks>CooldownTicks || Capacity<1 || Capacity>99 || AmmoType<0 || AmmoType>=AmmunitionCatalog.All.Count || Price<1 || Width<1 || Width>4 || Height<1 || Height>4 || Stock<1 || Stock>99)
             throw new InvalidDataException("Invalid firearm configuration.");
         Spread=FirearmSpreadDefinition.Parse(c[15],c[16],c[17],c[18],c[19]);
+        if(!Enum.TryParse(c[20],out FirearmCategory category) || !Enum.IsDefined(typeof(FirearmCategory),category) || (c[21]!="0" && c[21]!="1"))
+            throw new InvalidDataException("Invalid firearm category or trigger mode.");
+        Category=category;Automatic=c[21]=="1";ScopeMagnification=int.Parse(c[22],CultureInfo.InvariantCulture);
+        if(ScopeMagnification<1 || ScopeMagnification>12 || Category==FirearmCategory.Sniper && ScopeMagnification==1 || Category!=FirearmCategory.Sniper && ScopeMagnification!=1)
+            throw new InvalidDataException("Invalid firearm scope.");
     }
     public string Id {get;} public string Name {get;}
     public int Tier {get;} public int Range {get;} public int Damage {get;} public int CooldownTicks {get;}
     public int ReloadTicks {get;} public int DrawTicks {get;} public int RecoveryTicks {get;} public int Capacity {get;}
     public int AmmoType {get;} public int Price {get;} public int Width {get;} public int Height {get;} public int Stock {get;}
     public FirearmSpreadDefinition Spread {get;}
+    public FirearmCategory Category {get;}
+    public bool Automatic {get;}
+    public int ScopeMagnification {get;}
 }
 
 public static class FirearmCatalog

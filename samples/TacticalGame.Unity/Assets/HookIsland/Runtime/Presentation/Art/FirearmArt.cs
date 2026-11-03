@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Advanture.HookIsland.Simulation;
 using UnityEngine;
 using Object=UnityEngine.Object;
 
 namespace Advanture.HookIsland
 {
     /// <summary>Shared cosmetic geometry and audio. Moving parts never own ammunition.</summary>
-    public sealed class DesertEagleArt : IDisposable
+    public sealed partial class FirearmArt : IDisposable
     {
         public sealed class Model
         {
@@ -22,7 +23,7 @@ namespace Advanture.HookIsland
         public AudioClip Empty {get;}
         public AudioClip Impact {get;}
         public AudioClip WaterImpact {get;}
-        public DesertEagleArt(Shader lineShader)
+        public FirearmArt(Shader lineShader)
         {
             bevel=BevelledBox();cylinder=Cylinder();resources.Add(bevel);resources.Add(cylinder);
             silver=Surface("Deagle brushed silver",new Color(.71f,.76f,.80f),.75f,.46f);
@@ -34,7 +35,13 @@ namespace Advanture.HookIsland
             Loaded=Sound("Magazine lock",.11f,1800,.38f);Empty=Sound("Empty chamber",.055f,2400,.18f);Impact=Sound("Bullet contact",.09f,950,.25f);
             WaterImpact=WaterSound();
         }
-        public Model Create(Transform parent)
+        public Model Create(Transform parent,FirearmDefinition definition=null)
+        {
+            var gun=definition??FirearmCatalog.Get(0);
+            if(gun.Category!=FirearmCategory.Pistol)return CreateLongGun(parent,gun);
+            return CreatePistol(parent);
+        }
+        private Model CreatePistol(Transform parent)
         {
             var m=new Model{Root=Node("Desert Eagle",parent)};
             Part(m.Root,"Angular silver frame",bevel,silver,new Vector3(0,.045f,.085f),new Vector3(.069f,.065f,.265f));

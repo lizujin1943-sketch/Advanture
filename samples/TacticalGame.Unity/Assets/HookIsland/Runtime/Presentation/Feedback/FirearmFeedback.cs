@@ -18,13 +18,13 @@ namespace Advanture.HookIsland
             public float Started;
         }
         private readonly Transform root;
-        private readonly DesertEagleArt art;
+        private readonly FirearmArt art;
         private readonly AudioSource audio;
         private readonly FirearmWaterImpactView waterImpacts;
         private readonly List<ShotEffect> shots=new List<ShotEffect>();
         private readonly LineRenderer spread;
         public int PresentedShots {get;private set;}
-        public FirearmFeedback(Transform parent,DesertEagleArt art)
+        public FirearmFeedback(Transform parent,FirearmArt art)
         {
             this.art=art;root=new GameObject("Confirmed firearm feedback").transform;root.SetParent(parent,false);
             audio=root.gameObject.AddComponent<AudioSource>();audio.spatialBlend=0;audio.volume=.42f;
@@ -37,7 +37,7 @@ namespace Advanture.HookIsland
             if(value.Kind==HookGameplayEventKind.FirearmReloadStarted){audio.PlayOneShot(art.Reload,value.Slot==local?.65f:.3f);return;}
             if(value.Kind==HookGameplayEventKind.FirearmReloaded){audio.PlayOneShot(art.Loaded,value.Slot==local?.65f:.3f);return;}
             if(value.Kind!=HookGameplayEventKind.FirearmShot)return;
-            PresentedShots++;audio.PlayOneShot(art.Shot,value.Slot==local?1:.55f);
+            PresentedShots++;audio.PlayOneShot(art.Report(value.ItemType),value.Slot==local?1:.55f);
             if(shots.Count>=32){Release(shots[0].Root.gameObject);shots.RemoveAt(0);}
             var node=new GameObject("Confirmed shot").transform;node.SetParent(root,false);
             // Surface membership, not the wider character standing footprint: a bullet

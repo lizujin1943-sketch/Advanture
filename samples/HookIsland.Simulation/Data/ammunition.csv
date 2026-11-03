@@ -1,2 +1,5 @@
 id,name,price,quantity,stock,stackLimit
 pistol_round,手枪子弹,30,14,6,99
+rifle_round,步枪子弹,45,30,6,99
+magnum_round,马格南狙击弹,60,5,4,99
+heavy_sniper_round,重型狙击弹,90,5,3,99

@@ -12,7 +12,8 @@ namespace Advanture.HookIsland
     public sealed class FirstPersonFirearmView
     {
         private readonly Transform root,rightHand,leftHand,rightSleeve,leftSleeve;
-        private readonly DesertEagleArt.Model model;
+        private FirearmArt.Model model;
+        private readonly FirearmModelSelection models;
         private readonly MeshRenderer rightSleeveRenderer,leftSleeveRenderer;
         private int weaponId=-1,reloadTicks=-1,recoveryTicks=-1,drawTicks=-1;
         private float reloadObserved,recoveryObserved,drawObserved,confirmedShot=float.NegativeInfinity;
@@ -20,10 +21,10 @@ namespace Advanture.HookIsland
         public bool Visible=>root.gameObject.activeSelf;
         public Transform Muzzle=>model.Muzzle;
 
-        public FirstPersonFirearmView(Transform parent,DesertEagleArt art,Mesh handMesh,Material skin)
+        public FirstPersonFirearmView(Transform parent,FirearmArt art,Mesh handMesh,Material skin)
         {
             root=new GameObject("First person firearm").transform;root.SetParent(parent,false);
-            model=art.Create(root);model.Root.gameObject.SetActive(true);
+            models=new FirearmModelSelection(root,art);model=models.Select(FirearmCatalog.Get(0));
             rightHand=Part(model.Root,"Right grip hand",handMesh,skin,new Vector3(.005f,-.045f,-.012f),new Vector3(.075f,.085f,.075f));
             leftHand=Part(model.Root,"Left support hand",handMesh,skin,new Vector3(-.055f,-.035f,.028f),new Vector3(.065f,.07f,.09f));
             rightSleeve=Part(root,"Right sleeve",handMesh,skin,Vector3.zero,Vector3.one);
@@ -39,11 +40,19 @@ namespace Advanture.HookIsland
         /// <summary>仅由已经去重的确认开火事件调用，回滚不会重复制造后坐力。</summary>
         public void ConfirmShot(){if(Visible)confirmedShot=Time.unscaledTime;}
 
-        public void Present(Camera camera,Fisher confirmed,Fisher motion,FirearmDefinition gun,Vector3 aim,Material sleeve,bool interrupted)
+        public void Present(Camera camera,Fisher confirmed,Fisher motion,FirearmDefinition gun,Vector3 aim,Material sleeve,bool interrupted,bool scoped=false)
         {
             if(camera==null || gun==null){Reset();return;}
             if(weaponId!=confirmed.Firearm.WeaponId)
             {Reset();weaponId=confirmed.Firearm.WeaponId;}
+            var selected=models.Select(gun,!scoped);
+            if(selected!=model)
+            {
+                model=selected;rightHand.SetParent(model.Root,false);leftHand.SetParent(model.Root,false);
+                foreach(var child in model.Root.GetComponentsInChildren<Transform>(true))child.gameObject.layer=LayerMask.NameToLayer("UI");
+                foreach(var renderer in model.Root.GetComponentsInChildren<Renderer>(true))
+                {renderer.shadowCastingMode=ShadowCastingMode.Off;renderer.receiveShadows=false;}
+            }
             root.gameObject.SetActive(true);
             // 装备身份必须来自确认态；只接受同一把枪的预测动作，避免串用换装前后的时钟。
             var action=motion.Firearm.WeaponId==confirmed.Firearm.WeaponId?motion.Firearm:confirmed.Firearm;
@@ -56,6 +65,7 @@ namespace Advanture.HookIsland
             bool reloading=!interrupted && action.Reloading;
             float phase=reloading?1-Remaining(action.ReloadTicks,reloadObserved)/gun.ReloadTicks:0;
             float remove=reloading?Mathf.Sin(Mathf.Clamp01((phase-.10f)/.70f)*Mathf.PI):0;
+            recoil*=FirearmArt.Recoil(gun);
             // 靠近画面右下方，保持中心准星可见。位置跟随最终镜头，不跟随世界角色转身的插值。
             root.SetPositionAndRotation(camera.transform.position,camera.transform.rotation);
             model.Root.localPosition=new Vector3(.16f,-.27f-draw*.20f-(interrupted?.12f:0),.38f-recoil*.045f);
@@ -66,10 +76,12 @@ namespace Advanture.HookIsland
             model.Slide.localPosition=Vector3.back*(.045f*Mathf.Clamp01((recoil-.40f)/.60f));
             model.Magazine.localPosition=new Vector3(-.025f,-.17f,-.02f)*remove;
             model.Magazine.localRotation=Quaternion.Euler(0,0,-18*remove);
-            leftHand.localPosition=new Vector3(-.055f,-.035f,.028f)+new Vector3(-.025f,-.17f,-.02f)*remove;
+            leftHand.localPosition=FirearmArt.SupportGrip(gun)+new Vector3(-.025f,-.17f,-.02f)*remove;
             rightSleeveRenderer.sharedMaterial=leftSleeveRenderer.sharedMaterial=sleeve;
             Sleeve(rightSleeve,root.TransformPoint(new Vector3(.30f,-.47f,.07f)),rightHand.position);
             Sleeve(leftSleeve,root.TransformPoint(new Vector3(-.19f,-.48f,.10f)),leftHand.position);
+            // The optical view uses the world camera; keep muzzle transforms alive for confirmed effects.
+            model.Root.gameObject.SetActive(!scoped);rightSleeve.gameObject.SetActive(!scoped);leftSleeve.gameObject.SetActive(!scoped);
         }
 
         public void Reset()

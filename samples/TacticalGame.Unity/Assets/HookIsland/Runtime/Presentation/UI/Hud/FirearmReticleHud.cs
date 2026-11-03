@@ -34,6 +34,8 @@ namespace Advanture.HookIsland
             var viewport=room.ViewCamera.pixelRect;
             if(!room.CenterAim && (!viewport.Contains(Input.mousePosition) || room.Overlay?.PointerOverHud==true))return;
             var weapon=ActiveToolView.Firearm(room.State,player);
+            if(room.Scoped)
+            {ui.Scope(new Rect(viewport.x/scale,(Screen.height-viewport.yMax)/scale,viewport.width/scale,viewport.height/scale),weapon.ScopeMagnification);return;}
             var equipped=room.State.Tackle.Inventory.Equipped(player.Slot,EquipmentSlot.RightHand).Value;
             var motion=room.Client?.Session?.InspectPredictedState();
             int spread=motion!=null && player.Slot<motion.Players.Count?

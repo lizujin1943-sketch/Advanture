@@ -421,12 +421,17 @@ namespace Advanture.HookIsland.Tests
                 {
                     // Face away from the other spawn so this input test does not tow the peer.
                     view.Toggle(Vector3.left,start0);
-                    Func<ulong,HookInput> firstInput=tick=>CameraInput(view,tick,start0,Vector3.left);
-                    Func<ulong,HookInput> secondInput=tick=>CameraInput(overhead,tick,start1,Vector3.forward);
-                    ulong common=0;
-                    while(common<60 && clock.Elapsed.TotalSeconds<8)
+                    // A restored/handshaking client may first sample beyond room tick six.
+                    // Exercise six actual samples from each peer, not the elapsed handshake ticks.
+                    ulong firstStart=0,secondStart=0;
+                    Func<ulong,HookInput> firstInput=tick=>{if(firstStart==0)firstStart=tick;return CameraInput(view,tick-firstStart+1,start0,Vector3.left);};
+                    Func<ulong,HookInput> secondInput=tick=>{if(secondStart==0)secondStart=tick;return CameraInput(overhead,tick-secondStart+1,start1,Vector3.forward);};
+                    ulong common=0;var now=TimeSpan.Zero;
+                    while(common<60 && clock.Elapsed.TotalSeconds<30)
                     {
-                        host.Poll(clock.Elapsed);first.Poll(clock.Elapsed,firstInput);second.Poll(clock.Elapsed,secondInput);
+                        // Editor pauses must not skip the one-shot input; all peers share one logical clock.
+                        now+=TimeSpan.FromTicks(TimeSpan.TicksPerSecond/HookGame.Rate);
+                        host.Poll(now);first.Poll(now,firstInput);second.Poll(now,secondInput);
                         Assert.That(host.Failure??first.Failure??second.Failure,Is.Null);
                         if(first.Session?.LocalParticipant!=null)firstStates[first.Session.ConfirmedTick]=codec.Encode(first.Session.InspectState());
                         if(second.Session?.LocalParticipant!=null)secondStates[second.Session.ConfirmedTick]=codec.Encode(second.Session.InspectState());
@@ -441,7 +446,7 @@ namespace Advanture.HookIsland.Tests
                     Assert.That(state.Players[0].Z,Is.EqualTo(map.Spawns[0].Z));
                     Assert.That(state.Players[1].X,Is.EqualTo(map.Spawns[1].X));
                     Assert.That(state.Players[1].Z,Is.GreaterThan(map.Spawns[1].Z));
-                    Assert.That(state.Players.All(p=>p.Casts==1),Is.True);
+                    Assert.That(state.Players.All(p=>p.Casts==1),Is.True,"Sample starts "+firstStart+","+secondStart+"; "+string.Join(";",state.Players.Select(p=>$"slot={p.Slot} casts={p.Casts} water={p.Swimming.InWater} phase={p.Phase} pos={p.X},{p.Z} hp={p.Vitals.Health}")));
                     Assert.That(view.ThirdPerson,Is.True);Assert.That(overhead.ThirdPerson,Is.False);
                     Assert.That(camera.orthographic,Is.False);Assert.That(otherCamera.orthographic,Is.True);
                 }

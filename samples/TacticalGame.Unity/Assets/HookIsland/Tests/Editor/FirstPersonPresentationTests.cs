@@ -82,5 +82,24 @@ namespace Advanture.HookIsland.Tests
             presentation.PresentFirstPerson(state,state,0,true,camera,camera.transform.position+camera.transform.forward*10);
             Assert.That(gun.Find("Removable magazine").localPosition,Is.EqualTo(Vector3.zero));
         }
+
+        [Test] public void NewlySelectedLongGunStaysHiddenOnTheLocalWorldBody()
+        {
+            presentation.PresentFirstPerson(state,state,0,true,camera,Vector3.forward*40);
+            var inventory=new InventorySystem(state.Tackle.Inventory);var players=state.Players.ToArray();int coins=5000;
+            Assert.That(inventory.Purchase(0,ItemKind.Firearm,2,true,false,new Point(players[0].X,players[0].Z),ref coins),Is.EqualTo(InventoryResult.Success));
+            players[0].Coins=coins;players[0].CoinsEarned=5000;players[0].SelectedQuickSlot=-1;
+            players[0].Firearm.WeaponId=inventory.Equipped(0,EquipmentSlot.RightHand).Value.Id;
+            var switched=new HookState(state.Steps,players,state.Fish,coins,state.Tiles,state.Driftwood,
+                new TackleState(state.Tackle.Config,inventory.Capture(),state.Tackle.Merchants),state.Enemies,state.RoomRules,
+                state.Treasure,state.Commissions,state.Ocean,state.Finale,state.Crabs);
+            var bytes=new HookGame().Encode(switched);
+            presentation.Present(switched,switched,0,Vector3.forward*40,false,true);
+            presentation.PresentFirstPerson(switched,switched,0,true,camera,Vector3.forward*40,true);
+            var world=root.transform.Find("Fishing visuals/Fisher 1/Body/AWM");Assert.That(world,Is.Not.Null);
+            Assert.That(world.GetComponentsInChildren<Renderer>(true).All(r=>r.forceRenderingOff),Is.True);
+            presentation.ClearFirstPerson();Assert.That(world.GetComponentsInChildren<Renderer>(true).All(r=>!r.forceRenderingOff),Is.True);
+            Assert.That(new HookGame().Encode(switched),Is.EqualTo(bytes));
+        }
     }
 }

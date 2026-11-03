@@ -65,7 +65,7 @@ internal static partial class Program
             Reject(()=>Profile(new[]{new MovementSpreadNode(50,-1)}));Reject(()=>Profile(new[]{new MovementSpreadNode(50,10001)}));
             Reject(()=>Profile(new[]{new MovementSpreadNode(50,500),new MovementSpreadNode(1000001,1000)}));
             var m=Model();var codec=new HookGame();
-            foreach(var bad in new[]{new FirearmSpreadState(0,499),new FirearmSpreadState(0,10001),new FirearmSpreadState(0,500,30),new FirearmSpreadState(0,500,-30),new FirearmSpreadState(1,500)})
+            foreach(var bad in new[]{new FirearmSpreadState(0,499),new FirearmSpreadState(0,10001),new FirearmSpreadState(0,500,30),new FirearmSpreadState(0,500,-30),new FirearmSpreadState(FirearmCatalog.All.Count,500)})
             {var s=m.Capture();var ps=s.Players.ToArray();ps[0].Firearm.SetSpreads(new[]{bad});Reject(()=>codec.Decode(codec.Encode(Replace(s,ps))));}
             var saved=m.Capture();var players=saved.Players.ToArray();players[0].Firearm.SetSpreads(new[]{new FirearmSpreadState(0,2500,-20)});
             Require(codec.Decode(codec.Encode(Replace(saved,players))).Players[0].Firearm.Spreads.Single().Remainder==-20,"Checkpoint discarded widening remainder");
@@ -152,5 +152,5 @@ internal static partial class Program
         });
     }
     private static int Main(string[] args)
-    {int count=0;try{foreach(var (name,test) in UnlimitedAmmoCases().Concat(StarterCases()).Concat(Cases()).Concat(BoundaryCases()).Concat(KillRewardCases()).Concat(NetworkCases()).Where(c=>args.Length==0||args.Any(a=>c.Item1.Contains(a,StringComparison.OrdinalIgnoreCase)))){test();Console.WriteLine("PASS "+name);count++;}Require(count>0,"No matching firearm checks");Console.WriteLine($"Passed {count} firearm checks");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
+    {int count=0;try{foreach(var (name,test) in LongGunCases().Concat(LongGunNetworkCases()).Concat(UnlimitedAmmoCases()).Concat(StarterCases()).Concat(Cases()).Concat(BoundaryCases()).Concat(KillRewardCases()).Concat(NetworkCases()).Where(c=>args.Length==0||args.Any(a=>c.Item1.Contains(a,StringComparison.OrdinalIgnoreCase)))){test();Console.WriteLine("PASS "+name);count++;}Require(count>0,"No matching firearm checks");Console.WriteLine($"Passed {count} firearm checks");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
 }

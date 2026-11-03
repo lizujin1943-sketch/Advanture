@@ -79,6 +79,7 @@ namespace Advanture.HookIsland
         public bool NearShop=>NearestMerchantId>=0;
         public bool CanShopAt(int id)=>id>=0 && map!=null && TryGetLocalPlayer(out var p) && (map.Fishing==null || MerchantRules.CanInteract(p)) &&
             (map.Fishing!=null?MerchantRules.Near(map,State.Tiles,p,id):id==0 && map.Platform==null && HookUpgrades.IsNearShop(p.X,p.Z));
+        public bool Scoped=>playerInput?.Scoped==true;
         public bool HoldingFirearm=>TryGetLocalPlayer(out var player) && ActiveToolView.Firearm(State,player)!=null;
         public bool FirearmBusy=>TryGetLocalPlayer(out var player) && player.Firearm.Busy;
         public bool HoldingMelee=>TryGetLocalPlayer(out var player) && ActiveToolView.RightHand(State,player) && MeleeRules.Equipped(State,player)!=null;
@@ -170,7 +171,7 @@ namespace Advanture.HookIsland
                         Playing && CanCast && !HoldingMelee && !HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null,
                         Playing && CanCast && HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null);
                     if(TryGetLocalPlayer(out var local))playerInput.Follow(this,local);
-                    presentation.PresentFirstPerson(State,predicted,LocalSlot,FirstPerson,viewCamera,Aim);
+                    presentation.PresentFirstPerson(State,predicted,LocalSlot,FirstPerson,viewCamera,Aim,Scoped);
                 }
                 Feedback.Update(Client,Client.RoundEpoch,Client.Session.ConfirmedTick,State,LocalSlot,Client.ConfirmedEvents,Time.unscaledTime,
                     overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true,PresentConfirmedEvent);
@@ -184,7 +185,7 @@ namespace Advanture.HookIsland
         {
             presentation.PresentConfirmedEvent(value,LocalSlot);
             if(value.Kind==HookGameplayEventKind.FirearmShot)
-            {Enemies?.ConfirmFirearmHit(value);if(value.Slot==LocalSlot)playerInput.ConfirmFirearmShot();}
+            {Enemies?.ConfirmFirearmHit(value);if(value.Slot==LocalSlot)playerInput.ConfirmFirearmShot(value.ItemType);}
         }
         private HookInput Sample(ulong tick)
         {

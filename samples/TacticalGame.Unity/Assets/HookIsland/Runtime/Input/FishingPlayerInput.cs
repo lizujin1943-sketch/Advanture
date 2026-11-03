@@ -10,12 +10,15 @@ namespace Advanture.HookIsland
         private Camera viewCamera;
         private FishingCameraView cameraView;
         private readonly FishingCameraInput cameraInput=new FishingCameraInput();
+        private readonly FirearmTriggerInput trigger=new FirearmTriggerInput();
+        private bool scopeReleaseRequired;
         private short moveX,moveZ,aimVertical;
         private bool pendingFire,pendingCancel,pendingReload,skipPointerFrame,entryPerspectivePending=true;
         private Vector3 aim;
         public Vector3 Aim=>aim;
         public bool ThirdPerson=>cameraView?.ThirdPerson==true;
         public bool FirstPerson=>cameraView?.FirstPerson==true;
+        public bool Scoped=>cameraView?.Scoped==true;
         public bool CenterAim=>cameraView?.CenterAim==true;
         public bool CameraPointerCaptured=>cameraView?.PointerCaptured==true;
         public void Initialize(Camera camera,FishingCameraView view){viewCamera=camera;cameraView=view;}
@@ -36,6 +39,7 @@ namespace Advanture.HookIsland
             EnsureEntryPerspective(room);
             // Poll 可能刚确认一次装备切换或倒地；本帧显示立即跟上确认态，不多推进过渡时间。
             cameraView.UpdateFirearmFraming(room.Playing && room.HoldingFirearm && !room.Incapacitated,0);
+            UpdateScope(room,0);
             // Follow the same smoothed/predicted avatar that is rendered this frame, including
             // while a UI is open, swimming or being towed. Never feed camera position into authority.
             cameraView.Follow(room.Presentation.PlayerPosition(room.LocalSlot));
@@ -56,15 +60,30 @@ namespace Advanture.HookIsland
             var delta=cameraInput.ReadLookDelta(canLook);
             if(canLook && !skipPointerFrame){cameraView.Look(delta);cameraView.Zoom(Input.mouseScrollDelta.y);}
         }
+        private void UpdateScope(IslandFishingController room,float deltaTime)
+        {
+            bool held=Input.GetMouseButton(1);
+            if(!held)scopeReleaseRequired=false;
+            FirearmDefinition gun=null;bool allowed=false;
+            if(room.TryGetLocalPlayer(out var player))
+            {
+                gun=ActiveToolView.Firearm(room.State,player);
+                allowed=CameraControlsActive(room) && gun!=null && !player.Firearm.Reloading && player.Firearm.DrawTicks==0 &&
+                    FirearmRules.CanAct(player,SwimRingCatalog.Equipped(room.State.Tackle.Inventory,player.Slot)!=null) && player.Revival.RescueTicks==0;
+            }
+            if(!allowed && held)scopeReleaseRequired=true;
+            cameraView?.UpdateScope(gun,held && !scopeReleaseRequired,allowed,deltaTime);
+        }
         public void Capture(IslandFishingController room)
         {
             cameraView?.PrepareInput();
             EnsureEntryPerspective(room);
             // 装备及库存使用同一份确认态，避免预测换装被回滚时镜头来回跳动。
             cameraView?.UpdateFirearmFraming(room.Playing && room.HoldingFirearm && !room.Incapacitated,Time.unscaledDeltaTime);
+            UpdateScope(room,Time.unscaledDeltaTime);
             CaptureCameraInput(room);
             if(!room.Playing || room.Incapacitated || !Application.isFocused || room.ShopOpen || room.Equipment?.InventoryOpen==true || room.BeingPulled || (room.Overlay!=null && room.Overlay.MenuOpen))
-            { moveX=moveZ=0;pendingFire=pendingCancel=pendingReload=false;return; }
+            { ClearCommands();return; }
             Vector2 move=new Vector2((Input.GetKey(KeyCode.D)?1:0)-(Input.GetKey(KeyCode.A)?1:0),
                 (Input.GetKey(KeyCode.W)?1:0)-(Input.GetKey(KeyCode.S)?1:0));
             move=cameraView.Movement(move);moveX=(short)(move.x*1000);moveZ=(short)(move.y*1000);
@@ -94,24 +113,30 @@ namespace Advanture.HookIsland
             }
             if(!room.HoldingFirearm)aim=FishingAimAssist.Resolve(room,viewCamera,pointer,aim);
             aim.x=Mathf.Clamp(aim.x,-90,90);aim.z=Mathf.Clamp(aim.z,-90,90);
-            if(!skipPointerFrame && !overUi && room.Construction?.Open!=true && Input.GetMouseButtonDown(0))
+            var activeGun=room.TryGetLocalPlayer(out var armed)?ActiveToolView.Firearm(room.State,armed):null;
+            bool triggerActive=!skipPointerFrame && !overUi && room.Construction?.Open!=true && room.CanCast;
+            trigger.Capture(activeGun!=null?armed.Firearm.WeaponId:0,activeGun?.Automatic==true,
+                triggerActive && activeGun!=null,Input.GetMouseButtonDown(0),Input.GetMouseButton(0));
+            if(triggerActive && Input.GetMouseButtonDown(0))
             {if(room.Equipment?.UseSelected()!=true && room.CanCast)
-                {pendingFire=true;if(room.HoldingFirearm)room.Presentation?.PresentEmptyFirearm(room.State,room.LocalSlot);}}
-            if(!skipPointerFrame && !overUi && room.Construction?.Open!=true && Input.GetMouseButtonDown(1))pendingCancel=true;
-            if(room.HoldingFirearm && room.Construction?.Open!=true && Input.GetKeyDown(KeyCode.R) && room.Revival?.OwnsRescuePress!=true)pendingReload=true;
+                {pendingFire=activeGun==null;if(room.HoldingFirearm)room.Presentation?.PresentEmptyFirearm(room.State,room.LocalSlot);}}
+            if(!skipPointerFrame && !overUi && room.Construction?.Open!=true && Input.GetMouseButtonDown(1) && activeGun?.Category!=FirearmCategory.Sniper)pendingCancel=true;
+            if(room.HoldingFirearm && room.Construction?.Open!=true && Input.GetKeyDown(KeyCode.R) && room.Revival?.OwnsRescuePress!=true)
+            {pendingReload=true;scopeReleaseRequired=true;cameraView?.UpdateScope(null,false,false,0);}
         }
         public HookInput Consume(ulong tick,Func<ulong,HookInput> provider,bool won)
         {
             if(won){ClearCommands();return default;}
-            var result=provider!=null?provider(tick):new HookInput(moveX,moveZ,Mathf.RoundToInt(aim.x*1000),Mathf.RoundToInt(aim.z*1000),pendingFire,pendingCancel,reload:pendingReload,aimVertical:aimVertical);
+            bool fire=trigger.Consume();
+            var result=provider!=null?provider(tick):new HookInput(moveX,moveZ,Mathf.RoundToInt(aim.x*1000),Mathf.RoundToInt(aim.z*1000),pendingFire || fire,pendingCancel,reload:pendingReload,aimVertical:aimVertical);
             pendingFire=pendingCancel=pendingReload=false;return result;
         }
-        public void ConfirmFirearmShot()=>cameraView?.ConfirmFirearmShot();
+        public void ConfirmFirearmShot(int type)=>cameraView?.ConfirmFirearmShot(FirearmArt.Recoil(FirearmCatalog.Get(type)));
         /// <summary>方向的 Y 分量以千分比传输；限制极点，保证水平瞄准方向仍然有定义。</summary>
         public static short QuantizeVerticalAim(Vector3 direction)=>(short)Mathf.Clamp(Mathf.RoundToInt(direction.normalized.y*1000),-995,995);
-        public void ClearCommands(){moveX=moveZ=0;pendingFire=pendingCancel=pendingReload=false;}
+        public void ClearCommands(){moveX=moveZ=0;pendingFire=pendingCancel=pendingReload=false;trigger.Interrupt();}
         public void Reset()
-        {ClearCommands();aim=Vector3.zero;aimVertical=0;cameraView?.Reset();cameraInput.Reset();entryPerspectivePending=true;skipPointerFrame=true;}
+        {ClearCommands();aim=Vector3.zero;aimVertical=0;scopeReleaseRequired=false;cameraView?.Reset();cameraInput.Reset();entryPerspectivePending=true;skipPointerFrame=true;}
         public void ReleaseFocus(){ClearCommands();cameraView?.SetLookInputActive(false);cameraInput.Reset();}
         public void EndFrame(IslandFishingController room)
         {

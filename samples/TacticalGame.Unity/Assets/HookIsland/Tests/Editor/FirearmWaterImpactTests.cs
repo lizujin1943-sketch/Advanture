@@ -13,7 +13,7 @@ namespace Advanture.HookIsland.Tests
         private GameObject root;
         private IslandMap map;
         private HookState state;
-        private DesertEagleArt art;
+        private FirearmArt art;
         private FirearmFeedback shots;
 
         [SetUp] public void SetUp()
@@ -22,7 +22,7 @@ namespace Advanture.HookIsland.Tests
             map = UnityEditor.AssetDatabase.LoadAssetAtPath<PlatformSettings>("Assets/HookIsland/Data/PlatformSettings.asset").CreateMap();
             state = new HookState(12, new[] { new Fisher { Slot = 0, Vitals = new CharacterVitals { Health = 100 } } },
                 Array.Empty<Fish>(), 0, tiles: PlatformRules.InitialTiles());
-            art = new DesertEagleArt(Shader.Find("Hook Island/Fishing Line"));
+            art = new FirearmArt(Shader.Find("Hook Island/Fishing Line"));
             shots = new FirearmFeedback(root.transform, art);
         }
         [TearDown] public void TearDown() { shots.Dispose(); art.Dispose(); Object.DestroyImmediate(root); }

@@ -14,7 +14,7 @@ namespace Advanture.HookIsland
         private readonly MerchantOfferSelection selection=new MerchantOfferSelection();
         private MerchantState shelf=>selection.Shelf;
         private int offer {get=>selection.Offer;set=>selection.Select(value);}
-        private bool rotated, dropOld;
+        private bool rotated, dropOld, firearmShelf;
         private int groundPage;
         private readonly InventoryEquipmentPreview equipmentPreview = new InventoryEquipmentPreview();
         private readonly bool[,] shopOccupied = new bool[8, 8];
@@ -64,7 +64,18 @@ namespace Advanture.HookIsland
         }
         private void DrawShop(int coins, float x, float y)
         {
-            GUI.Label(new Rect(x, y, 286, 28), "共享货架", text); y += 37;
+            if(GUI.Toggle(new Rect(x,y,138,28),!firearmShelf,"装备 / 食物",button))firearmShelf=false;
+            if(GUI.Toggle(new Rect(x+142,y,138,28),firearmShelf,"枪械",button))firearmShelf=true;
+            y += 37;
+            if(firearmShelf)
+            {
+                if(shelf!=null)for(int type=0;type<shelf.FirearmStock.Count;type++)
+                {
+                    var gun=FirearmCatalog.Get(type);
+                    DrawCommodity(ItemKind.Firearm,type,FirearmCatalog.OfferOffset+type,shelf.FirearmStock[type],gun.Price,coins,x+(type%2)*140,y+(type/2)*82);
+                }
+                GUI.Label(new Rect(x,y+190,280,75),"AK47：按住左键连射\n狙击枪：按住右键开镜\n无限备用弹药 · R 换弹",small);return;
+            }
             Array.Clear(shopOccupied, 0, shopOccupied.Length);
             for (int row = 0; row < 8; row++) for (int col = 0; col < 8; col++) Fill(new Rect(x + col * 34 + 1, y + row * 34 + 1, 32, 32), new Color(.08f, .17f, .2f));
             if(shelf==null)return;
@@ -88,12 +99,6 @@ namespace Advanture.HookIsland
                 if (DrawItem(rect, ItemKind.Food, type, food.Name, shelf.FoodStock[type], itemId == 0 && offer == index,
                     shelf.FoodStock[type] == 0, price: food.Price, coins: coins))
                 { offer = index; itemId = 0; placing = 0; dropOld = false; }
-            }
-            // Guns keep their stable offer IDs; unlimited reserve needs no ammunition shelf.
-            int card=0;
-            for(int type=0;type<shelf.FirearmStock.Count;type++)
-            {
-                var gun=FirearmCatalog.Get(type);DrawCommodity(ItemKind.Firearm,type,FirearmCatalog.OfferOffset+type,shelf.FirearmStock[type],gun.Price,coins,x+card++*140,y+280);
             }
         }
         private void DrawCommodity(ItemKind kind,int type,int index,int stock,int price,int coins,float x,float y)
@@ -212,7 +217,8 @@ namespace Advanture.HookIsland
             if(kind==ItemKind.Firearm)
             {
                 var gun=FirearmCatalog.Get(type);
-                GUI.Label(new Rect(x,y+86,410,59),$"伤害 {gun.Damage} · 射程 {gun.Range/1000f:0.#} 米 · 弹匣 {(buying?gun.Capacity:item.LoadedAmmo)}/{gun.Capacity}\n无限备用弹药 · R 换弹 {gun.ReloadTicks/(float)HookGame.Rate:0.#} 秒",text);
+                string mode=gun.Automatic?"按住左键连射":gun.ScopeMagnification>1?$"单发 · 右键 {gun.ScopeMagnification} 倍镜":"左键单发";
+                GUI.Label(new Rect(x,y+86,410,70),$"伤害 {gun.Damage} · 射程 {gun.Range/1000f:0.#} 米 · 弹匣 {(buying?gun.Capacity:item.LoadedAmmo)}/{gun.Capacity}\n{mode} · 间隔 {gun.CooldownTicks/(float)HookGame.Rate:0.##} 秒\n无限备用弹药 · R 换弹 {gun.ReloadTicks/(float)HookGame.Rate:0.#} 秒",text);
             }
             if(kind==ItemKind.Weapon)
             {

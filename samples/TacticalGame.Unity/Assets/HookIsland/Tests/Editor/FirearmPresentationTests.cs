@@ -94,7 +94,7 @@ namespace Advanture.HookIsland.Tests
             var definition=Resources.Load<FisherCharacterDefinition>(FisherCharacterDefinition.ResourcePath);var model=Object.Instantiate(definition.model);
             try
             {
-                using(var art=new DesertEagleArt(Shader.Find("Sprites/Default")))
+                using(var art=new FirearmArt(Shader.Find("Sprites/Default")))
                 using(var animation=new FisherAnimationView(model.GetComponent<Animator>(),definition,0))
                 {
                     Transform Bone(string name)=>model.GetComponentsInChildren<Transform>(true).Single(t=>t.name==name);

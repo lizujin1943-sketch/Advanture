@@ -34,7 +34,7 @@ namespace Advanture.HookIsland
         private readonly CatchEscapePresentation escapes;
         private readonly FryingPanArt meleeArt;
         private readonly FoodArt foodArt;
-        private readonly DesertEagleArt firearmArt;
+        private readonly FirearmArt firearmArt;
         private readonly FirearmFeedback firearms;
         private readonly FirstPersonFirearmView firstPersonFirearm;
         private int firstPersonSlot=-1;
@@ -99,7 +99,7 @@ namespace Advanture.HookIsland
             if(map.Fishing?.Melee.Enabled==true)meleeArt=new FryingPanArt(lineShader);
             if(map.Fishing?.Firearms.Enabled==true)
             {
-                firearmArt=new DesertEagleArt(lineShader);firearms=new FirearmFeedback(root,firearmArt);
+                firearmArt=new FirearmArt(lineShader);firearms=new FirearmFeedback(root,firearmArt);
                 firstPersonFirearm=new FirstPersonFirearmView(root,firearmArt,cube,skin);
             }
         }
@@ -108,7 +108,7 @@ namespace Advanture.HookIsland
         /// 镜头跟随本帧角色以后再更新手持枪，保证输入、准星和近处枪械使用同一视角。
         /// 只本地隐藏完整身体；同伴的动画、枪械与世界位置仍由原来的表现路径更新。
         /// </summary>
-        public void PresentFirstPerson(HookState state,HookState predicted,ushort local,bool enabled,Camera camera,Vector3 aim)
+        public void PresentFirstPerson(HookState state,HookState predicted,ushort local,bool enabled,Camera camera,Vector3 aim,bool scoped=false)
         {
             bool active=enabled && firstPersonFirearm!=null && camera!=null && state!=null &&
                 !state.RoundFinished && local<state.Players.Count && avatars.ContainsKey(local);
@@ -121,7 +121,7 @@ namespace Advanture.HookIsland
             localPlayerMarker.Hide();
             var motion=predicted!=null && local<predicted.Players.Count?predicted.Players[local]:player;
             bool interrupted=!FirearmRules.CanAct(player,SwimRingCatalog.Equipped(state.Tackle.Inventory,local)!=null) || player.Revival.RescueTicks>0;
-            firstPersonFirearm.Present(camera,player,motion,gun,aim,coats[local],interrupted);
+            firstPersonFirearm.Present(camera,player,motion,gun,aim,coats[local],interrupted,scoped);
         }
         public void ClearFirstPerson()
         {
@@ -346,6 +346,7 @@ namespace Advanture.HookIsland
             if(character!=null)CreateAnimatedBody(a,slot,initialCasts);
             else CreateLegacyBody(a,slot);
             a.Visibility=new FirstPersonAvatarVisibility(a.Body);
+            if(a.Firearm!=null)a.Firearm.ModelChanged+=a.Visibility.Register;
             a.Rope=Line("P"+(slot+1)+" rope",.055f,new Color(1,.76f,.26f));
             a.Hook=new GameObject("P"+(slot+1)+" hook").transform;a.Hook.SetParent(root,false);
             Part(a.Hook,"Tip",shape,Vector3.zero,new Vector3(.22f,.2f,.43f),metal);
