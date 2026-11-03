@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using Advanture.HookIsland.Network;
@@ -11,8 +12,8 @@ internal static partial class Program
 {
     private static IEnumerable<(string,Action)> NetworkCases()
     {
-        yield return ("four_udp_clients_kill_and_confirm_identical_rewards",()=>{
-            var map=Map(new CrabConfig(initialDelayTicks:30,damage:1,windupTicks:60));using var host=new IslandHost(map,0,4);
+        yield return ("four_udp_clients_firearms_crab_rewards_and_new_save_round_trip",()=>{
+            var map=Map(new CrabConfig(initialDelayTicks:30,damage:1,windupTicks:60),firearms:true);using var host=new IslandHost(map,0,4);
             var clients=Enumerable.Range(0,4).Select(i=>new IslandClient(map,IPAddress.Loopback,host.Port,i==0?(ushort)0:ushort.MaxValue)).ToArray();
             var clock=System.Diagnostics.Stopwatch.StartNew();TimeSpan now=default;
             try
@@ -25,8 +26,15 @@ internal static partial class Program
                         client.Poll(now,t=>{
                             if(client.Session?.LocalParticipant==null)return default;
                             var s=client.Session.InspectState();var p=s.Players[client.Slot];var crab=s.Crab;
+                            if(p.Firearm.ShotSequence==0)
+                            {
+                                if(FirearmRules.Equipped(s,p)==null)
+                                {var gun=s.Tackle!.Inventory.Items.Single(i=>i.Owner==p.Slot && i.Kind==ItemKind.Firearm);return new HookInput(0,0,inventory:new InventoryCommand(InventoryAction.Equip,gun.Id,requestId:1));}
+                                return new HookInput(0,0,p.X*10,p.Z*10,fire:true);
+                            }
+                            if(p.Firearm.Busy)return default;
                             if(MeleeRules.Equipped(s,p)==null)
-                            {var pan=s.Tackle!.Inventory.Items.First(i=>i.Owner==p.Slot && i.Kind==ItemKind.Weapon);return new HookInput(0,0,inventory:new InventoryCommand(InventoryAction.Equip,pan.Id,requestId:1));}
+                            {var pan=s.Tackle!.Inventory.Items.First(i=>i.Owner==p.Slot && i.Kind==ItemKind.Weapon);return new HookInput(0,0,inventory:new InventoryCommand(InventoryAction.Equip,pan.Id,requestId:2));}
                             if(!crab.Damageable || crab.Phase==CrabPhase.Climbing || (crab.Attackers&(1<<p.Slot))!=0)return default;
                             int dx=crab.X-p.X,dz=crab.Z-p.Z,length=HookGame.Sqrt((long)dx*dx+(long)dz*dz);
                             bool attack=length<=1300;
@@ -41,10 +49,19 @@ internal static partial class Program
                 }
                 Require(host.Session!=null && host.Session.InspectState().Steps>=600,"Network round incomplete");
                 for(int i=0;i<300;i++){host.Poll(now);foreach(var c in clients)c.Poll(now,_=>default);}
-                var state=host.Session!.InspectState();Require(state.Crab.Rewarded && state.Crab.Attackers==15,"Not all four attacked and killed");
+                var state=host.Session!.InspectState();Require(state.Crab.Rewarded && state.Crab.Attackers==15,
+                    $"Not all four attacked and killed: crab={state.Crab.Phase}/{state.Crab.Health}, attackers={state.Crab.Attackers}; "+
+                    string.Join(";",state.Players.Select(p=>$"slot={p.Slot} shots={p.Firearm.ShotSequence} inventory={p.LastInventoryRequest}/{p.LastInventoryResult} health={p.Vitals.Health} water={p.Swimming.InWater}")));
                 Require(state.Players.All(p=>p.Coins==44 && p.FishbonesEarned==2),"Wrong four-player rewards");
+                Require(state.Players.All(p=>p.Firearm.ShotSequence>=1),"Merged simulation did not advance firearms");
                 var bytes=CheckpointCodec.Encode(host.Session.CaptureCheckpoint());
                 foreach(var c in clients)Require(c.Session!=null && bytes.SequenceEqual(CheckpointCodec.Encode(c.Session.CaptureCheckpoint())),"Confirmed crab checkpoint differs");
+                Require(host.CanSave,"Merged room never reached a safe save boundary");
+                string path=Path.GetFullPath("artifacts/crabs/firearms-crab-save.hisv");Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                var store=new IslandSaveStore(path);store.Save(host.CaptureSave());
+                var saved=store.Load();Require(bytes.SequenceEqual(CheckpointCodec.Encode(saved.Document.Checkpoint)),"New save lost firearm or crab state");
+                var restored=new SimulationRunner<HookState>(HookGame.CreateModule(),saved.Document.Checkpoint.Session,saved.Document.Checkpoint.Limits,saved.Document.Checkpoint.InitializationData);
+                restored.Restore(saved.Document.Checkpoint);Same(state,restored.InspectState());
                 var model=new HookGame().Create();model.Initialize(new FrameSync.Abstractions.SimulationInitialization(host.Session.CaptureCheckpoint().Session,new FrameSync.Abstractions.ByteString(map.Encode())));
                 model.Restore(new HookGame().Decode(new HookGame().Encode(state)));Same(state,model.Capture());
                 Console.WriteLine($"CRAB_UDP clients=4 tick={state.Steps} attackers={state.Crab.Attackers} gold={state.Coins} hash={CheckpointCodec.Hash(host.Session.CaptureCheckpoint())}");

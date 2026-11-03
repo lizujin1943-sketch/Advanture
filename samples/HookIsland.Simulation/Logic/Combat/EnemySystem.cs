@@ -60,11 +60,13 @@ public sealed class EnemySystem
         Increment(ref captures);return true;
     }
     internal bool Strike(int id,int damage,MeleeConfig melee)
+        =>Strike(id,damage,melee.PiranhaHealth,melee.StunTicks);
+    internal bool Strike(int id,int damage,int health,int stunTicks)
     {
         ref var f=ref piranhas[id];
         if(f.Owner>=0 || f.RespawnTicks>0 || f.Escape.Active)return false;
-        f.DamageTaken=Math.Min(melee.PiranhaHealth,f.DamageTaken+damage);f.Target=-1;f.StunTicks=melee.StunTicks;
-        if(f.DamageTaken==melee.PiranhaHealth){f.RespawnTicks=config.PiranhaRespawnTicks;f.StunTicks=0;}
+        f.DamageTaken=Math.Min(health,f.DamageTaken+damage);f.Target=-1;f.StunTicks=stunTicks;
+        if(f.DamageTaken==health){f.RespawnTicks=config.PiranhaRespawnTicks;f.StunTicks=0;}
         return true;
     }
     public bool Interrupt()

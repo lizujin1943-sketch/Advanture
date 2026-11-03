@@ -9,20 +9,25 @@ namespace Advanture.HookIsland
         private readonly Camera camera;
         private readonly bool overheadOrthographic;
         private readonly FishingOverheadCamera stageCamera;
+        private readonly FirearmCameraSettings firearmSettings;
         private readonly float fieldOfView, sensitivity, verticalSensitivityMultiplier, pivotHeight, shoulderOffset, overheadNear, overheadFov, initialPitch, initialDistance;
         private readonly Vector3 overheadPosition;
         private readonly Quaternion overheadRotation;
-        private float overheadZoom, yaw, pitch, distance;
+        private float overheadZoom, yaw, pitch, distance, firearmBlend;
         private bool orbitInitialized;
-        private Vector3 renderedFeet;
+        private Vector3 renderedFeet,lastKick;
+        private float kickStarted=float.NegativeInfinity;
+        public void ConfirmFirearmShot()=>kickStarted=Time.unscaledTime;
+        public void PrepareInput(){if(camera!=null)camera.transform.position-=lastKick;lastKick=Vector3.zero;}
         public bool ThirdPerson { get; private set; }
         public bool LookInputActive { get; private set; }
         public bool PointerCaptured => Cursor.lockState == CursorLockMode.Locked;
         public FishingCameraView(Camera camera, bool platform, float fieldOfView = 75, float sensitivity = 3,
             float pivotHeight = 1, float verticalSensitivityMultiplier = .85f, float distance = 3.6f, float shoulderOffset = .45f,
-            float initialPitch = 40, FishingOverheadSettings overheadSettings = null)
+            float initialPitch = 40, FishingOverheadSettings overheadSettings = null, FirearmCameraSettings firearmSettings = null)
         {
             this.camera=camera;
+            this.firearmSettings=firearmSettings??new FirearmCameraSettings();
             this.fieldOfView=Mathf.Clamp(fieldOfView,50,100);this.sensitivity=Mathf.Clamp(sensitivity,.1f,10);
             this.pivotHeight=Mathf.Clamp(pivotHeight,.5f,2);
             this.distance=Mathf.Clamp(distance,2,5);this.shoulderOffset=Mathf.Clamp(shoulderOffset,0,1);
@@ -72,6 +77,14 @@ namespace Advanture.HookIsland
             distance=Mathf.Clamp(distance-scroll*.35f,2,5);
             UpdateThirdPersonPose();
         }
+        public void UpdateFirearmFraming(bool equipped,float deltaTime)
+        {
+            firearmBlend=Mathf.MoveTowards(firearmBlend,equipped?1:0,
+                Mathf.Max(0,deltaTime)/Mathf.Clamp(firearmSettings.transitionSeconds,.1f,.5f));
+            // Apply before the input adapter samples its centre ray. Following the avatar
+            // later in the frame must not advance this transition a second time.
+            if(ThirdPerson)UpdateThirdPersonPose();
+        }
         public Vector2 Movement(Vector2 input)
         {
             input=Vector2.ClampMagnitude(input,1);
@@ -100,10 +113,13 @@ namespace Advanture.HookIsland
         }
         public void Follow(Vector3 renderedFeet)
         {
-            this.renderedFeet=renderedFeet;
+            PrepareInput();this.renderedFeet=renderedFeet;
             if(ThirdPerson)
                 UpdateThirdPersonPose();
             else stageCamera?.Follow(renderedFeet);
+            float age=Time.unscaledTime-kickStarted;
+            if(camera!=null && age>=0 && age<.13f)
+            {lastKick=(camera.transform.right*Mathf.Sin(age*105)+camera.transform.up*Mathf.Cos(age*85))*(.012f*(1-age/.13f));camera.transform.position+=lastKick;}
         }
         private void UpdateThirdPersonPose()
         {
@@ -112,6 +128,21 @@ namespace Advanture.HookIsland
             // Keep the shoulder framing; orbit also updates before sampling the aim ray.
             var pivot=renderedFeet+Vector3.up*pivotHeight+right*shoulderOffset;
             var position=pivot-rotation*Vector3.forward*distance;
+            float blend=Mathf.SmoothStep(0,1,firearmBlend);
+            float gunFov=Mathf.Clamp(firearmSettings.fieldOfView,50,90);
+            camera.fieldOfView=Mathf.Lerp(fieldOfView,gunFov,blend);
+            if(blend>0)
+            {
+                // Solve the shoulder offset from screen composition, so zoom, pitch and
+                // aspect ratio cannot slide the character back over the central reticle.
+                float depth=Mathf.Max(2,distance*Mathf.Clamp(firearmSettings.distanceMultiplier,.7f,1.2f));
+                float halfHeight=Mathf.Tan(gunFov*.5f*Mathf.Deg2Rad)*depth;
+                var anchor=firearmSettings.torsoViewport;
+                var offset=new Vector3((.5f-Mathf.Clamp(anchor.x,.2f,.4f))*2*halfHeight*Mathf.Max(.1f,camera.aspect),
+                    (.5f-Mathf.Clamp(anchor.y,.2f,.4f))*2*halfHeight,-depth);
+                var shoulder=renderedFeet+Vector3.up*Mathf.Clamp(firearmSettings.torsoHeight,.3f,1.2f)+rotation*offset;
+                position=Vector3.Lerp(position,shoulder,blend);
+            }
             // Keep the lens above the sea/platform without restricting where the player looks.
             position.y=Mathf.Max(position.y,Mathf.Max(.35f,renderedFeet.y+.3f));
             camera.transform.SetPositionAndRotation(position,rotation);
@@ -137,7 +168,7 @@ namespace Advanture.HookIsland
         }
         public void Reset()
         {
-            RestoreOverhead();orbitInitialized=false;distance=initialDistance;
+            PrepareInput();kickStarted=float.NegativeInfinity;firearmBlend=0;RestoreOverhead();orbitInitialized=false;distance=initialDistance;
             if(camera!=null)
             {
                 if(stageCamera!=null)stageCamera.Reset();

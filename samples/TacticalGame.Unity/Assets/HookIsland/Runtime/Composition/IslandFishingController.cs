@@ -72,7 +72,9 @@ namespace Advanture.HookIsland
         public bool NearShop=>NearestMerchantId>=0;
         public bool CanShopAt(int id)=>id>=0 && map!=null && TryGetLocalPlayer(out var p) && (map.Fishing==null || MerchantRules.CanInteract(p)) &&
             (map.Fishing!=null?MerchantRules.Near(map,State.Tiles,p,id):id==0 && map.Platform==null && HookUpgrades.IsNearShop(p.X,p.Z));
-        public bool HoldingMelee=>TryGetLocalPlayer(out var player) && MeleeRules.Equipped(State,player)!=null;
+        public bool HoldingFirearm=>TryGetLocalPlayer(out var player) && ActiveToolView.Firearm(State,player)!=null;
+        public bool FirearmBusy=>TryGetLocalPlayer(out var player) && player.Firearm.Busy;
+        public bool HoldingMelee=>TryGetLocalPlayer(out var player) && ActiveToolView.RightHand(State,player) && MeleeRules.Equipped(State,player)!=null;
         public bool CanCast=>Playing && State?.Won!=true && TryGetLocalPlayer(out var p) && !p.Unavailable && (State.Tackle==null || SwimmingSystem.CanCast(p.Swimming.InWater,p.Vitals.Downed,SwimRingCatalog.Equipped(State.Tackle.Inventory,p.Slot)!=null));
         public bool BeingPulled=>TryGetLocalPlayer(out var p) && p.PulledBy>=0;
         public string Status=>Failure??(Restarting?"正在重新开始 · 等待全队同步…":!InRoom?"创建房间或加入好友":Playing?(map?.Fishing!=null?"捕鱼收入归自己 · 商店库存共享":"共同金币 · 捕鱼收益全队共享"):
@@ -106,7 +108,7 @@ namespace Advanture.HookIsland
 #endif
                 presentation=new FishingPresentation(transform,lineShader,map);
                 playerInput.Initialize(viewCamera,new FishingCameraView(viewCamera,map.Platform!=null,thirdPersonFieldOfView,mouseLookSensitivity,
-                    thirdPersonPivotHeight,verticalLookSensitivityMultiplier,thirdPersonDistance,thirdPersonShoulderOffset,thirdPersonInitialPitch,overheadCamera));
+                    thirdPersonPivotHeight,verticalLookSensitivityMultiplier,thirdPersonDistance,thirdPersonShoulderOffset,thirdPersonInitialPitch,overheadCamera,firearmCamera));
                 EnsureRoomSession();
                 if(map.Fishing!=null)groundItems=new GroundItemPresentation(transform);
                 if(map.Fishing?.Treasure.Enabled==true)Treasures=new TreasureController(this,viewCamera);
@@ -148,7 +150,8 @@ namespace Advanture.HookIsland
                 Merchants?.Synchronize(State);
                 if(ShopOpen && (!Playing || !CanShopAt(ShopMerchantId)))CloseShop();
                 presentation.Present(State,Client.Session.InspectPredictedState(),LocalSlot,Aim,
-                    Playing && CanCast && !HoldingMelee && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null);
+                    Playing && CanCast && !HoldingMelee && !HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null,
+                    Playing && CanCast && HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null);
                 Feedback.Update(Client,Client.RoundEpoch,Client.Session.ConfirmedTick,State,LocalSlot,Client.ConfirmedEvents,Time.unscaledTime,
                     overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true,PresentConfirmedEvent);
                 if(TryGetLocalPlayer(out var local))playerInput.Follow(this,local);
@@ -158,7 +161,12 @@ namespace Advanture.HookIsland
                 roomSession.StopClient(e);CloseShop();UnityEngine.Debug.LogException(e);
             }
         }
-        private void PresentConfirmedEvent(HookGameplayEvent value)=>presentation.PresentConfirmedEvent(value,LocalSlot);
+        private void PresentConfirmedEvent(HookGameplayEvent value)
+        {
+            presentation.PresentConfirmedEvent(value,LocalSlot);
+            if(value.Kind==HookGameplayEventKind.FirearmShot)
+            {Enemies?.ConfirmFirearmHit(value);if(value.Slot==LocalSlot)playerInput.ConfirmFirearmShot();}
+        }
         private HookInput Sample(ulong tick)
         {
             if(State?.Won==true){playerInput.ClearCommands();return default;}
@@ -166,7 +174,7 @@ namespace Advanture.HookIsland
             // Input frames may expire before delivery. Repeat one receipt until confirmation; simulation deduplicates it.
             result=new HookInput(result.MoveX,result.MoveZ,result.AimX,result.AimZ,result.Fire,result.Cancel,
                 PurchasePending?pendingUpgrade:result.Upgrade,PurchasePending?pendingPurchaseId:result.PurchaseId,ShopOpen || result.Shopping,
-                result.Build,result.BuildX,result.BuildZ,result.BuildId,result.RodAction,result.RodTarget,result.RodBatch,result.RodRequestId,result.Inventory,result.Revival,result.RoomRules,result.Treasure);
+                result.Build,result.BuildX,result.BuildZ,result.BuildId,result.RodAction,result.RodTarget,result.RodBatch,result.RodRequestId,result.Inventory,result.Revival,result.RoomRules,result.Treasure,result.Reload);
             if(Equipment!=null)result=Equipment.Compose(result);
             if(Construction!=null)result=Construction.Compose(result);
             if(Revival!=null)result=Revival.Compose(result);
@@ -181,7 +189,7 @@ namespace Advanture.HookIsland
         }
         public bool OpenShop()
         {
-            if(!Playing || Incapacitated || Treasures?.Pending==true || !NearShop || !TryGetLocalPlayer(out var p) || p.PulledBy>=0 || p.HookedPlayer>=0)return false;
+            if(!Playing || Incapacitated || Treasures?.Pending==true || !NearShop || FirearmBusy || !TryGetLocalPlayer(out var p) || p.PulledBy>=0 || p.HookedPlayer>=0)return false;
             Equipment?.Close();Construction?.Close();ShopMerchantId=NearestMerchantId;ShopOpen=true;
             GetComponent<FishingEquipmentOverlay>()?.ResetShopSelection();if(overlay!=null)overlay.MenuOpen=false;
             playerInput.ClearCommands();return true;

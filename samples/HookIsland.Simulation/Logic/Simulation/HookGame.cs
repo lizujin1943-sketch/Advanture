@@ -16,20 +16,15 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     public static SimulationModule<HookState> CreateModule(bool initialFriendlyPranks=true)
     {
         var game=new HookGame(initialFriendlyPranks);
-<<<<<<< HEAD
-        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"30",inputFormatVersion:"12",
-            stateFormatVersion:"27",contentHash:CatalogData.Hash(),determinismHash:"integer-mm-food-quickbar-v30"),game,game,game);
-=======
-        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"30",inputFormatVersion:"11",
-            stateFormatVersion:"27",contentHash:CatalogData.Hash(),determinismHash:"integer-mm-shore-crab-v30"),game,game,game);
->>>>>>> 50f2202 (增加螃蟹逻辑)
+        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"33",inputFormatVersion:"13",
+            stateFormatVersion:"30",contentHash:CatalogData.Hash(),determinismHash:"integer-mm-firearms-crabs-v33"),game,game,game);
     }
     public IDeterministicSimulation<HookState> Create()=>new Model(initialFriendlyPranks);
     public void ValidateCanonical(ReadOnlySpan<byte> bytes)=>HookInput.Decode(bytes);
     public byte[] Encode(HookState s)
     {
         using var stream=new MemoryStream();using var w=new BinaryWriter(stream);
-        w.Write(0x48534948);w.Write(s.Steps);w.Write(s.Coins);w.Write(s.Players.Count);
+        w.Write(0x4A534948);w.Write(s.Steps);w.Write(s.Coins);w.Write(s.Players.Count);
         foreach(var p in s.Players)
         {
             w.Write(p.Slot);w.Write(p.X);w.Write(p.Z);w.Write(p.AimX);w.Write(p.AimZ);w.Write(p.RemainderX);w.Write(p.RemainderZ);
@@ -56,6 +51,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         PresenceStateCodec.Write(w,s);
         ComboStateCodec.Write(w,s);
         MeleeStateCodec.Write(w,s);
+        FirearmStateCodec.Write(w,s);
         CrabStateCodec.Write(w,s);
         return stream.ToArray();
     }
@@ -63,7 +59,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     {
         if(bytes.Length<24 || bytes.Length>MaximumStateBytes)throw new InvalidDataException("Invalid state length.");
         using var r=new BinaryReader(new MemoryStream(bytes.ToArray(),false));
-        if(r.ReadInt32()!=0x48534948)throw new InvalidDataException("State version mismatch.");
+        if(r.ReadInt32()!=0x4A534948)throw new InvalidDataException("State version mismatch.");
         ulong tick=r.ReadUInt64();int coins=r.ReadInt32(),count=r.ReadInt32();
         if(count<1 || count>4 || coins<0)throw new InvalidDataException("Invalid players/wallet.");
         var players=new Fisher[count];
@@ -119,6 +115,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         state=PresenceStateCodec.Read(r,state);
         state=ComboStateCodec.Read(r,state);
         state=MeleeStateCodec.Read(r,state);
+        state=FirearmStateCodec.Read(r,state);
         state=CrabStateCodec.Read(r,state);
         PlatformStateCodec.ValidateBalances(state);
         if(state.Tackle!=null)foreach(var p in state.Players)RevivalStateCodec.Validate(state,p);
@@ -230,6 +227,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             if(finished)return Array.Empty<ByteString>();
             equipment?.Advance(map,tiles,players,tick+1);
             var healthAtFrameStart=players.Select(p=>p.Vitals.Health).ToArray();
+            var previousReloads=players.Select(p=>p.Firearm.ReloadTicks).ToArray();
             var active=players.Select(p=>p.Phase!=HookPhase.Ready || p.Melee.Active).ToArray();
             ocean?.BeforeStep(map,tiles,fish,tick+1);
             UpdateFish();DriftTreasures();
@@ -263,8 +261,13 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                     if(!wasInWater && p.Swimming.InWater)ComboRules.Interrupt(ref p.Combo);}
                 bool canAct=!p.Unavailable && (equipment==null || !p.Vitals.Downed);
                 if(!canAct)StopCharacterHook(ref p);
+                // Recovery starts after movement on the firing frame. Its pre-decrement value
+                // governs this movement interval; action/equipment gates use the updated clock.
+                bool recoveryMovement=p.Firearm.RecoveryTicks>0;
+                PrepareFirearm(ref p,c);
                 p.Shopping=canAct && !p.Melee.Active && !knockedBack && !p.Swimming.InWater && (equipment!=null || map.Platform==null) && c.Shopping && p.PulledBy<0 && p.HookedPlayer<0 && FishingRules.NearShop(map,tiles,p);
                 Purchase(ref p,c);equipment?.Apply(map,tiles,ref p,c,ref coins,c.Revival.RescueTarget!=0 || players.Any(other=>other.Revival.RescueTicks>0 && other.Revival.Rescuer==i+1));
+                SyncFirearm(ref p);
                 if(c.Cancel || (equipment!=null && p.Swimming.InWater && equipment.Ring(p)==null))RetractHook(ref p);
                 if(c.AimX!=0 || c.AimZ!=0 || c.Fire){p.AimX=c.AimX;p.AimZ=c.AimZ;}
                 if(p.Cooldown>0)p.Cooldown--;
@@ -285,7 +288,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                         Record(HookGameplayEventKind.HookCast,p);
                     }
                 }
-                int movementPermille=CharacterMovement.HookSpeedPermille(p);
+                int movementPermille=CharacterMovement.HookSpeedPermille(p)*FirearmRules.MovementPermille(p,recoveryMovement)/1000;
+                int voluntaryStartX=p.X,voluntaryStartZ=p.Z;
                 bool canMove=canAct && !knockedBack && p.PulledBy<0 && !p.Shopping && !p.Melee.Active && movementPermille>0;
                 p.Swimming.Active=false;
                 if(equipment!=null)
@@ -332,6 +336,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                     if(CanStand(p.X,z)){p.Z=z;p.RemainderZ=nz%1000;}else p.RemainderZ=0;
                 }
                 else p.RemainderX=p.RemainderZ=0;
+                UpdateFirearmMovement(ref p,voluntaryStartX,voluntaryStartZ);
                 active[i]|=p.Phase!=HookPhase.Ready || p.Melee.Active;players[i]=p;
             }
             PlatformBuildSystem.Resolve(map,players,tiles,fish,driftwood,commands,equipment?.Inventory,chests,finale?.Capture());
@@ -350,6 +355,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             PruneCatches();
             AdvanceCatches();
             AdvanceMelee(commands);
+            AdvanceFirearms(commands);
             AdvanceCrabs();
             enemies?.Advance(players,ApplyEnemyHit,IsMonsterWater,ocean?.AllowNewAttacks(tick+1)??true);
             if(equipment!=null)for(int i=0;i<players.Length;i++)
@@ -383,6 +389,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 }
             }
             ReelTreasures();OpenTreasures(commands);
+            FinishFirearmReloads(previousReloads);
             ocean?.Advance(map,tiles,players,fish,commissions.Completed,enemies?.Capture()??EnemyState.Empty,tick+1);
             AdvanceFinale();
             tick++;return events.ToArray();
@@ -396,6 +403,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             if(p.Vitals.Health<healthBeforeDamage)Record(HookGameplayEventKind.Damaged,p,amount:healthBeforeDamage-p.Vitals.Health);
             if(hit.Knockback)
             {
+                FirearmRules.CancelActions(ref p);
                 if(p.PulledBy>=0)
                 {
                     var owner=players[p.PulledBy];ReleasePlayer(ref owner);players[owner.Slot]=owner;
@@ -420,6 +428,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         }
         private void StopCharacterHook(ref Fisher p)
         {
+            FirearmRules.CancelActions(ref p);
             MeleeRules.Cancel(ref p);
             p.Combo=default;
             FinaleRules.ClearLine(ref p);

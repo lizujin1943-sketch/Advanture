@@ -67,7 +67,20 @@ namespace Advanture.HookIsland
         public bool RequestInventory(InventoryCommand intent)
         {
             if(room.State?.Tackle==null || !room.Playing || !room.TryGetLocalPlayer(out var player) || Pending || room.Construction?.Pending==true || room.PurchasePending || room.Treasures?.Pending==true)return false;
+            if(!CanRequestDuringFirearmAction(room.State,player,intent))
+            {Notify(player.Firearm.Reloading?"换弹中 · 可切换右手工具取消":"请等待举枪或射击收势结束");return false;}
             return inventoryRequests.TryQueue(player.LastInventoryRequest,intent);
+        }
+        public static bool CanRequestDuringFirearmAction(HookState state,Fisher player,InventoryCommand command)
+        {
+            if(player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0)return false;
+            if(!player.Firearm.Reloading)return true;
+            var current=state.Tackle.Inventory.Equipped(player.Slot,EquipmentSlot.RightHand);
+            if(command.Action==InventoryAction.Unequip)return command.Target==(int)EquipmentSlot.RightHand;
+            InventoryItem? next=null;
+            if(command.Action==InventoryAction.SelectQuickSlot)next=QuickbarRules.Resolve(state.Tackle.Inventory,player.Slot,command.Target-1);
+            else if(command.Action==InventoryAction.Equip)foreach(var item in state.Tackle.Inventory.Items)if(item.Id==command.Target && item.Owner==player.Slot){next=item;break;}
+            return next.HasValue && next.Value.Definition.Slot==EquipmentSlot.RightHand && next.Value.Id!=current?.Id;
         }
         private void PickupNearest(Fisher player)
         {
@@ -101,7 +114,7 @@ namespace Advanture.HookIsland
                 case InventoryResult.TooFar:return "请靠近商品或地面物品再操作";
                 case InventoryResult.InsufficientCoins:return "自己的金币不足";
                 case InventoryResult.InventoryNotEmpty:return "先清空背包，再将空包卸到平台上";
-                case InventoryResult.HookBusy:return "请先结束挥击、收钩或拉拽";
+                case InventoryResult.HookBusy:return "请先结束举枪、换弹、挥击、收钩或拉拽";
                 case InventoryResult.StaleStock:return "商店已换货，请重新选择";
                 case InventoryResult.SoldOut:return "商品已被队友买走";
                 case InventoryResult.LimitReached:return "本局物品或编号达到上限，操作未提交";

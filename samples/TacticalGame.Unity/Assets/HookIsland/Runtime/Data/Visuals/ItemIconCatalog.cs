@@ -56,6 +56,8 @@ namespace Advanture.HookIsland
         {
             switch (kind)
             {
+                case ItemKind.Firearm: return FirearmCatalog.Get(type).Id;
+                case ItemKind.Ammunition: return AmmunitionCatalog.Get(type).Id;
                 case ItemKind.Food: return FoodCatalog.Get(type).Id;
                 case ItemKind.Wood: return "material_wood";
                 case ItemKind.Fishbone: return "material_fishbone";

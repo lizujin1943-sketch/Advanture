@@ -20,6 +20,7 @@ namespace Advanture.HookIsland
         private readonly Material dark,ivory,teal,purple,aqua,warning,lineMaterial;
         private readonly Dictionary<int,Transform> fish=new Dictionary<int,Transform>();
         private readonly Dictionary<int,FishModelView> fishViews=new Dictionary<int,FishModelView>();
+        private readonly Dictionary<int,float> firearmHits=new Dictionary<int,float>();
         private readonly Dictionary<uint,Transform> balls=new Dictionary<uint,Transform>();
         private readonly Transform[] impacts=new Transform[4];
         private readonly int[] health={-1,-1,-1,-1};
@@ -44,6 +45,10 @@ namespace Advanture.HookIsland
             purple=Surface("Monster fins",new Color(.37f,.22f,.55f));aqua=Surface("Waterball",new Color(.35f,.91f,1));
             warning=Surface("Windup charge",new Color(1,.46f,.05f));lineMaterial=new Material(lineShader){name="Enemy telegraph"};
         }
+        public void ConfirmFirearmHit(HookGameplayEvent value)
+        {
+            if(value.Kind==HookGameplayEventKind.FirearmShot && value.TargetId==-2 && value.Amount>0)firearmHits[value.Value]=Time.unscaledTime+.13f;
+        }
         public void Synchronize(HookState state)
         {
             foreach(var f in state.Enemies.Piranhas)
@@ -56,6 +61,7 @@ namespace Advanture.HookIsland
                 view.localScale=Vector3.one*(fishArt.displayScale*Mathf.Pow(f.WeightGrams/1000f,1f/3));
                 view.gameObject.SetActive(f.RespawnTicks==0);
                 if(f.RespawnTicks==0)FishAppearance.Piranha(fishViews[f.Id],f,state.Steps,config);
+                fishViews[f.Id].SetHitFlash(firearmHits.TryGetValue(f.Id,out float until) && Time.unscaledTime<until);
                 escapes.Present(f.Id,f.Escape,view,0f);
                 if(f.Escape.Active)continue;
                 float height=f.Owner>=0 && !state.Players[f.Owner].Swimming.InWater?1.25f:surfaceWater.BodyHeight(state.Steps,f.Id);
@@ -187,7 +193,7 @@ namespace Advanture.HookIsland
             foreach(var f in fish.Values)Destroy(f.gameObject);fish.Clear();foreach(var b in balls.Values)Destroy(b.gameObject);balls.Clear();
             if(monster!=null)monster.gameObject.SetActive(false);if(aimLine!=null)aimLine.enabled=false;if(chargeRing!=null)chargeRing.enabled=false;
             for(int i=0;i<4;i++){health[i]=-1;flashUntil[i]=0;if(impacts[i]!=null)impacts[i].gameObject.SetActive(false);}
-            interruptions=0;interruptedUntil=0;
+            interruptions=0;interruptedUntil=0;firearmHits.Clear();
         }
         public void Dispose(){escapes.Dispose();surfaceWater.Dispose();foreach(var f in fishViews.Values)f.Dispose();Destroy(root.gameObject);foreach(var m in new[]{dark,ivory,teal,purple,aqua,warning,lineMaterial})Destroy(m);Destroy(bodyMesh);Destroy(finMesh);}
         private static void Destroy(Object value){if(Application.isPlaying)Object.Destroy(value);else Object.DestroyImmediate(value);}

@@ -89,6 +89,17 @@ namespace Advanture.HookIsland
                     shelf.FoodStock[type] == 0, price: food.Price, coins: coins))
                 { offer = index; itemId = 0; placing = 0; dropOld = false; }
             }
+            // Guns keep their stable offer IDs; unlimited reserve needs no ammunition shelf.
+            int card=0;
+            for(int type=0;type<shelf.FirearmStock.Count;type++)
+            {
+                var gun=FirearmCatalog.Get(type);DrawCommodity(ItemKind.Firearm,type,FirearmCatalog.OfferOffset+type,shelf.FirearmStock[type],gun.Price,coins,x+card++*140,y+280);
+            }
+        }
+        private void DrawCommodity(ItemKind kind,int type,int index,int stock,int price,int coins,float x,float y)
+        {
+            if(DrawItem(new Rect(x,y,132,70),kind,type,InventoryCatalog.Get(kind,type).Name,stock,itemId==0 && offer==index,stock==0,price:price,coins:coins))
+            {offer=index;itemId=placing=0;dropOld=false;}
         }
         private Vector2Int FindShopSpace()
         {
@@ -172,15 +183,16 @@ namespace Advanture.HookIsland
         private void DrawDetails(HookState state, Fisher player, float x, float y, bool shop, bool pending, Func<InventoryCommand, bool> request)
         {
             var inventory = state.Tackle.Inventory;
-            bool buying = shop && shelf!=null && itemId == 0 && offer >= 0 && (offer < shelf.Stock.Count || offer>=FoodCatalog.OfferOffset && offer<FoodCatalog.OfferOffset+shelf.FoodStock.Count);
+            ItemKind offerKind=default;int offerType=0,offerStock=0;
+            bool buying=shop && itemId==0 && selection.TryDescribe(out offerKind,out offerType,out offerStock);
             var item = inventory.Items.FirstOrDefault(i => i.Id == itemId && i.Owner == player.Slot);
             if (!buying && item.Id == 0) { GUI.Label(new Rect(x, y + 30, 410, 110), "选择物品或商店商品\n查看属性、数量及操作。\n材料与备用装备共用背包格子。", text); return; }
-            bool foodOffer=buying && offer>=FoodCatalog.OfferOffset;
-            ItemKind kind = buying ? foodOffer?ItemKind.Food:shelf.Stock[offer].Kind : item.Kind; int type = buying ? foodOffer?offer-FoodCatalog.OfferOffset:shelf.Stock[offer].Type : item.Type;
+            ItemKind kind=buying?offerKind:item.Kind;int type=buying?offerType:item.Type;
             var definition = InventoryCatalog.Get(kind, type);
             icons.Draw(new Rect(x, y, 52, 52), kind, type);
             GUI.Label(new Rect(x + 64, y, 346, 55), definition.Name, title);
             GUI.Label(new Rect(x, y + 53, 410, 28), $"占格 {definition.Width} × {definition.Height}" + (buying ? $"    售价 {definition.Price:N0} G" : $"    数量 {item.Count}"), text);
+            if(kind==ItemKind.Ammunition){DrawAmmunitionDetails(player,item,type,x,y,pending,request);return;}
             if(kind==ItemKind.Food){DrawFoodDetails(state,player,item,type,buying,x,y,pending,request);return;}
             if (kind == ItemKind.Rod)
             {
@@ -196,6 +208,11 @@ namespace Advanture.HookIsland
             {
                 var ring = SwimRingCatalog.Get(type);var config=state.Tackle.Config.Swimming;
                 GUI.Label(new Rect(x, y + 86, 410, 59), $"Lv{ring.Level}  ·  游速 {SwimmingSystem.Speed(config,ring)/1000f:0.##} 米/秒\n游泳消耗 {SwimmingSystem.DrainPerTick(config,ring)/1000f:0.##}/秒 · 免落水掉血 · 可出竿", text);
+            }
+            if(kind==ItemKind.Firearm)
+            {
+                var gun=FirearmCatalog.Get(type);
+                GUI.Label(new Rect(x,y+86,410,59),$"伤害 {gun.Damage} · 射程 {gun.Range/1000f:0.#} 米 · 弹匣 {(buying?gun.Capacity:item.LoadedAmmo)}/{gun.Capacity}\n无限备用弹药 · R 换弹 {gun.ReloadTicks/(float)HookGame.Rate:0.#} 秒",text);
             }
             if(kind==ItemKind.Weapon)
             {
@@ -230,11 +247,11 @@ namespace Advanture.HookIsland
                 var preview = equipmentPreview.Evaluate(inventory, player.Slot, player.Coins, new Point(player.X, player.Z), kind, type, itemId, buying, dropOld);
                 previewResult = preview.Result; previewState = preview.State;
             }
-            bool busyRod = definition.Slot==EquipmentSlot.RightHand && (player.Phase != HookPhase.Ready || player.Melee.Active || player.PulledBy >= 0);
-            GUI.enabled = !pending && !busyRod && (!buying || !shelf.Stock[offer].Sold);
+            bool busyRod = definition.Slot==EquipmentSlot.RightHand && (player.Phase != HookPhase.Ready || player.Melee.Active || player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0 || player.PulledBy >= 0);
+            GUI.enabled = !pending && !busyRod && (!buying || offerStock>0);
             if (buying)
             {
-                if (GUI.Button(new Rect(x, y + 190, 408, 37), shelf.Stock[offer].Sold ? "已被买走" : $"购买并装备 · {definition.Price} G", button))
+                if (GUI.Button(new Rect(x, y + 190, 408, 37), offerStock==0 ? "售罄" : $"购买并装备 · {definition.Price} G", button))
                     request(selection.Command(true,dropOld));
                 if (GUI.Button(new Rect(x, y + 237, 408, 33), "购买并放入背包", button)) request(selection.Command(false));
             }

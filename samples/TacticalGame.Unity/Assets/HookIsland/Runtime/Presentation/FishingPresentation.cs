@@ -34,6 +34,9 @@ namespace Advanture.HookIsland
         private readonly CatchEscapePresentation escapes;
         private readonly FryingPanArt meleeArt;
         private readonly FoodArt foodArt;
+        private readonly DesertEagleArt firearmArt;
+        private readonly FirearmFeedback firearms;
+        private HookState confirmedState;
         public int RenderedPlayers { get {int count=0;foreach(var avatar in avatars.Values)if(avatar.Root.gameObject.activeSelf)count++;return count;} }
         public int RenderedFishingLines { get {int count=0;foreach(var avatar in avatars.Values)if(avatar.Rope.enabled)count++;return count;} }
         public int PresentedCatches=>audioFeedback.PresentedCatches;
@@ -46,6 +49,7 @@ namespace Advanture.HookIsland
             public SwimmingAppearance Swimming;
             public FisherAnimationView Animation;
             public MeleeAvatarView Melee;
+            public FirearmAvatarView Firearm;
             public FoodEatingView Eating;
             public Renderer RodShaft,RodTipShaft;
             public LineRenderer Rope,Ring;
@@ -90,6 +94,7 @@ namespace Advanture.HookIsland
             audioFeedback=new FishingAudioFeedback(root);
             if(map.Fishing!=null)foodArt=new FoodArt();
             if(map.Fishing?.Melee.Enabled==true)meleeArt=new FryingPanArt(lineShader);
+            if(map.Fishing?.Firearms.Enabled==true){firearmArt=new DesertEagleArt(lineShader);firearms=new FirearmFeedback(root,firearmArt);}
         }
         public Vector3 PlayerPosition(int slot)=>avatars.TryGetValue(slot,out var a)?a.Root.position:Vector3.zero;
         public bool TryGetPlayerHudAnchors(int slot,out Vector3 head,out Vector3 chest,out float halfWidth)
@@ -102,8 +107,9 @@ namespace Advanture.HookIsland
             halfWidth=a.Animation!=null?.35f:.4f*a.Body.lossyScale.x;
             return true;
         }
-        public void Present(HookState state,HookState predicted,ushort local,Vector3 aim,bool showAim)
+        public void Present(HookState state,HookState predicted,ushort local,Vector3 aim,bool showAim,bool showFirearmAim=false)
         {
+            confirmedState=state;
             float dt=Mathf.Min(Time.unscaledDeltaTime,.1f);
             bool localMarkerVisible=false;
             foreach(var confirmed in state.Players)
@@ -128,7 +134,7 @@ namespace Advanture.HookIsland
                 a.Root.position=a.Placed?Vector3.Lerp(a.Root.position,target,1-Mathf.Exp(-22*dt)):target;
                 a.Placed=true;
                 bool moving=(state.Tackle==null || !confirmed.Vitals.Downed) && (a.Root.position-a.Previous).sqrMagnitude>.000005f;a.Previous=a.Root.position;
-                Vector3 direction=p.Slot==local && showAim?aim-a.Root.position:new Vector3(p.AimX/1000f,0,p.AimZ/1000f)-a.Root.position;
+                Vector3 direction=p.Slot==local && (showAim || showFirearmAim)?aim-a.Root.position:new Vector3(p.AimX/1000f,0,p.AimZ/1000f)-a.Root.position;
                 // Aim can change while a hook is flying. The body casts along the accepted
                 // launch direction instead of turning after the mouse during the swing.
                 if(p.Phase!=HookPhase.Ready)direction=new Vector3(p.DirectionX,0,p.DirectionZ);
@@ -149,7 +155,7 @@ namespace Advanture.HookIsland
                 {
                     bool hasRing=state.Tackle!=null && SwimRingCatalog.Equipped(state.Tackle.Inventory,confirmed.Slot)!=null;
                     bool interrupted=state.RoundFinished || confirmed.Unavailable || confirmed.Vitals.Downed ||
-                        confirmed.PulledBy>=0 || confirmed.Knockback.Active || confirmed.EquippedRod==0 && MeleeRules.Equipped(state,confirmed)==null ||
+                        confirmed.PulledBy>=0 || confirmed.Knockback.Active || confirmed.EquippedRod==0 && MeleeRules.Equipped(state,confirmed)==null && ActiveToolView.Firearm(state,confirmed)==null ||
                         confirmed.Swimming.InWater && !hasRing;
                     bool reeling=p.Phase==HookPhase.Returning || p.FishId>=0 || p.DriftwoodId>=0 ||
                         p.HookedPlayer>=0 || p.HookedPiranha>0 || p.HookedChest>0 || p.HookedFinale;
@@ -192,8 +198,10 @@ namespace Advanture.HookIsland
                 if(state.Tackle!=null)
                 {
                     a.Equipment?.Present(state.Tackle.Inventory,confirmed.Slot);
-                    a.Melee?.Present(confirmed,p,a.Eating?.Active==true?null:MeleeRules.Equipped(state,confirmed),state.RoundFinished || confirmed.Unavailable || confirmed.Vitals.Downed || confirmed.PulledBy>=0 || confirmed.Knockback.Active);
+                    if(a.Rod!=null && !ActiveToolView.RightHand(state,confirmed))a.Rod.gameObject.SetActive(false);
+                    a.Melee?.Present(confirmed,p,a.Eating?.Active==true || !ActiveToolView.RightHand(state,confirmed)?null:MeleeRules.Equipped(state,confirmed),state.RoundFinished || confirmed.Unavailable || confirmed.Vitals.Downed || confirmed.PulledBy>=0 || confirmed.Knockback.Active);
                     a.Eating?.Present(state.RoundFinished || confirmed.Unavailable || confirmed.Vitals.Downed || p.Phase!=HookPhase.Ready || p.Melee.Active || p.Swimming.InWater || p.PulledBy>=0 || p.Knockback.Active);
+                    a.Firearm?.Present(confirmed,p,a.Eating?.Active==true?null:ActiveToolView.Firearm(state,confirmed),state.RoundFinished || confirmed.Unavailable || confirmed.Vitals.Downed || confirmed.PulledBy>=0 || confirmed.Knockback.Active || confirmed.Revival.RescueTicks>0 || confirmed.Shopping || confirmed.Swimming.InWater && SwimRingCatalog.Equipped(state.Tackle.Inventory,confirmed.Slot)==null);
                     if(a.RodTipShaft!=null)a.RodTipShaft.sharedMaterial=a.RodShaft.sharedMaterial;
                     a.Swimming?.Present(SwimRingCatalog.Equipped(state.Tackle.Inventory,confirmed.Slot)?.Level??0,confirmed.Swimming.InWater,moving,a.Root.position);
                 }
@@ -248,6 +256,7 @@ namespace Advanture.HookIsland
                 else fishShadows[i].Hide();
             }
             fishWater.Present(state);
+            firearms?.Present(map,state,predicted,local,aim,showFirearmAim);
             // 预瞄落点只在可再次出钩时跟随鼠标。钩子一离开就冻结目标点，
             // 否则出钩后移动鼠标会让“刚才瞄准的位置”看起来变了，玩家无法判断钩子飞向哪里。
             // 线的起点仍然跟着角色走，被拉拽时不会与角色脱节。
@@ -340,6 +349,7 @@ namespace Advanture.HookIsland
             a.Swimming=new SwimmingAppearance(ringMount,a.Root,line.shader);
             if(meleeArt!=null)a.Melee=new MeleeAvatarView(a.Body,meleeArt);
             a.Eating=new FoodEatingView(a.Body,a.Rod,foodArt);
+            if(firearmArt!=null)a.Firearm=new FirearmAvatarView(a.Body,firearmArt);
         }
         private void CreateLegacyBody(Avatar a,int slot)
         {
@@ -397,14 +407,25 @@ namespace Advanture.HookIsland
         public void PresentConfirmedEvent(HookGameplayEvent value,ushort local)
         {
             audioFeedback.Apply(value,local,map.Fishing?.Combo,meleeArt);
+            avatars.TryGetValue(value.Slot,out var shooter);
+            Vector3? muzzle=shooter?.Firearm?.Visible==true?shooter.Firearm.Muzzle.position:(Vector3?)null;
+            if(confirmedState!=null)firearms?.Apply(value,local,map,confirmedState,muzzle);
+            if(value.Kind==HookGameplayEventKind.FirearmShot)shooter?.Firearm?.ConfirmShot();
             if(value.Kind==HookGameplayEventKind.FoodConsumed && avatars.TryGetValue(value.Slot,out var eater))eater.Eating?.Confirm(value.ItemType);
             if(value.Kind==HookGameplayEventKind.MeleeHit && avatars.TryGetValue(value.Slot,out var avatar))avatar.Melee?.ConfirmHit();
+        }
+        public void PresentEmptyFirearm(HookState state,ushort slot)
+        {
+            if(firearms==null || slot>=state.Players.Count)return;
+            var p=state.Players[slot];if(ActiveToolView.Firearm(state,p)==null || p.Firearm.Busy || p.Firearm.CooldownTicks>0 || !FirearmRules.CanAct(p,SwimRingCatalog.Equipped(state.Tackle.Inventory,slot)!=null))return;
+            var item=state.Tackle.Inventory.Equipped(slot,EquipmentSlot.RightHand);
+            if(item.HasValue && item.Value.LoadedAmmo==0)firearms.Empty();
         }
         public void ClearPlayers()
         {
             localPlayerMarker.Hide();
             foreach(var a in avatars.Values){a.Animation?.Dispose();a.Swimming?.Dispose();Release(a.Root.gameObject);Release(a.Rope.gameObject);Release(a.Ring.gameObject);Release(a.Hook.gameObject);}
-            audioFeedback.Reset();
+            audioFeedback.Reset();firearms?.Reset();confirmedState=null;
             escapes.Clear();
             avatars.Clear();
             foreach(var f in fishes)f.gameObject.SetActive(false);foreach(var f in fishShadows)f.Hide();
@@ -412,7 +433,7 @@ namespace Advanture.HookIsland
             aimRing.enabled=aimLine.enabled=false;
             aimTargetLocked=false;
         }
-        public void Dispose(){audioFeedback.Dispose();foodArt?.Dispose();meleeArt?.Dispose();fishWater.Dispose();escapes.Dispose();localPlayerMarker.Dispose();foreach(var f in fishViews)f?.Dispose();foreach(var a in avatars.Values){a.Animation?.Dispose();a.Swimming?.Dispose();}Release(root.gameObject);foreach(var r in resources)Release(r);}
+        public void Dispose(){firearms?.Dispose();firearmArt?.Dispose();audioFeedback.Dispose();foodArt?.Dispose();meleeArt?.Dispose();fishWater.Dispose();escapes.Dispose();localPlayerMarker.Dispose();foreach(var f in fishViews)f?.Dispose();foreach(var a in avatars.Values){a.Animation?.Dispose();a.Swimming?.Dispose();}Release(root.gameObject);foreach(var r in resources)Release(r);}
         private static void Release(Object value){if(Application.isPlaying)Object.Destroy(value);else Object.DestroyImmediate(value);}
     }
 }

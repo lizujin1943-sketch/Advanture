@@ -47,7 +47,7 @@ namespace Advanture.HookIsland
             var stored = inventory.Items.Where(i => i.Owner == player.Slot && i.Location == ItemLocation.Backpack && i.Definition.Slot != EquipmentSlot.None).OrderBy(i => i.Id).ToArray();
             var selection = inventory.Items.FirstOrDefault(i => i.Owner == player.Slot && i.Location != ItemLocation.Ground && i.Id == selectedId);
             if (selection.Id == 0) selectedId = 0;
-            bool hookBusy = player.Phase != HookPhase.Ready || player.Melee.Active, beingPulled = player.PulledBy >= 0;
+            bool hookBusy = player.Phase != HookPhase.Ready || player.Melee.Active || player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0, beingPulled = player.PulledBy >= 0;
             var intent = selection.Id == 0 ? default : selection.Location == ItemLocation.Equipped ?
                 new InventoryCommand(InventoryAction.Unequip, (int)selection.Definition.Slot) : new InventoryCommand(InventoryAction.Equip, selection.Id);
             if (selection.Id != 0) UpdatePreview(config, staminaBase, inventory, player.Slot, intent, hookBusy, beingPulled, player.Swimming.InWater);
@@ -74,7 +74,7 @@ namespace Advanture.HookIsland
             GUI.Label(new Rect(0, 365, 384, 56), "点击装备查看详情；把备用装备拖到对应槽位。\n默认服饰是外观，空槽不会提供属性。", small);
             DrawResource(400, 48, "生命", vitals.Health, current.HealthMax, HudPainter.Health);
             int normalSpeed=player.Swimming.InWater ? SwimmingSystem.Speed(swimming??new SwimmingConfig(),SwimRingCatalog.Equipped(inventory,player.Slot)) : current.MoveSpeed;
-            int moveSpeed=vitals.Downed ? 0 : normalSpeed*CharacterMovement.HookSpeedPermille(player)/1000;
+            int moveSpeed=vitals.Downed ? 0 : normalSpeed*CharacterMovement.HookSpeedPermille(player)/1000*FirearmRules.MovementPermille(player)/1000;
             GUI.Label(new Rect(400, 116, 270, 28), $"移速   {moveSpeed / 1000f:0.###} 米/秒", body);
             GUI.Label(new Rect(400, 158, 270, 28), $"防御   {current.Armor}", body);
             GUI.Label(new Rect(400, 188, 270, 25), $"攻击减伤 {100f * current.Armor / (CharacterDamage.DefenseScale + current.Armor):0.#}% · 不消耗", small);
@@ -111,6 +111,11 @@ namespace Advanture.HookIsland
             {
                 var rod = RodCatalog.Get(item.Type);
                 GUI.Label(new Rect(695, 251, 340, 42), $"线长 {rod.Range / 1000f:0.#} 米  ·  出钩 {rod.Speed / 1000f:0.#} 米/秒\n耐力加成 +{rod.StaminaBonus}", small);
+            }
+            else if(item.Kind==ItemKind.Firearm)
+            {
+                var gun=FirearmCatalog.Get(item.Type);
+                GUI.Label(new Rect(695,251,340,42),$"伤害 {gun.Damage} · 射程 {gun.Range/1000f:0.#} 米\n弹匣 {item.LoadedAmmo}/{gun.Capacity} · R 换弹",small);
             }
             else if(item.Kind==ItemKind.Weapon)
             {

@@ -17,7 +17,8 @@ public sealed class IslandSave
     {
         Document=document??throw new ArgumentNullException(nameof(document));
         if(savedAtUtc.Kind!=DateTimeKind.Utc)throw new ArgumentException("Save time must be UTC.");
-        SavedAtUtc=savedAtUtc;var cp=document.Checkpoint;int count=cp.Session.Participants.Count;
+        SavedAtUtc=savedAtUtc;var cp=Document.Checkpoint;int count=cp.Session.Participants.Count;
+        if(!cp.Manifest.Equals(HookGame.CreateModule().Manifest))throw new InvalidDataException("This save is incompatible with the current game version.");
         if(count<1 || count>4 || profiles.Count!=count || entered.Count!=count || !entered[0])throw new InvalidDataException("Invalid saved seats.");
         this.profiles=profiles.Select(p=>p.ToArray()).ToArray();this.entered=entered.ToArray();
         for(int i=0;i<count;i++)

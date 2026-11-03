@@ -16,7 +16,7 @@ internal sealed class EquipmentSystem
     internal InventorySystem Inventory { get; }
     internal EquipmentSystem(FishingConfig config,Fisher[] players)
     {
-        this.config=config;Inventory=new InventorySystem(players.Length,config.Melee.StarterPan);attributes=new CharacterStats[players.Length];
+        this.config=config;Inventory=new InventorySystem(players.Length,config.Melee.StarterPan,config.Firearms.Enabled);attributes=new CharacterStats[players.Length];
         merchants=new MerchantSystem(config);
         for(int i=0;i<players.Length;i++)
         {
@@ -81,6 +81,8 @@ internal sealed class EquipmentSystem
     private InventoryResult Transact(IslandMap map,IReadOnlyList<PlatformTile> tiles,ref Fisher player,InventoryCommand command,ref int coins,bool rescuing=false)
     {
         if(player.Unavailable || player.Vitals.Downed)return InventoryResult.Disabled;
+        if(player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0)return InventoryResult.HookBusy;
+        if(player.Firearm.Reloading && !ReloadSwitch(player,command))return InventoryResult.HookBusy;
         if(player.PulledBy>=0)return InventoryResult.HookBusy;
         bool grounded=SwimmingTerrain.Ground(map,tiles,player.X,player.Z);
         if(!grounded && (command.DropOld || command.Action==InventoryAction.Drop || command.Action==InventoryAction.Pickup ||
@@ -93,7 +95,24 @@ internal sealed class EquipmentSystem
             if(!MerchantRules.CanInteract(player))return InventoryResult.Disabled;
             var merchant=merchants.Get(command.MerchantId);
             if(merchant==null || !merchant.Active || command.Batch!=merchant.Batch)return InventoryResult.StaleStock;
-            if(command.Target>=FoodCatalog.OfferOffset)
+            if(command.Target>=FirearmCatalog.OfferOffset && command.Target<FirearmCatalog.OfferOffset+FirearmCatalog.All.Count)
+            {
+                if(!config.Firearms.Enabled)return InventoryResult.Disabled;
+                int type=command.Target-FirearmCatalog.OfferOffset;bool equipFirearm=command.Action==InventoryAction.BuyAndEquip;
+                if(merchant.FirearmStock[type]==0)return InventoryResult.SoldOut;
+                if(equipFirearm && (player.Phase!=HookPhase.Ready || player.Melee.Active))return InventoryResult.HookBusy;
+                int before=player.Coins;
+                var purchased=Inventory.Purchase(owner,ItemKind.Firearm,type,equipFirearm,command.DropOld,point,ref player.Coins);
+                if(purchased==InventoryResult.Success)
+                {coins-=before-player.Coins;merchants.SellFirearm(command.MerchantId,type);if(equipFirearm)player.SelectedQuickSlot=-1;}
+                return purchased;
+            }
+            if(command.Target>=AmmunitionCatalog.OfferOffset && command.Target<AmmunitionCatalog.OfferOffset+AmmunitionCatalog.All.Count)
+            {
+                // Unlimited reserve: reject even stale requests from a shelf saved by the previous rules.
+                return InventoryResult.Disabled;
+            }
+            if(command.Target>=FoodCatalog.OfferOffset && command.Target<FoodCatalog.OfferOffset+FoodCatalog.All.Count)
             {
                 int type=command.Target-FoodCatalog.OfferOffset;
                 if(command.Action!=InventoryAction.Buy)return InventoryResult.InvalidItem;
@@ -104,7 +123,7 @@ internal sealed class EquipmentSystem
                 return purchased;
             }
             var stock=merchant.Stock;
-            if(command.Target>=stock.Count || stock[command.Target].Sold)return InventoryResult.SoldOut;
+            if(command.Target<0 || command.Target>=stock.Count || stock[command.Target].Sold)return InventoryResult.SoldOut;
             var offer=stock[command.Target];bool equip=command.Action==InventoryAction.BuyAndEquip;
             if(equip && InventoryCatalog.Get(offer.Kind,offer.Type).Slot==EquipmentSlot.RightHand && (player.Phase!=HookPhase.Ready || player.Melee.Active))return InventoryResult.HookBusy;
             int previousCoins=player.Coins;
@@ -152,6 +171,22 @@ internal sealed class EquipmentSystem
                 if(Inventory.QuickSlot(owner,n).ItemId==equipped.Value.Id){player.SelectedQuickSlot=n;break;}
         }
         return outcome;
+    }
+    // Reload cancellation belongs to the simulation after a successful right-hand/active-tool change.
+    // A failed layout/ownership check must leave the current reload untouched.
+    private bool ReloadSwitch(Fisher player,InventoryCommand command)
+    {
+        if(command.DropOld)return false;
+        if(command.Action==InventoryAction.Unequip)return command.Target==(int)EquipmentSlot.RightHand;
+        InventoryItem? incoming=command.Action==InventoryAction.Equip?Inventory.Find(command.Target):null;
+        if(command.Action==InventoryAction.SelectQuickSlot)
+        {
+            int slot=command.Target-1;
+            if(slot<0 || slot>=QuickbarRules.SlotCount)return false;
+            incoming=Inventory.QuickItem(player.Slot,slot);
+        }
+        return incoming.HasValue && incoming.Value.Definition.Slot==EquipmentSlot.RightHand &&
+            incoming.Value.Id!=Inventory.Equipped(player.Slot,EquipmentSlot.RightHand)?.Id;
     }
     internal bool ActiveTool(Fisher player)
     {

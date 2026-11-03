@@ -9,12 +9,12 @@ namespace Advanture.HookIsland.CrabTests;
 internal static partial class Program
 {
     private static readonly Guid SessionId=new("9455fa3b-facd-47ca-baa6-1b561ef74519");
-    private static IslandMap Map(CrabConfig? config=null)
-    {var m=IslandMap.CreatePlatform();return new IslandMap(m.Shore,m.Pier,m.Spawns,m.FishSpots,m.Platform,new FishingConfig(melee:new MeleeConfig(),crabs:config??new CrabConfig(initialDelayTicks:30)));}
-    private static IDeterministicSimulation<HookState> Model(int count=4,CrabConfig? config=null)
+    private static IslandMap Map(CrabConfig? config=null,bool firearms=false)
+    {var m=IslandMap.CreatePlatform();return new IslandMap(m.Shore,m.Pier,m.Spawns,m.FishSpots,m.Platform,new FishingConfig(melee:new MeleeConfig(),firearms:new FirearmConfig(firearms),crabs:config??new CrabConfig(initialDelayTicks:30)));}
+    private static IDeterministicSimulation<HookState> Model(int count=4,CrabConfig? config=null,bool firearms=false)
     {
         var model=new HookGame(false).Create();model.Initialize(new SimulationInitialization(new SessionDescriptor(SessionId,1,30,
-            Enumerable.Range(0,count).Select(i=>new Participant((ushort)i,new Guid(i+1,0,0,new byte[8]))).ToArray()),new ByteString(Map(config).Encode())));return model;
+            Enumerable.Range(0,count).Select(i=>new Participant((ushort)i,new Guid(i+1,0,0,new byte[8]))).ToArray()),new ByteString(Map(config,firearms).Encode())));return model;
     }
     private static void Step(IDeterministicSimulation<HookState> m,params HookInput[] inputs)
     {var s=m.Capture();m.Step(new FrameContext(s.Steps+1,s.Steps+1,30),s.Players.Select(p=>new SimulationInput(new Participant(p.Slot,new Guid(p.Slot+1,0,0,new byte[8])),new ByteString((p.Slot<inputs.Length?inputs[p.Slot]:default).Encode()))).ToArray());}
@@ -27,6 +27,21 @@ internal static partial class Program
     private static void Same(HookState a,HookState b)=>Require(new HookGame().Encode(a).SequenceEqual(new HookGame().Encode(b)),"State bytes diverged");
     private static IEnumerable<(string,Action)> Cases()
     {
+        yield return ("crab_hit_cancels_firearm_reload_and_both_states_restore",()=>{
+            var config=new CrabConfig(initialDelayTicks:300,knockback:735);
+            var m=Model(1,config,firearms:true);var gun=m.Capture().Tackle!.Inventory.Items.Single(i=>i.Kind==ItemKind.Firearm);
+            Step(m,new HookInput(0,0,inventory:new InventoryCommand(InventoryAction.Equip,gun.Id,requestId:1)));
+            for(int i=0;i<9;i++)Step(m);
+            Step(m,new HookInput(0,0,aimX:-1400,aimZ:-14000,fire:true));
+            for(int i=0;i<6;i++)Step(m);
+            Step(m,new HookInput(0,0,reload:true));Require(m.Capture().Players[0].Firearm.Reloading,"Reload never began");
+            var c=Ready(-2400,-1400);c.Phase=CrabPhase.Windup;c.Timer=1;c.AttackSerial=1;c.Target=0;
+            m.Restore(Replace(m.Capture(),c));Step(m);var state=m.Capture();var p=state.Players[0];
+            Require(p.Vitals.Health==88 && p.Knockback.Active && p.Knockback.TotalDistance==735,"Crab hit or configured knockback was lost");
+            Require(!p.Firearm.Reloading && p.Firearm.ShotSequence==1 && state.Tackle!.Inventory.Equipped(0,EquipmentSlot.RightHand)?.LoadedAmmo==6,"Crab hit completed reload or lost firearm state");
+            var restored=Model(1,config,firearms:true);restored.Restore(new HookGame().Decode(new HookGame().Encode(state)));
+            for(int i=0;i<60;i++){Step(m);Step(restored);Same(m.Capture(),restored.Capture());}
+        });
         yield return ("spawn_delay_climb_and_real_shore",()=>{
             var m=Model();for(int i=0;i<29;i++)Step(m);Require(m.Capture().Crab.Phase==CrabPhase.Waiting,"Early spawn");
             Step(m);var c=m.Capture().Crab;Require(c.Phase==CrabPhase.Climbing && c.Health==100,"No automatic spawn");

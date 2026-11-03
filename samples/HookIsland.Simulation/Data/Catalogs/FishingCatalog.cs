@@ -79,5 +79,5 @@ internal static class CatalogData
     }
     internal static IEnumerable<string[]> Rows(string file)=>Read(file).Split('\n').Skip(1).Where(s=>!string.IsNullOrWhiteSpace(s)).Select(s=>s.Trim().Split(','));
     internal static string Hash()
-    {using var sha=SHA256.Create();return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(Read("rods.csv")+Read("fish.csv")+Read("backpacks.csv")+Read("swim-rings.csv")+Read("apparel.csv")+Read("weapons.csv")+Read("foods.csv"))));}
+    {using var sha=SHA256.Create();return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(Read("rods.csv")+Read("fish.csv")+Read("backpacks.csv")+Read("swim-rings.csv")+Read("apparel.csv")+Read("weapons.csv")+Read("foods.csv")+Read("firearms.csv")+Read("ammunition.csv"))));}
 }

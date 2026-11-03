@@ -13,18 +13,20 @@ namespace Advanture.HookIsland
         private readonly FinaleHud finale;
         private readonly ComboHud combo;
         private readonly QuickbarHud quickbar;
+        private readonly FirearmReticleHud reticle;
         private readonly ObjectivePanelMotion objectives = new ObjectivePanelMotion();
         private readonly HealthBarFeedback squadHealth = new HealthBarFeedback();
         public float ObjectiveReveal => objectives.Reveal(Time.unscaledTime);
         public void ToggleObjectives() => objectives.Toggle(Time.unscaledTime);
         public void Hide() => squadHealth.Reset();
         public GameplayHud(IslandFishingController room,FishingOverlay overlay,HudPainter painter)
-        {this.room=room;this.overlay=overlay;ui=painter;commissions=new CommissionHud(room,painter);finale=new FinaleHud(room,painter);combo=new ComboHud();quickbar=new QuickbarHud(room,painter);}
+        {this.room=room;this.overlay=overlay;ui=painter;commissions=new CommissionHud(room,painter);finale=new FinaleHud(room,painter);combo=new ComboHud();quickbar=new QuickbarHud(room,painter);reticle=new FirearmReticleHud(room,painter);}
 
         public void Draw(HudLayout layout,float scale)
         {
             if(room.State==null || !room.TryGetLocalPlayer(out var local))return;
             if(room.State.Won){Hide();finale.DrawVictory(layout);return;}
+            reticle.Draw(local,scale);
             DrawSquad(layout);DrawWallet(layout,local);
             quickbar.Draw(layout,local);
             DrawObjectives(layout);
@@ -32,7 +34,7 @@ namespace Advanture.HookIsland
             if(ui.IconButton(layout.Menu,HudIcon.Menu,"菜单 · Esc"))overlay.OpenMenu();
             bool enabled=GUI.enabled;GUI.enabled=!room.Incapacitated;
             if(ui.IconButton(layout.Tool(0),HudIcon.Backpack,"角色与背包 · Tab","TAB"))room.Equipment?.ToggleInventory();
-            GUI.enabled=!room.Incapacitated && room.Construction!=null && room.Map.Platform!=null;
+            GUI.enabled=!room.Incapacitated && !room.FirearmBusy && room.Construction!=null && room.Map.Platform!=null;
             if(ui.IconButton(layout.Tool(1),HudIcon.Build,"扩建平台 · B","B",room.Construction?.Open==true))room.Construction.Toggle();
             GUI.enabled=enabled;
             if(ui.IconButton(layout.Tool(2),HudIcon.Help,"操作指南 · F1","F1"))overlay.OpenHelp();
@@ -146,7 +148,7 @@ namespace Advanture.HookIsland
             var rect=layout.Help;ui.Surface(rect);ui.Text(new Rect(rect.x+26,rect.y+18,300,32),"操作指南",20,HudPainter.White,TextAnchor.MiddleLeft,true);
             if(ui.IconButton(new Rect(rect.xMax-48,rect.y+13,32,32),HudIcon.Close,"关闭 · Esc"))overlay.MenuOpen=false;
             string[] keys={"WASD","鼠标","左键","右键","V / J","R","E","Tab / I","B / 1–9","滚轮"};
-            string[] hints={"移动 · 第三人称按视角方向","俯视角瞄准 / 第三人称转向","使用当前物品 / 出钩 / 挥击","收钩 / 取消","V 切换视角 · J 收起 / 展开任务","按住救起队友","开箱 / 商店","角色与背包","B 扩建 · 1–9 选择快捷物品","俯视角缩放 / 第三人称拉近拉远"};
+            string[] hints={"移动 · 第三人称按视角方向","俯视角瞄准 / 第三人称转向","使用当前物品 / 出钩 / 挥击","收钩 / 取消","V 切换视角 · J 收起 / 展开任务","R 换弹 · 按住优先救起队友","开箱 / 商店","角色与背包","B 扩建 · 1–9 选择快捷物品","俯视角缩放 / 第三人称拉近拉远"};
             for(int i=0;i<keys.Length;i++)
             {float y=rect.y+65+i*32;ui.Surface(new Rect(rect.x+26,y+3,70,24),HudPainter.Track);ui.Text(new Rect(rect.x+26,y+3,70,24),keys[i],12,HudPainter.White,TextAnchor.MiddleCenter);ui.Text(new Rect(rect.x+116,y,280,30),hints[i],14,HudPainter.Muted);}
         }

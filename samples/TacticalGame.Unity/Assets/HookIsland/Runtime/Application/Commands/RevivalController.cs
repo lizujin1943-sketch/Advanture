@@ -9,8 +9,10 @@ namespace Advanture.HookIsland
     {
         private IslandFishingController room;
         private readonly RevivalRequestBuffer requests=new RevivalRequestBuffer();
-        private int heldTarget=-1;
+        private readonly RescuePressOwnership press=new RescuePressOwnership();
+        private int heldTarget=>press.Target;
         public bool Pending=>requests.Pending;
+        public bool OwnsRescuePress=>press.OwnedByRescue;
         public string Message { get; private set; }
         private void Awake(){room=GetComponent<IslandFishingController>();}
         public void Capture()
@@ -19,9 +21,10 @@ namespace Advanture.HookIsland
             if(!room.Playing || room.InputProvider!=null || !Application.isFocused || !Input.GetKey(KeyCode.R) ||
                 room.ShopOpen || room.Equipment?.InventoryOpen==true || room.Construction?.Open==true ||
                 GetComponent<FishingOverlay>().MenuOpen || !room.TryGetLocalPlayer(out local) || local.Vitals.Downed)
-            {heldTarget=-1;return;}
-            if(heldTarget>=0 && !RevivalSystem.CanHelp(room.Map,room.State.Tiles,local,room.State.Players[heldTarget]))heldTarget=-1;
-            if(heldTarget<0)heldTarget=NearestTarget();
+            {press.Interrupt(Input.GetKey(KeyCode.R));return;}
+            bool valid=heldTarget>=0 && heldTarget<room.State.Players.Count && RevivalSystem.CanHelp(room.Map,room.State.Tiles,local,room.State.Players[heldTarget]);
+            bool pressed=Input.GetKeyDown(KeyCode.R);
+            press.Capture(pressed,true,pressed?NearestTarget():-1,valid);
         }
         public int NearestTarget()
         {return GetTarget(-1);}
@@ -50,7 +53,7 @@ namespace Advanture.HookIsland
             if(requests.Pending)return new HookInput(0,0,revival:requests.Command,roomRules:input.RoomRules);
             if(!input.Treasure.IsEmpty || !input.Revival.IsEmpty || heldTarget<0 || input.Inventory.Action!=InventoryAction.None ||
                 input.RodAction!=RodAction.None || input.Build!=TileKind.None || input.Upgrade!=HookUpgrade.None)return input;
-            return new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,input.Fire,input.Cancel,shopping:input.Shopping,
+            return new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,false,input.Cancel,shopping:input.Shopping,
                 revival:new RevivalCommand(rescueSlot:heldTarget),roomRules:input.RoomRules);
         }
         public bool RequestRespawn()
@@ -60,7 +63,7 @@ namespace Advanture.HookIsland
             if(!requests.TryQueue(p.Revival))return false;
             room.CloseShop();room.Equipment?.Close();room.Construction?.Close();Message=null;return true;
         }
-        public void ResetSession(){requests.Reset();heldTarget=-1;Message=null;}
+        public void ResetSession(){requests.Reset();press.Reset();Message=null;}
         public static string Explain(RespawnResult result)
         {
             switch(result)

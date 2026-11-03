@@ -335,6 +335,50 @@ namespace Advanture.HookIsland.Tests
             Assert.That(Vector3.Distance(camera.transform.position,before),Is.LessThan(.001f));
         }
 
+        [TestCase(16f/9,22f)] [TestCase(16f/9,40f)] [TestCase(4f/3,22f)] [TestCase(21f/9,40f)]
+        public void FirearmFramesTheBodyBelowLeftOfTheCentreAimRay(float aspect,float angle)
+        {
+            camera.aspect=aspect;var feet=new Vector3(3,.465f,4);
+            view.Toggle(Vector3.forward,feet);view.Look(new Vector2(15,(40-angle)/2.55f));
+            view.UpdateFirearmFraming(true,1);
+            var torso=camera.WorldToViewportPoint(feet+Vector3.up*.6f);
+            var head=camera.WorldToViewportPoint(feet+Vector3.up*1.03f);
+            Assert.That(torso.x,Is.EqualTo(.32f).Within(.001f));
+            Assert.That(torso.y,Is.EqualTo(.30f).Within(.001f));
+            Assert.That(head.x,Is.LessThan(.4f));Assert.That(head.y,Is.LessThan(.46f));
+            var target=view.Aim(camera.ViewportPointToRay(new Vector3(.5f,.5f)),feet,12);
+            var projected=camera.WorldToViewportPoint(target);
+            Assert.That(Vector2.Distance(new Vector2(projected.x,projected.y),new Vector2(.5f,.5f)),Is.LessThan(.001f),
+                "The central reticle must still sample the actual water aiming point.");
+            foreach(float scroll in new[]{1000f,-1000f})
+            {
+                view.Zoom(scroll);view.Follow(feet+Vector3.right*2);
+                torso=camera.WorldToViewportPoint(feet+Vector3.right*2+Vector3.up*.6f);
+                Assert.That(torso.x,Is.EqualTo(.32f).Within(.001f));
+                Assert.That(torso.y,Is.EqualTo(.30f).Within(.001f));
+            }
+        }
+
+        [Test] public void FirearmFramingBlendsWithoutTurningAndRestoresTheFishingView()
+        {
+            var feet=new Vector3(0,.465f,0);view.Toggle(Vector3.forward,feet);
+            var before=camera.transform.position;var rotation=camera.transform.rotation;
+            view.UpdateFirearmFraming(true,.11f);var middle=camera.transform.position;
+            view.UpdateFirearmFraming(true,.11f);var after=camera.transform.position;
+            Assert.That(Vector3.Distance(before,middle),Is.GreaterThan(.1f));
+            Assert.That(Vector3.Distance(before,middle),Is.LessThan(Vector3.Distance(before,after)));
+            Assert.That(Quaternion.Angle(rotation,camera.transform.rotation),Is.LessThan(.001f));
+            Assert.That(camera.fieldOfView,Is.EqualTo(65));
+            view.Toggle(Vector3.forward,feet);var overhead=camera.transform.position;
+            view.UpdateFirearmFraming(false,1);
+            Assert.That(camera.transform.position,Is.EqualTo(overhead),"A gun selection must not recompose the overhead view.");
+            view.Toggle(Vector3.forward,feet);
+            Assert.That(Vector3.Distance(before,camera.transform.position),Is.LessThan(.001f));
+            Assert.That(camera.fieldOfView,Is.EqualTo(75));
+            view.UpdateFirearmFraming(true,1);view.Reset();view.Toggle(Vector3.forward,feet);
+            Assert.That(Vector3.Distance(before,camera.transform.position),Is.LessThan(.001f),"New rounds must reset gun framing.");
+        }
+
         [Test] public void TwoUdpClientsWithDifferentPerspectivesMoveCastAndConfirmTheSameState()
         {
             var map=IslandMap.CreatePlatform();var clock=System.Diagnostics.Stopwatch.StartNew();

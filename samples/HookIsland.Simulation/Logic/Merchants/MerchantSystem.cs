@@ -11,7 +11,7 @@ public sealed class MerchantSystem
     public MerchantSystem(FishingConfig config,IEnumerable<MerchantState>? state=null)
     {
         this.config=config;
-        states=state?.ToArray()??new[]{new MerchantState(0,true,0,1,(ulong)config.RestockSeconds*HookGame.Rate,RodShop.Generate(config,1))}
+        states=state?.ToArray()??new[]{new MerchantState(0,true,0,1,(ulong)config.RestockSeconds*HookGame.Rate,RodShop.Generate(config,1),firearmStock:Firearms(),ammunitionStock:Ammunition())}
             .Concat(config.Merchants.Definitions.Select(d=>MerchantState.Inactive(d.Id))).ToArray();
     }
     public IReadOnlyList<MerchantState> Capture()=>Array.AsReadOnly(states.ToArray());
@@ -25,25 +25,32 @@ public sealed class MerchantSystem
             if(!s.Active)
             {
                 if(!players.Any(p=>MerchantRules.CanInteract(p) && MerchantRules.Near(map,tiles,p,id)))continue;
-                states[id]=new MerchantState(id,true,step,1,checked(step+interval),RodShop.Generate(config,1,id));
+                states[id]=new MerchantState(id,true,step,1,checked(step+interval),RodShop.Generate(config,1,id),firearmStock:Firearms(),ammunitionStock:Ammunition());
             }
             else if(step>=s.NextRestock)
             {
                 // Calculate from the activation epoch so a catch-up call never resets or shifts the clock.
                 ulong periods=(step-s.ActivatedAt)/interval;uint batch=checked((uint)(periods+1));
                 states[id]=new MerchantState(id,true,s.ActivatedAt,batch,
-                    checked(s.ActivatedAt+(periods+1)*interval),RodShop.Generate(config,batch,id));
+                    checked(s.ActivatedAt+(periods+1)*interval),RodShop.Generate(config,batch,id),firearmStock:Firearms(),ammunitionStock:Ammunition());
             }
         }
+    }
+    private int[] Firearms()=>FirearmCatalog.All.Select(f=>config.Firearms.Enabled?f.Stock:0).ToArray();
+    private int[] Ammunition()=>new int[AmmunitionCatalog.All.Count];
+    internal void SellFirearm(int id,int type)
+    {
+        var s=states[id];var guns=s.FirearmStock.ToArray();guns[type]--;
+        states[id]=new MerchantState(id,s.Active,s.ActivatedAt,s.Batch,s.NextRestock,s.Stock,s.FoodStock,guns,s.AmmunitionStock);
     }
     internal void SellFood(int id,int type)
     {
         var s=states[id];var food=s.FoodStock.ToArray();food[type]--;
-        states[id]=new MerchantState(id,s.Active,s.ActivatedAt,s.Batch,s.NextRestock,s.Stock,food);
+        states[id]=new MerchantState(id,s.Active,s.ActivatedAt,s.Batch,s.NextRestock,s.Stock,food,s.FirearmStock,s.AmmunitionStock);
     }
     internal void Sell(int id,int index)
     {
         var s=states[id];var stock=s.Stock.ToArray();var offer=stock[index];offer.Sold=true;stock[index]=offer;
-        states[id]=new MerchantState(id,s.Active,s.ActivatedAt,s.Batch,s.NextRestock,stock,s.FoodStock);
+        states[id]=new MerchantState(id,s.Active,s.ActivatedAt,s.Batch,s.NextRestock,stock,s.FoodStock,s.FirearmStock,s.AmmunitionStock);
     }
 }

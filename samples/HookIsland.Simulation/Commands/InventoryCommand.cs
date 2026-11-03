@@ -51,7 +51,7 @@ public readonly struct InventoryCommand
         bool grid = Action == InventoryAction.Move || Action == InventoryAction.Split;
         bool quantity = Action == InventoryAction.Split || Action == InventoryAction.Drop;
         bool equipping = Action == InventoryAction.Equip || Action == InventoryAction.PickupAndEquip || Action == InventoryAction.BuyAndEquip;
-        if (buying ? (Target < 0 || Target >= FoodCatalog.OfferOffset+FoodCatalog.All.Count || Batch == 0) : Batch != 0) Invalid();
+        if (buying ? (Target < 0 || !IsOffer(Target) || Batch == 0) : Batch != 0) Invalid();
         if (Action == InventoryAction.None && (Target != 0 || Amount != 0 || X != 0 || Y != 0 || Rotated || DropOld || Batch != 0)) Invalid();
         if (Action != InventoryAction.None && !buying && Target <= 0) Invalid();
         if (Action == InventoryAction.Unequip && (Target < (int)EquipmentSlot.Hat || Target > (int)EquipmentSlot.SwimRing)) Invalid();
@@ -61,5 +61,6 @@ public readonly struct InventoryCommand
         if (quantity ? (Amount < 1 || Amount > InventoryCatalog.MaterialStackLimit || (Action == InventoryAction.Split && Amount == InventoryCatalog.MaterialStackLimit)) : (Action!=InventoryAction.BindQuickSlot && Amount != 0)) Invalid();
         if (Rotated && Action != InventoryAction.Move || DropOld && !equipping) Invalid();
     }
+    private static bool IsOffer(int target)=>target>=0 && target<8 || target>=FoodCatalog.OfferOffset && target<FoodCatalog.OfferOffset+FoodCatalog.All.Count || target>=FirearmCatalog.OfferOffset && target<FirearmCatalog.OfferOffset+FirearmCatalog.All.Count || target>=AmmunitionCatalog.OfferOffset && target<AmmunitionCatalog.OfferOffset+AmmunitionCatalog.All.Count;
     private static void Invalid() => throw new InvalidDataException("Invalid inventory command fields.");
 }

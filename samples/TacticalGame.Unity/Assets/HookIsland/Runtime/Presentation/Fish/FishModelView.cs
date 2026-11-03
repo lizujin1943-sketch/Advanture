@@ -17,6 +17,7 @@ namespace Advanture.HookIsland
         private readonly SkinnedMeshRenderer[] renderers;
         private readonly MaterialPropertyBlock properties = new MaterialPropertyBlock();
         private int grade;
+        private bool hitFlash;
 
         public FishModelView(Transform parent, FishVisualDefinition definition)
         {
@@ -63,8 +64,15 @@ namespace Advanture.HookIsland
         {
             if (value == grade) return;
             grade = value;
-            // A subtle silver/gold tint retains authored species colours without cloning materials.
-            properties.SetColor("_Color", value >= 3 ? new Color(1, .94f, .78f) : value == 2 ? new Color(.9f, .96f, 1) : Color.white);
+            UpdateTint();
+        }
+        public void SetHitFlash(bool value)
+        {if(hitFlash==value)return;hitFlash=value;UpdateTint();}
+        private void UpdateTint()
+        {
+            // A confirmed brief white pulse uses property blocks, without cloning shared materials.
+            if(hitFlash)properties.SetColor("_Color",new Color(4,4,4));
+            else properties.SetColor("_Color", grade >= 3 ? new Color(1, .94f, .78f) : grade == 2 ? new Color(.9f, .96f, 1) : Color.white);
             foreach (var renderer in renderers) renderer.SetPropertyBlock(properties);
         }
 

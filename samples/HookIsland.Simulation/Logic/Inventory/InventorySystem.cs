@@ -27,9 +27,10 @@ public sealed partial class InventorySystem
     private int nextId;
     private int[] spent;
     private int[] consumedFoods;
+    private int[] purchasedAmmunition,consumedAmmunition,replenishedAmmunition;
     private QuickbarBinding[] quickbar;
 
-    public InventorySystem(int players,bool starterPan=false)
+    public InventorySystem(int players,bool starterPan=false,bool starterFirearm=false)
     {
         if (players < 1 || players > 4) throw new ArgumentOutOfRangeException(nameof(players));
         playerCount = players; items = new List<InventoryItem>(); nextId = 1; spent = new int[players];
@@ -37,15 +38,26 @@ public sealed partial class InventorySystem
         for (int owner = 0; owner < players; owner++) items.Add(EquippedItem(nextId++, owner, ItemKind.Rod, 0));
         for (int owner = 0; owner < players; owner++) items.Add(EquippedItem(nextId++, owner, ItemKind.Backpack, 1));
         if(starterPan)for(int owner=0;owner<players;owner++)items.Add(new InventoryItem{Id=nextId++,Owner=owner,Kind=ItemKind.Weapon,Type=0,Count=1,Location=ItemLocation.Backpack});
+        if(starterFirearm)for(int owner=0;owner<players;owner++)
+        {
+            var gun=new InventoryItem{Id=nextId++,Owner=owner,Kind=ItemKind.Firearm,Type=0,Count=1,LoadedAmmo=FirearmCatalog.Get(0).Capacity};
+            if(!InventoryLayout.Place(items,owner,Size(items,owner),ref gun))
+                throw new InvalidOperationException("Starter firearm does not fit in the initial backpack.");
+            items.Add(gun);
+        }
+        purchasedAmmunition=new int[AmmunitionCatalog.All.Count];consumedAmmunition=new int[AmmunitionCatalog.All.Count];
+        replenishedAmmunition=new int[AmmunitionCatalog.All.Count];
         consumedFoods=new int[FoodCatalog.All.Count];quickbar=QuickbarRules.Defaults(players,items);
     }
     public InventorySystem(InventoryState state)
     {
         InventoryStateCodec.Validate(state);
         playerCount = state.PlayerCount; items = state.Items.ToList(); nextId = state.NextId; spent = state.SpentCoins.ToArray();
+        purchasedAmmunition=state.PurchasedAmmunition.ToArray();consumedAmmunition=state.ConsumedAmmunition.ToArray();
+        replenishedAmmunition=state.ReplenishedAmmunition.ToArray();
         consumedFoods=state.ConsumedFoods.ToArray();quickbar=state.Quickbar.ToArray();
     }
-    public InventoryState Capture() => new InventoryState(playerCount, items.OrderBy(i => i.Id), nextId, spent, consumedFoods, quickbar);
+    public InventoryState Capture() => new InventoryState(playerCount, items.OrderBy(i => i.Id), nextId, spent, consumedFoods, quickbar, purchasedAmmunition, consumedAmmunition, replenishedAmmunition);
     /// <summary>按槽位读取当前穿戴项；避免玩法每帧为查询单件装备创建完整快照。</summary>
     public InventoryItem? Equipped(int owner, EquipmentSlot slot)
     {
@@ -141,7 +153,7 @@ public sealed partial class InventorySystem
             item.Count -= amount; ReplaceOrRemove(draft.Items, item);
             if (!AddGroundMaterial(draft, item.Kind, amount, ground)) return InventoryResult.LimitReached;
         }
-        else if(item.Kind==ItemKind.Food && amount<item.Count)
+        else if(InventoryCatalog.IsStackable(item.Kind) && amount<item.Count)
         {
             var dropped=item;if(!TryAllocate(draft,out dropped.Id))return InventoryResult.LimitReached;
             dropped.Count=amount;ToGround(ref dropped,ground);draft.Items.Add(dropped);
@@ -210,11 +222,12 @@ public sealed partial class InventorySystem
         if (!InventoryCatalog.IsValid(kind, type) || InventoryCatalog.IsMaterial(kind) || (kind == ItemKind.Rod && type == 0)) return InventoryResult.InvalidItem;
         int price = InventoryCatalog.Get(kind, type).Price;
         if (personalCoins < price) return InventoryResult.InsufficientCoins;
+        if(kind==ItemKind.Ammunition)return PurchaseAmmunition(owner,type,equip,ground,ref personalCoins);
         if(kind==ItemKind.Food)return PurchaseFood(owner,type,equip,ground,ref personalCoins);
         if (items.Count(i => !InventoryCatalog.IsStackable(i.Kind)) >= InventoryCatalog.MaxEquipmentItems || nextId == int.MaxValue || spent[owner] > int.MaxValue - price)
             return InventoryResult.LimitReached;
         var draft = Draft(); if (!TryAllocate(draft, out int id)) return InventoryResult.LimitReached;
-        var incoming = new InventoryItem { Id = id, Owner = owner, Kind = kind, Type = type, Count = 1, X = -1, Y = -1 };
+        var incoming = new InventoryItem { Id = id, Owner = owner, Kind = kind, Type = type, Count = 1, X = -1, Y = -1, LoadedAmmo = kind==ItemKind.Firearm?FirearmCatalog.Get(type).Capacity:0 };
         InventoryResult result;
         if (equip)
         {

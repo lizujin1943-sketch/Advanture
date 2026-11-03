@@ -10,6 +10,7 @@ namespace Advanture.HookIsland
         {
             // A small screen-space assist makes clicking an airborne fish match its XZ hit shape.
             // The synchronized simulation still validates timing, range and collision.
+            if(room.HoldingFirearm)return aim;
             float nearest=27f*27f;
             if(room.State!=null && !room.HoldingMelee && room.Construction?.Open!=true)foreach(var f in room.State.Fish)
             {

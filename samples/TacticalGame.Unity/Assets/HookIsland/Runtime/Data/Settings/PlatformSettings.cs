@@ -17,7 +17,7 @@ namespace Advanture.HookIsland
             var map=IslandMap.CreatePlatform(wood_tile_cost,fishbone_tile_cost);
             var basis=new IslandMap(map.Shore,map.Pier,map.Spawns,map.FishSpots,
                 new PlatformConfig(wood_tile_cost,fishbone_tile_cost,blockedCells.Select(p=>new Point(p.x,p.y))));
-            return OceanRules.CreateMap(basis,fishing!=null?fishing.CreateConfig():new FishingConfig(enemies:new EnemyConfig()));
+            return OceanRules.CreateMap(basis,fishing!=null?fishing.CreateConfig():new FishingConfig(enemies:new EnemyConfig(),firearms:new FirearmConfig()));
         }
     }
 }

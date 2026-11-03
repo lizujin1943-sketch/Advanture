@@ -65,7 +65,7 @@ namespace Advanture.HookIsland
         public void Toggle()
         {
             if (Open) Close();
-            else if (room.Playing && !room.Incapacitated)
+            else if (room.Playing && !room.Incapacitated && !room.FirearmBusy)
             {
                 Open = true;
                 room.Equipment?.Close();
@@ -144,7 +144,7 @@ namespace Advanture.HookIsland
                 PreviewResult = CanRequest ? PlatformRules.Check(room.Map, room.State, player, Selected, CellX, CellZ) : BuildResult.Busy;
         }
 
-        private bool CanRequest => room.Playing && !room.Incapacitated && !room.BeingPulled && !Pending &&
+        private bool CanRequest => !room.FirearmBusy && room.Playing && !room.Incapacitated && !room.BeingPulled && !Pending &&
             room.Equipment?.Pending != true && !room.PurchasePending && room.Treasures?.Pending != true && room.Revival?.Pending != true;
 
         public bool BeginStroke(int x, int z)

@@ -34,7 +34,7 @@ internal static class MeleeStateCodec
         for(int i=0;i<fish.Length;i++)
         {
             int damage=r.ReadInt32(),stun=r.ReadInt32();
-            if(damage<0 || damage>config.PiranhaHealth || stun<0 || stun>config.StunTicks || !config.Enabled && (damage!=0 || stun!=0) || damage==config.PiranhaHealth && fish[i].RespawnTicks==0 || stun>0 && (damage==0 || fish[i].RespawnTicks>0))throw new InvalidDataException("Invalid melee enemy damage.");
+            if(damage<0 || damage>config.PiranhaHealth || stun<0 || stun>Math.Max(config.StunTicks,s.Tackle?.Config.Firearms.StunTicks??0) || !config.Enabled && s.Tackle?.Config.Firearms.Enabled!=true && (damage!=0 || stun!=0) || damage==config.PiranhaHealth && fish[i].RespawnTicks==0 || stun>0 && (damage==0 || fish[i].RespawnTicks>0))throw new InvalidDataException("Invalid combat enemy damage.");
             fish[i].DamageTaken=damage;fish[i].StunTicks=stun;
         }
         var e=s.Enemies;return new HookState(s.Steps,players,s.Fish,s.Coins,s.Tiles,s.Driftwood,s.Tackle,new EnemyState(fish,e.Monster,e.Waterballs,e.Serial,e.Bites,e.Shots,e.Interruptions,e.WaterHits,e.Captures),s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale);

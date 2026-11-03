@@ -1,0 +1,2 @@
+id,name,tier,range,damage,cooldownTicks,reloadTicks,drawTicks,recoveryTicks,capacity,ammoType,price,width,height,stock,movementSpreadCurve,stationarySpeedThreshold,spreadIncreaseMillidegreesPerSecond,spreadRecoveryMillidegreesPerSecond,spreadSampling
+desert_eagle,沙漠之鹰,1,12000,35,18,54,9,6,7,0,300,2,2,2,50:500|1500:2000|3000:6000|4500:10000,50,60000,20000,Triangular

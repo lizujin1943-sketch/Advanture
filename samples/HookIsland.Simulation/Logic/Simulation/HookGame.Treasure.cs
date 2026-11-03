@@ -131,7 +131,7 @@ public sealed partial class HookGame
             if(id>=chests.Length || chests[id].Generation!=command.Generation)return TreasureResult.NotFound;
             var c=chests[id];
             if(c.Phase!=TreasurePhase.Landed)return TreasureResult.NotLanded;
-            if(p.Unavailable || p.Vitals.Downed || p.Knockback.Active || p.Phase!=HookPhase.Ready || p.PulledBy>=0 || p.Shopping || p.Swimming.InWater)
+            if(p.Unavailable || p.Vitals.Downed || p.Knockback.Active || p.Phase!=HookPhase.Ready || p.PulledBy>=0 || p.Shopping || p.Swimming.InWater || p.Firearm.Busy)
                 return TreasureResult.Busy;
             if(IslandMap.DistanceSquared(p.X,p.Z,c.X,c.Z)>(long)map.Fishing.Treasure.OpenRange*map.Fishing.Treasure.OpenRange)return TreasureResult.TooFar;
             return SettleTreasure(id,c.RewardMembers)?TreasureResult.Success:TreasureResult.LimitReached;

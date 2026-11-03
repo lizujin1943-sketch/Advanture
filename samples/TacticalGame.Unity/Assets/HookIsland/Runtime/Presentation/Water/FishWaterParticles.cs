@@ -21,7 +21,7 @@ namespace Advanture.HookIsland
         internal void Begin() { buffers.Begin(); }
         internal void Flush() { buffers.Flush(); }
         internal void Clear() { buffers.Clear(); }
-        private static Mesh Crown()
+        internal static Mesh Crown()
         {
             const int segments = 36;
             var vertices = new List<Vector3>(); var colors = new List<Color32>();

@@ -7,9 +7,13 @@ namespace Advanture.HookIsland.Simulation;
 /// <summary>A single confirmed shelf and its own activation-relative clock.</summary>
 public sealed class MerchantState
 {
-    public MerchantState(int id,bool active,ulong activatedAt,uint batch,ulong nextRestock,IEnumerable<RodStock> stock,IEnumerable<int>? foodStock=null)
+    public MerchantState(int id,bool active,ulong activatedAt,uint batch,ulong nextRestock,IEnumerable<RodStock> stock,IEnumerable<int>? foodStock=null,IEnumerable<int>? firearmStock=null,IEnumerable<int>? ammunitionStock=null)
     {Id=id;Active=active;ActivatedAt=activatedAt;Batch=batch;NextRestock=nextRestock;Stock=Array.AsReadOnly(stock.ToArray());
-        FoodStock=Array.AsReadOnly(foodStock?.ToArray()??FoodCatalog.All.Select(f=>active?f.Stock:0).ToArray());}
+        FoodStock=Array.AsReadOnly(foodStock?.ToArray()??FoodCatalog.All.Select(f=>active?f.Stock:0).ToArray());
+        FirearmStock=Array.AsReadOnly(firearmStock?.ToArray()??new int[FirearmCatalog.All.Count]);
+        AmmunitionStock=Array.AsReadOnly(ammunitionStock?.ToArray()??new int[AmmunitionCatalog.All.Count]);}
+    public IReadOnlyList<int> FirearmStock {get;}
+    public IReadOnlyList<int> AmmunitionStock {get;}
     public IReadOnlyList<int> FoodStock {get;}
     public int Id {get;}
     public bool Active {get;}

@@ -63,6 +63,12 @@ done
 # 平底锅、扇形近战、状态恢复及四客户端一致性。
 ./scripts/verify-hook-melee.sh
 
+# 沙漠之鹰、移动散布、友伤、换弹与四客户端保存恢复。
+./scripts/verify-hook-firearms.sh
+
+# 岸边螃蟹、多人近战结算与合并后的状态保存恢复。
+./scripts/verify-hook-crabs.sh
+
 # 倒地、免费救援、个人付费复活与四客户端一致性。
 ./scripts/verify-hook-revival.sh
 

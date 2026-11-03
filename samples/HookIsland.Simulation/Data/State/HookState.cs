@@ -11,6 +11,7 @@ public enum FishPhase : byte { Waiting, Swimming, Jumping, Hooked, Diving, Escap
 public struct Fisher
 {
     public MeleeState Melee;
+    public FirearmState Firearm;
     public ushort Slot;
     public CharacterVitals Vitals;
     public SwimmingState Swimming;

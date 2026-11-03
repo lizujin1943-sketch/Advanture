@@ -94,7 +94,7 @@ public sealed class IslandMap
     public byte[] Encode()
     {
         using var stream=new MemoryStream(); using var w=new BinaryWriter(stream);
-        w.Write(Fishing!=null?0x494D4948:Platform==null?0x314D4948:0x324D4948);
+        w.Write(Fishing!=null?0x4A4D4948:Platform==null?0x314D4948:0x324D4948);
         if(Fishing!=null)w.Write(Platform!=null);
         foreach(var list in new[]{Shore,Pier,Spawns,FishSpots})
         { w.Write(list.Count); foreach(var p in list){w.Write(p.X);w.Write(p.Z);} }
@@ -111,8 +111,8 @@ public sealed class IslandMap
         if(data.Length<64 || data.Length>8192)throw new InvalidDataException("Invalid island map size.");
         using var r=new BinaryReader(new MemoryStream(data.ToArray(),false));
         int version=r.ReadInt32();
-        if(version!=0x314D4948 && version!=0x324D4948 && version!=0x494D4948)throw new InvalidDataException("Map version mismatch.");
-        bool platformPresent=version==0x494D4948?r.ReadBoolean():version==0x324D4948;
+        if(version!=0x314D4948 && version!=0x324D4948 && version!=0x4A4D4948)throw new InvalidDataException("Map version mismatch.");
+        bool platformPresent=version==0x4A4D4948?r.ReadBoolean():version==0x324D4948;
         var lists=new Point[4][];
         for(int i=0;i<4;i++)
         {
@@ -128,7 +128,7 @@ public sealed class IslandMap
             var blocked=new Point[count];for(int i=0;i<count;i++)blocked[i]=new Point(r.ReadInt32(),r.ReadInt32());
             platform=new PlatformConfig(wood,bone,blocked);
         }
-        FishingConfig? fishing=version==0x494D4948?FishingConfig.Read(r):null;
+        FishingConfig? fishing=version==0x4A4D4948?FishingConfig.Read(r):null;
         if(r.BaseStream.Position!=data.Length)throw new InvalidDataException("Trailing map bytes.");
         return new IslandMap(lists[0],lists[1],lists[2],lists[3],platform,fishing);
     }

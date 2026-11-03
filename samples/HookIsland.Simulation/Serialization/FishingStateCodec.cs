@@ -53,16 +53,25 @@ internal static class FishingStateCodec
             throw new InvalidDataException("Invalid inventory participants/restock clock.");
         // 出生装备可以转交，ID 和类型必须保留；转交不改变原购买者的支出账本。
         int players=state.Players.Count;
-        int starterCount=(t.Config.Melee.StarterPan?3:2)*players;
+        int toolCount=(t.Config.Melee.StarterPan?3:2)*players;
+        long equipmentValue=inventory.Items.Where(i=>!InventoryCatalog.IsMaterial(i.Kind) && i.Kind!=ItemKind.Ammunition && i.Id>toolCount).Sum(i=>(long)i.Definition.Price*i.Count)
+            +inventory.ConsumedFoods.Select((count,type)=>(long)count*FoodCatalog.Get(type).Price).Sum()
+            +inventory.PurchasedAmmunition.Select((count,type)=>(long)count*AmmunitionCatalog.Get(type).Price).Sum();
+        // Older firearm saves have a fully paid inventory. New games additionally grant one
+        // fixed starter-ID pistol per seat; accept either complete loadout without adding items on restore.
+        long grantValue=equipmentValue-inventory.SpentCoins.Sum(i=>(long)i);
+        bool starterGuns=t.Config.Firearms.Enabled && grantValue==(long)players*FirearmCatalog.Get(0).Price;
+        if(grantValue!=0 && !starterGuns)throw new InvalidDataException("Equipment purchase ledger differs from surviving items.");
+        int starterCount=toolCount+(starterGuns?players:0);
         for(int id=1;id<=starterCount;id++)
         {
             var item=inventory.Items.SingleOrDefault(i=>i.Id==id);
-            if(item.Id==0 || (id<=players?(item.Kind!=ItemKind.Rod || item.Type!=0):id<=2*players?(item.Kind!=ItemKind.Backpack || item.Type!=1):(item.Kind!=ItemKind.Weapon || item.Type!=0)))
+            if(item.Id==0 || (id<=players?(item.Kind!=ItemKind.Rod || item.Type!=0):id<=2*players?(item.Kind!=ItemKind.Backpack || item.Type!=1):id<=toolCount?(item.Kind!=ItemKind.Weapon || item.Type!=0):(item.Kind!=ItemKind.Firearm || item.Type!=0)))
                 throw new InvalidDataException("Missing or altered starter equipment.");
         }
-        if(inventory.Items.Any(i=>i.Kind==ItemKind.Rod && i.Type==0 && i.Id>players) ||
-            inventory.Items.Where(i=>!InventoryCatalog.IsMaterial(i.Kind) && i.Id>starterCount).Sum(i=>(long)i.Definition.Price*i.Count)+inventory.ConsumedFoods.Select((count,type)=>(long)count*FoodCatalog.Get(type).Price).Sum()!=inventory.SpentCoins.Sum(i=>(long)i))
+        if(inventory.Items.Any(i=>i.Kind==ItemKind.Rod && i.Type==0 && i.Id>players))
             throw new InvalidDataException("Equipment purchase ledger differs from surviving items.");
+        if(!t.Config.Firearms.Enabled && (inventory.Items.Any(i=>i.Kind==ItemKind.Firearm || i.Kind==ItemKind.Ammunition) || inventory.PurchasedAmmunition.Any(c=>c!=0) || inventory.ConsumedAmmunition.Any(c=>c!=0) || inventory.ReplenishedAmmunition.Any(c=>c!=0)))throw new InvalidDataException("Firearm inventory is disabled.");
         foreach(var i in inventory.Items.Where(i=>i.Location==ItemLocation.Ground))
             if(!PlatformRules.CanStand(state.Tiles,i.WorldX,i.WorldZ))throw new InvalidDataException("Ground item is outside the platform.");
         foreach(var p in state.Players)

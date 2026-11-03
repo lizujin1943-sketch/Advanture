@@ -11,7 +11,7 @@ namespace Advanture.HookIsland
         private FishingCameraView cameraView;
         private readonly FishingCameraInput cameraInput=new FishingCameraInput();
         private short moveX,moveZ;
-        private bool pendingFire,pendingCancel,skipPointerFrame,entryPerspectivePending=true;
+        private bool pendingFire,pendingCancel,pendingReload,skipPointerFrame,entryPerspectivePending=true;
         private Vector3 aim;
         public Vector3 Aim=>aim;
         public bool ThirdPerson=>cameraView?.ThirdPerson==true;
@@ -49,9 +49,11 @@ namespace Advanture.HookIsland
         }
         public void Capture(IslandFishingController room)
         {
+            cameraView?.PrepareInput();
+            cameraView?.UpdateFirearmFraming(room.HoldingFirearm,Time.unscaledDeltaTime);
             CaptureCameraInput(room);
             if(!room.Playing || room.Incapacitated || !Application.isFocused || room.ShopOpen || room.Equipment?.InventoryOpen==true || room.BeingPulled || (room.Overlay!=null && room.Overlay.MenuOpen))
-            { moveX=moveZ=0;pendingFire=pendingCancel=false;return; }
+            { moveX=moveZ=0;pendingFire=pendingCancel=pendingReload=false;return; }
             Vector2 move=new Vector2((Input.GetKey(KeyCode.D)?1:0)-(Input.GetKey(KeyCode.A)?1:0),
                 (Input.GetKey(KeyCode.W)?1:0)-(Input.GetKey(KeyCode.S)?1:0));
             move=cameraView.Movement(move);moveX=(short)(move.x*1000);moveZ=(short)(move.y*1000);
@@ -62,20 +64,23 @@ namespace Advanture.HookIsland
             var pointer=ThirdPerson?(Vector3)viewCamera.pixelRect.center:Input.mousePosition;
             var ray=viewCamera.ScreenPointToRay(pointer);
             // room.Equipment IDs and their inventory must come from the same confirmed timeline.
-            if(room.TryGetLocalPlayer(out var shooter))aim=cameraView.Aim(ray,room.Presentation.PlayerPosition(room.LocalSlot),(MeleeRules.Equipped(room.State,shooter)?.Range??FishingRules.Range(room.Map,room.State,shooter))/1000f);
-            aim=FishingAimAssist.Resolve(room,viewCamera,pointer,aim);
+            if(room.TryGetLocalPlayer(out var shooter))aim=cameraView.Aim(ray,room.Presentation.PlayerPosition(room.LocalSlot),(ActiveToolView.Firearm(room.State,shooter)?.Range??MeleeRules.Equipped(room.State,shooter)?.Range??FishingRules.Range(room.Map,room.State,shooter))/1000f);
+            if(!room.HoldingFirearm)aim=FishingAimAssist.Resolve(room,viewCamera,pointer,aim);
             aim.x=Mathf.Clamp(aim.x,-90,90);aim.z=Mathf.Clamp(aim.z,-90,90);
             if(!skipPointerFrame && !overUi && room.Construction?.Open!=true && Input.GetMouseButtonDown(0))
-            {if(room.Equipment?.UseSelected()!=true && room.CanCast)pendingFire=true;}
+            {if(room.Equipment?.UseSelected()!=true && room.CanCast)
+                {pendingFire=true;if(room.HoldingFirearm)room.Presentation?.PresentEmptyFirearm(room.State,room.LocalSlot);}}
             if(!skipPointerFrame && !overUi && room.Construction?.Open!=true && Input.GetMouseButtonDown(1))pendingCancel=true;
+            if(room.HoldingFirearm && room.Construction?.Open!=true && Input.GetKeyDown(KeyCode.R) && room.Revival?.OwnsRescuePress!=true)pendingReload=true;
         }
         public HookInput Consume(ulong tick,Func<ulong,HookInput> provider,bool won)
         {
             if(won){ClearCommands();return default;}
-            var result=provider!=null?provider(tick):new HookInput(moveX,moveZ,Mathf.RoundToInt(aim.x*1000),Mathf.RoundToInt(aim.z*1000),pendingFire,pendingCancel);
-            pendingFire=pendingCancel=false;return result;
+            var result=provider!=null?provider(tick):new HookInput(moveX,moveZ,Mathf.RoundToInt(aim.x*1000),Mathf.RoundToInt(aim.z*1000),pendingFire,pendingCancel,reload:pendingReload);
+            pendingFire=pendingCancel=pendingReload=false;return result;
         }
-        public void ClearCommands(){moveX=moveZ=0;pendingFire=pendingCancel=false;}
+        public void ConfirmFirearmShot()=>cameraView?.ConfirmFirearmShot();
+        public void ClearCommands(){moveX=moveZ=0;pendingFire=pendingCancel=pendingReload=false;}
         public void Reset()
         {ClearCommands();aim=Vector3.zero;cameraView?.Reset();cameraInput.Reset();entryPerspectivePending=true;skipPointerFrame=true;}
         public void ReleaseFocus(){ClearCommands();cameraView?.SetLookInputActive(false);cameraInput.Reset();}

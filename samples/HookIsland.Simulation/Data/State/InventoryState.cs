@@ -22,6 +22,7 @@ public enum InventoryResult : byte
 public struct InventoryItem
 {
     public int Id; // 房间内唯一实例编号，转交与丢弃不更换装备 ID。
+    public int LoadedAmmo; // Magazine belongs to this firearm instance across every transfer.
     public int Type; // 该物品种类下的目录编号；不是唯一实例 ID。
     public int Count; // 材料堆叠数量；装备固定为 1。
     public int Owner; // 角色槽位；地面物品为 -1。
@@ -41,13 +42,19 @@ public struct InventoryItem
 /// </summary>
 public sealed class InventoryState
 {
-    public InventoryState(int players, IEnumerable<InventoryItem> items, int nextId, IEnumerable<int> spentCoins, IEnumerable<int>? consumedFoods=null, IEnumerable<QuickbarBinding>? quickbar=null)
+    public InventoryState(int players, IEnumerable<InventoryItem> items, int nextId, IEnumerable<int> spentCoins, IEnumerable<int>? consumedFoods=null, IEnumerable<QuickbarBinding>? quickbar=null, IEnumerable<int>? purchasedAmmunition=null, IEnumerable<int>? consumedAmmunition=null, IEnumerable<int>? replenishedAmmunition=null)
     {
         PlayerCount = players; Items = Array.AsReadOnly(items.ToArray()); NextId = nextId;
         SpentCoins = Array.AsReadOnly(spentCoins.ToArray());
         ConsumedFoods=Array.AsReadOnly(consumedFoods?.ToArray()??new int[FoodCatalog.All.Count]);
+        PurchasedAmmunition=Array.AsReadOnly(purchasedAmmunition?.ToArray()??new int[AmmunitionCatalog.All.Count]);
+        ConsumedAmmunition=Array.AsReadOnly(consumedAmmunition?.ToArray()??new int[AmmunitionCatalog.All.Count]);
+        ReplenishedAmmunition=Array.AsReadOnly(replenishedAmmunition?.ToArray()??new int[AmmunitionCatalog.All.Count]);
         Quickbar=Array.AsReadOnly(quickbar?.ToArray()??QuickbarRules.Defaults(players,Items));
     }
+    public IReadOnlyList<int> PurchasedAmmunition {get;} // Packs purchased globally; physical rounds may transfer between owners.
+    public IReadOnlyList<int> ConsumedAmmunition {get;} // Successful shots, indexed by ammunition type.
+    public IReadOnlyList<int> ReplenishedAmmunition {get;} // Unlimited supply committed only by completed reloads.
     public IReadOnlyList<int> ConsumedFoods {get;} // Global consumed quantities retain purchase-ledger conservation across trades.
     public IReadOnlyList<QuickbarBinding> Quickbar {get;}
     public int PlayerCount { get; }

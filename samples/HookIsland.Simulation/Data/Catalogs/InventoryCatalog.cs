@@ -7,7 +7,7 @@ using System.Linq;
 namespace Advanture.HookIsland.Simulation;
 
 /// <summary>已实现且能进入库存的物品类别；未实现的装备不生成占位商品。</summary>
-public enum ItemKind : byte { Wood = 1, Fishbone, Rod, Backpack, SwimRing, Apparel, Weapon, Food }
+public enum ItemKind : byte { Wood = 1, Fishbone, Rod, Backpack, SwimRing, Apparel, Weapon, Food, Firearm = 9, Ammunition = 10 }
 
 /// <summary>角色的八个独立装备槽。只有明确实现的物品类型能占用对应槽。</summary>
 public enum EquipmentSlot : byte { None, Hat, LeftHand, RightHand, Clothes, Shoes, Backpack, Accessory, SwimRing }
@@ -66,7 +66,7 @@ public static class InventoryCatalog
     public static BackpackDefinition Backpack(int level) => level >= 1 && level <= Backpacks.Count
         ? Backpacks[level - 1] : throw new ArgumentOutOfRangeException(nameof(level));
     public static bool IsMaterial(ItemKind kind) => kind == ItemKind.Wood || kind == ItemKind.Fishbone;
-    public static bool IsStackable(ItemKind kind) => IsMaterial(kind) || kind == ItemKind.Food;
+    public static bool IsStackable(ItemKind kind) => IsMaterial(kind) || kind == ItemKind.Food || kind == ItemKind.Ammunition;
     public static bool IsValid(ItemKind kind, int type) => kind switch {
         ItemKind.Wood or ItemKind.Fishbone => type == 0,
         ItemKind.Rod => type >= 0 && type < RodCatalog.All.Count,
@@ -74,6 +74,8 @@ public static class InventoryCatalog
         ItemKind.SwimRing => type >= 1 && type <= SwimRingCatalog.All.Count,
         ItemKind.Apparel => type >= 0 && type < ApparelCatalog.All.Count,
         ItemKind.Food => type >= 0 && type < FoodCatalog.All.Count,
+        ItemKind.Firearm => type >= 0 && type < FirearmCatalog.All.Count,
+        ItemKind.Ammunition => type >= 0 && type < AmmunitionCatalog.All.Count,
         ItemKind.Weapon => type >= 0 && type < WeaponCatalog.All.Count,
         _ => false
     };
@@ -86,6 +88,8 @@ public static class InventoryCatalog
         if (kind == ItemKind.SwimRing) return new InventoryDefinition(SwimRingCatalog.Get(type).Name, 2, 2, 1, EquipmentSlot.SwimRing, SwimRingCatalog.Get(type).Price);
         if (kind == ItemKind.Apparel) return ApparelCatalog.Get(type).Item;
         if (kind == ItemKind.Weapon) {var weapon=WeaponCatalog.Get(type);return new InventoryDefinition(weapon.Name,weapon.Width,weapon.Height,1,EquipmentSlot.RightHand,weapon.Price);}
+        if (kind == ItemKind.Firearm) {var gun=FirearmCatalog.Get(type);return new InventoryDefinition(gun.Name,gun.Width,gun.Height,1,EquipmentSlot.RightHand,gun.Price);}
+        if (kind == ItemKind.Ammunition) {var ammo=AmmunitionCatalog.Get(type);return new InventoryDefinition(ammo.Name,1,1,ammo.StackLimit,EquipmentSlot.None,ammo.Price);}
         var rod = RodCatalog.Get(type);
         return new InventoryDefinition(rod.Name, rod.Width, rod.Height, 1, EquipmentSlot.RightHand, rod.Price, new CharacterModifier(stamina: rod.StaminaBonus));
     }

@@ -78,7 +78,7 @@ public static class PlatformRules
         if(finaleConfig!=null && finale!=null && FinaleRules.BlocksBuild(finaleConfig,finale,x,z))return BuildResult.Occupied;
         if(!tiles.Any(t=>Math.Abs(t.X-x)+Math.Abs(t.Z-z)==1))return BuildResult.NotAdjacent;
         if(tiles.Count>=MaxTiles)return BuildResult.LimitReached;
-        if(player.PulledBy>=0 || player.Shopping || player.Melee.Active || player.Phase!=HookPhase.Ready)return BuildResult.Busy;
+        if(player.PulledBy>=0 || player.Shopping || player.Melee.Active || player.Firearm.Busy || player.Phase!=HookPhase.Ready)return BuildResult.Busy;
         int wx=x*TileSize,wz=z*TileSize;
         if(players.Any(p=>!p.WaitingToJoin && Overlaps(wx,wz,p.X,p.Z,Footprint)) ||
             driftwood.Any(d=>d.Phase!=DriftwoodPhase.Waiting && Overlaps(wx,wz,d.X,d.Z,DriftwoodMotion.Radius(d.Id))) ||

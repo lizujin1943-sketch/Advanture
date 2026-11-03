@@ -17,7 +17,7 @@ namespace Advanture.HookIsland
         public bool Pending {get;private set;}
         public bool HasManualSave=>File.Exists(SavePath(false));
         public bool HasAutoSave=>File.Exists(SavePath(true));
-        public string Message(double now)=>Pending?"等待全队收杆、结束钩救和救援后保存…":now<messageUntil?message:null;
+        public string Message(double now)=>Pending?"等待全队结束钓鱼、救援和武器动作后保存…":now<messageUntil?message:null;
         private string SavePath(bool auto)=>Path.Combine(DirectoryPath,auto?"auto.hisave":"manual.hisave");
         public byte[] LocalPlayerKey()
         {

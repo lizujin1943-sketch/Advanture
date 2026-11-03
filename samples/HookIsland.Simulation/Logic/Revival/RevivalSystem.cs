@@ -27,7 +27,7 @@ public static class RevivalSystem
     {
         if(map.Fishing==null || helper.Unavailable || target.WaitingToJoin || helper.Knockback.Active || target.Knockback.Active || helper.Slot==target.Slot || helper.Vitals.Downed || helper.Revival.Dead ||
             !target.Vitals.Downed || target.Revival.Dead || helper.Swimming.InWater || target.Swimming.InWater ||
-            helper.PulledBy>=0 || target.PulledBy>=0 || helper.Shopping || helper.Melee.Active || helper.Phase!=HookPhase.Ready)return false;
+            helper.PulledBy>=0 || target.PulledBy>=0 || helper.Shopping || helper.Melee.Active || helper.Firearm.DrawTicks>0 || helper.Firearm.RecoveryTicks>0 || helper.Phase!=HookPhase.Ready)return false;
         int range=map.Fishing.Revival.RescueRange;
         if(IslandMap.DistanceSquared(helper.X,helper.Z,target.X,target.Z)>(long)range*range)return false;
         int segments=Math.Max(1,(HookGame.Sqrt(IslandMap.DistanceSquared(helper.X,helper.Z,target.X,target.Z))+99)/100);
