@@ -10,7 +10,7 @@ namespace Advanture.HookIsland
     /// </summary>
     public sealed class HealingCanisterPainter : IDisposable
     {
-        // 设计坐标为 300 × 400，包含左下次数的留白。正式 HUD 按同一比例缩为 78 × 104。
+        // 设计坐标为 300 × 400，包含左下次数的留白。正式显示尺寸统一由 HudLayout 决定。
         // 坐标已经包含设计稿的前倾角度，不再额外旋转或把瓶盖简化成矩形。
         private const int Width=300,Height=400;
         private const float FillInset=4.5f;

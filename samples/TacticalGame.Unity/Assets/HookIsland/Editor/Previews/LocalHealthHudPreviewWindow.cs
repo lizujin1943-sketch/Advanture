@@ -33,6 +33,7 @@ namespace Advanture.HookIsland.Editor
             painter.Text(new Rect(24,16,760,30),"生命与医疗罐 · 3 / 2 / 1 / 0 次 · 填充表示剩余次数",18,HudPainter.White,TextAnchor.MiddleLeft,true);
             int[] values={100,64,22,0};
             float now=(float)EditorApplication.timeSinceStartup;
+            var layout=new HudLayout(1280,720);
             for (int index=0;index<values.Length;index++)
             {
                 // 正式角色通过 Health == 0 推导倒地；预览沿用该规则，不另设可写的倒地标志。
@@ -42,8 +43,12 @@ namespace Advanture.HookIsland.Editor
                 var frame=index==1?new HealthBarFeedback.Frame(.4f,fraction,fraction,.4f,fraction):
                     new HealthBarFeedback.Frame(index==2?.42f:fraction,fraction,fraction);
                 float x=24+index%2*400,y=62+index/2*152;
-                healing.Draw(new Rect(x,y,78,104),player,new HealingConfig());
-                hud.Draw(new Rect(x+84,y,260,104),player,100,frame,now);
+                // 复用正式布局的尺寸和相对位置，防止预览仍显示调整前的血瓶大小。
+                var canisterRect=layout.LocalHealing;var healthRect=layout.LocalHealth;
+                var offset=new Vector2(x-canisterRect.x,y-Mathf.Min(canisterRect.y,healthRect.y));
+                canisterRect.position+=offset;healthRect.position+=offset;
+                healing.Draw(canisterRect,player,new HealingConfig());
+                hud.Draw(healthRect,player,100,frame,now);
             }
         }
     }
