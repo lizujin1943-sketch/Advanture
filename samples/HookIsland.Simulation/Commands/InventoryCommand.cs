@@ -5,11 +5,11 @@ using System.IO;
 namespace Advanture.HookIsland.Simulation;
 
 /// <summary>用户的一次库存操作；不包含坐标快照、金币或物品内容，客户端不能自行生成物品。</summary>
-public enum InventoryAction : byte { None, Move, Split, Drop, Pickup, PickupAndEquip, Equip, Unequip, Buy, BuyAndEquip, Use, BindQuickSlot, SelectQuickSlot, ClearQuickSlot }
+public enum InventoryAction : byte { None, Move, Split, Drop, Pickup, PickupAndEquip, Equip, Unequip, Buy, BuyAndEquip, Use, BindQuickSlot, SelectQuickSlot, ClearQuickSlot, Heal }
 
 /// <summary>
 /// 固定 24 字节的确定性游戏输入。请求编号在本地排队时分配，直到收到确认回执前保持不变。
-/// 购买的 Target 是货架索引并带 Batch；卸装的 Target 是槽位；其他操作使用唯一物品 ID。
+/// 购买的 Target 是货架索引并带 Batch；卸装的 Target 是槽位；Heal 无目标，Target 为零。
 /// </summary>
 public readonly struct InventoryCommand
 {
@@ -45,7 +45,7 @@ public readonly struct InventoryCommand
     }
     public void Validate()
     {
-        if (Action > InventoryAction.ClearQuickSlot || (Action == InventoryAction.None) != (RequestId == 0)) Invalid();
+        if (Action > InventoryAction.Heal || (Action == InventoryAction.None) != (RequestId == 0)) Invalid();
         bool buying = Action == InventoryAction.Buy || Action == InventoryAction.BuyAndEquip;
         if (buying ? (MerchantId < 0 || MerchantId > 4) : MerchantId != 0) Invalid();
         bool grid = Action == InventoryAction.Move || Action == InventoryAction.Split;
@@ -53,11 +53,12 @@ public readonly struct InventoryCommand
         bool equipping = Action == InventoryAction.Equip || Action == InventoryAction.PickupAndEquip || Action == InventoryAction.BuyAndEquip;
         if (buying ? (Target < 0 || !IsOffer(Target) || Batch == 0) : Batch != 0) Invalid();
         if (Action == InventoryAction.None && (Target != 0 || Amount != 0 || X != 0 || Y != 0 || Rotated || DropOld || Batch != 0)) Invalid();
-        if (Action != InventoryAction.None && !buying && Target <= 0) Invalid();
+        if (Action == InventoryAction.Heal && Target != 0) Invalid();
+        if (Action != InventoryAction.None && Action != InventoryAction.Heal && !buying && Target <= 0) Invalid();
         if (Action == InventoryAction.Unequip && (Target < (int)EquipmentSlot.Hat || Target > (int)EquipmentSlot.SwimRing)) Invalid();
         if ((Action==InventoryAction.SelectQuickSlot || Action==InventoryAction.ClearQuickSlot) && Target>QuickbarRules.SlotCount) Invalid();
         if (Action==InventoryAction.BindQuickSlot && (Amount<1 || Amount>QuickbarRules.SlotCount)) Invalid();
-        if (grid ? (X < 0 || X > 7 || Y < 0 || Y > 8) : (X != 0 || Y != 0)) Invalid();
+        if (grid ? (X < 0 || X >= InventoryCatalog.MaxBackpackColumns || Y < 0 || Y >= InventoryCatalog.MaxBackpackRows) : (X != 0 || Y != 0)) Invalid();
         if (quantity ? (Amount < 1 || Amount > InventoryCatalog.MaterialStackLimit || (Action == InventoryAction.Split && Amount == InventoryCatalog.MaterialStackLimit)) : (Action!=InventoryAction.BindQuickSlot && Amount != 0)) Invalid();
         if (Rotated && Action != InventoryAction.Move || DropOld && !equipping) Invalid();
     }

@@ -45,7 +45,7 @@ internal static class MerchantStateCodec
         for(int id=0;id<states.Count;id++)
         {
             var s=states[id];
-            if(s.FoodStock.Count!=FoodCatalog.All.Count || s.FoodStock.Where((count,type)=>count<0 || count>(s.Active?FoodCatalog.Get(type).Stock:0)).Any())
+            if(s.FoodStock.Count!=FoodCatalog.All.Count || s.FoodStock.Any(count=>count!=0))
                 throw new InvalidDataException("Invalid food stock.");
             if(s.FirearmStock.Count!=FirearmCatalog.All.Count || s.AmmunitionStock.Count!=AmmunitionCatalog.All.Count ||
                 s.FirearmStock.Where((count,type)=>count<0 || count>(s.Active && config.Firearms.Enabled?FirearmCatalog.Get(type).Stock:0)).Any() ||

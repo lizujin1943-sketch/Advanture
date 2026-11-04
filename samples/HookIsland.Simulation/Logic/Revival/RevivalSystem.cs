@@ -108,6 +108,7 @@ public static class RevivalSystem
         p.Revival.Dead=false;ClearQuote(ref p.Revival);
         p.Revival.LastResult=RespawnResult.Success;
         p.Vitals.Health=Health(attributes.HealthMax,map.Fishing!.Revival.RespawnHealthPermille);
+        HealingSystem.Refill(ref p,map.Fishing.Healing);
         p.Stamina=(int)((long)attributes.StaminaMax*map.Fishing.Revival.RespawnStaminaPermille/1000);
         p.RegenDelay=map.Fishing.RegenDelayTicks;p.Swimming=default;p.Knockback=default;
         p.X=point.X;p.Z=point.Z;p.HookX=point.X;p.HookZ=point.Z;

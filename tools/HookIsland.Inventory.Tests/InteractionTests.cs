@@ -27,14 +27,16 @@ internal static partial class Program
             }
             Require(inventory.Capture().Items.Count(i => i.Location == ItemLocation.Equipped) == 3, "Bag recovery lost or duplicated an item.");
         });
-        yield return ("inventory_expensive_layout_preview_is_cached_until_contents_or_intent_change", () => {
+        yield return ("inventory_rejected_layout_preview_is_cached_until_contents_or_intent_change", () => {
             var inventory = new InventorySystem(1); int coins = 100000;
             inventory.Purchase(0, ItemKind.Backpack, 10, true, true, Ground, ref coins);
-            for (int i = 0; i < 14; i++) inventory.Purchase(0, ItemKind.Backpack, 1, false, false, Ground, ref coins);
+            var targetSize = InventoryCatalog.Backpack(8).Size;
+            int bags = targetSize.Width * targetSize.Height / 4 + 1;
+            for (int i = 0; i < bags; i++) Require(inventory.Purchase(0, ItemKind.Backpack, 1, false, false, Ground, ref coins) == InventoryResult.Success, "Cannot fill preview fixture.");
             var cache = new InventoryEquipmentPreview(); var before = InventoryStateCodec.Encode(inventory.Capture());
             var clock = System.Diagnostics.Stopwatch.StartNew();
             var first = cache.Evaluate(inventory.Capture(), 0, coins, Ground, ItemKind.Backpack, 8, 0, true, true);
-            Require(first.Result == InventoryResult.NoSpace || first.Result == InventoryResult.LayoutTooComplex, "Impossible 2x2 packing was accepted.");
+            Require(first.Result == InventoryResult.NoSpace || first.Result == InventoryResult.LayoutTooComplex, "A smaller bag accepted more items than its capacity.");
             for (int i = 0; i < 100; i++)
                 Require(ReferenceEquals(first, cache.Evaluate(inventory.Capture(), 0, coins, Ground, ItemKind.Backpack, 8, 0, true, true)), "Unchanged preview reran layout search.");
             Require(clock.Elapsed < TimeSpan.FromSeconds(3), "Cached layout preview exceeded bounded interactive budget.");

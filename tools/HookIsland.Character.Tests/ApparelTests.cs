@@ -29,7 +29,7 @@ internal static partial class Program
         yield return ("apparel_full_bag_rejects_removal_without_losing_attributes_or_items", () => {
             var inventory = new InventorySystem(1); int coins = 1000;
             Require(inventory.Purchase(0, ItemKind.Apparel, 1, true, false, new Point(0, 0), ref coins) == InventoryResult.Success, "Clothes fixture failed.");
-            inventory.CreditMaterial(0, ItemKind.Wood, 16 * InventoryCatalog.MaterialStackLimit, new Point(0, 0));
+            inventory.CreditMaterial(0, ItemKind.Wood, InventoryCatalog.Backpack(1).Size.Width * InventoryCatalog.Backpack(1).Size.Height * InventoryCatalog.MaterialStackLimit, new Point(0, 0));
             var before = InventoryStateCodec.Encode(inventory.Capture());
             Require(inventory.Unequip(0, EquipmentSlot.Clothes, new Point(0, 0)) == InventoryResult.NoSpace, "Full bag accepted clothes.");
             Require(before.SequenceEqual(InventoryStateCodec.Encode(inventory.Capture())), "Failed unequip changed inventory or wallet.");

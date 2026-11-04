@@ -21,11 +21,13 @@ internal static partial class Program
             Require(build.Compose(input, true).Inventory.Encode().SequenceEqual(action.Encode()), "Inventory retry did not resume after build acknowledgement.");
         });
         yield return ("inventory_command_encodes_exact_intent_and_rejects_noncanonical_payloads", () => {
-            var command = new InventoryCommand(InventoryAction.Move, 41, x: 3, y: 8, rotated: true, requestId: 7);
+            var command = new InventoryCommand(InventoryAction.Move, 41, x: 15, y: 17, rotated: true, requestId: 7);
             var decoded = InventoryCommand.Decode(command.Encode());
-            Require(decoded.Target == 41 && decoded.X == 3 && decoded.Y == 8 && decoded.Rotated && decoded.RequestId == 7, "Encoded move lost intent.");
+            Require(decoded.Target == 41 && decoded.X == 15 && decoded.Y == 17 && decoded.Rotated && decoded.RequestId == 7, "Encoded move lost intent.");
             bool Bad(byte[] b) { try { InventoryCommand.Decode(b); return false; } catch (System.IO.InvalidDataException) { return true; } }
             var bytes = command.Encode(); bytes[1] = 128; Require(Bad(bytes), "Unknown flags accepted.");
+            bytes = command.Encode(); bytes[14] = 16; Require(Bad(bytes), "Column beyond largest backpack accepted.");
+            bytes = command.Encode(); bytes[15] = 18; Require(Bad(bytes), "Row beyond largest backpack accepted.");
             bytes = command.Encode(); bytes[14] = 255; Require(Bad(bytes), "Out-of-range cell accepted.");
             bytes = new InventoryCommand(InventoryAction.Split, 41, amount: 7, requestId: 8).Encode(); bytes[10] = 255;
             Require(Bad(bytes), "Invalid split quantity accepted.");

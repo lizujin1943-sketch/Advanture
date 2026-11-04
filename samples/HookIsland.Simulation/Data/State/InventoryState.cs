@@ -11,7 +11,7 @@ public enum ItemLocation : byte { Backpack, Equipped, Ground }
 public enum InventoryResult : byte
 {
     None, Success, Disabled, NotOwned, InvalidItem, InvalidQuantity, InvalidPlacement,
-    NoSpace, TooFar, InsufficientCoins, InventoryNotEmpty, HookBusy, StaleStock, SoldOut, LimitReached, LayoutTooComplex, HealthFull, CoolingDown
+    NoSpace, TooFar, InsufficientCoins, InventoryNotEmpty, HookBusy, StaleStock, SoldOut, LimitReached, LayoutTooComplex, HealthFull, CoolingDown, NoHealingCharges
 }
 
 /// <summary>

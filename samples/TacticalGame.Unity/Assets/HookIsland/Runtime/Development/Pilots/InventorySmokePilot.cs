@@ -11,7 +11,7 @@ namespace Advanture.HookIsland
         private static readonly Point[] Stands={new Point(-1400,-2600),new Point(2600,-1400),new Point(1400,2600),new Point(-2600,1400)};
         private int groundTarget;
         private static uint Base(int slot)=>(uint)(slot==0?1:0);
-        public bool Complete(HookState s)=>s.Tackle!=null && s.Tackle.Inventory.Size(0).Height==5 &&
+        public bool Complete(HookState s)=>s.Tackle!=null && s.Tackle.Inventory.Equipped(0,EquipmentSlot.Backpack)?.Type==2 &&
             s.Players.All(p=>p.LastInventoryRequest>=Base(p.Slot)+4 && s.Tiles.Any(t=>t.Builder==p.Slot && t.Kind==TileKind.Fishbone));
         public HookInput Sample(IslandMap map,HookState s,int slot,ulong requestedTick)
         {
@@ -28,19 +28,20 @@ namespace Advanture.HookIsland
             }
             if(p.Phase!=HookPhase.Ready || p.Cooldown>0)return default;
             var walking=Move(p,new Point(-600+slot*400,0),lead);if(walking.MoveX!=0 || walking.MoveZ!=0)return walking;
-            if(inventory.Size(0).Height!=5)
+            if(inventory.Equipped(0,EquipmentSlot.Backpack)?.Type!=2)
             {
                 if(slot!=0)return default;
                 int offer=Enumerable.Range(0,s.Tackle.Stock.Count).First(i=>s.Tackle.Stock[i].Kind==ItemKind.Backpack && s.Tackle.Stock[i].Type==2 && !s.Tackle.Stock[i].Sold);
                 return Command(new InventoryCommand(InventoryAction.BuyAndEquip,offer,batch:s.Tackle.Batch,requestId:1));
             }
             uint basis=Base(slot),phase=p.LastInventoryRequest-basis;
+            var size=inventory.Size(slot);int lastColumn=size.Width-1,lastRow=size.Height-1;
             var original=inventory.Items.Where(i=>i.Owner==slot && i.Kind==ItemKind.Fishbone && i.Location==ItemLocation.Backpack).OrderBy(i=>i.Id).FirstOrDefault();
-            if(phase==0)return Command(new InventoryCommand(InventoryAction.Move,original.Id,x:3,y:3,requestId:basis+1));
-            if(phase==1)return Command(new InventoryCommand(InventoryAction.Split,original.Id,amount:2,x:3,y:2,requestId:basis+2));
+            if(phase==0)return Command(new InventoryCommand(InventoryAction.Move,original.Id,x:lastColumn,y:lastRow,requestId:basis+1));
+            if(phase==1)return Command(new InventoryCommand(InventoryAction.Split,original.Id,amount:2,x:lastColumn,y:lastRow-1,requestId:basis+2));
             if(phase==2)
             {
-                var split=inventory.Items.FirstOrDefault(i=>i.Owner==slot && i.Kind==ItemKind.Fishbone && i.X==3 && i.Y==2);
+                var split=inventory.Items.FirstOrDefault(i=>i.Owner==slot && i.Kind==ItemKind.Fishbone && i.X==lastColumn && i.Y==lastRow-1);
                 return Command(new InventoryCommand(InventoryAction.Drop,split.Id,amount:2,requestId:basis+3));
             }
             if(s.Players.Any(v=>v.LastInventoryRequest<Base(v.Slot)+3))return default;

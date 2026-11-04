@@ -49,7 +49,7 @@ public struct Fisher
     public uint LastRodRequest;
     public RodResult LastRodResult;
     // 成功和失败都形成最终回执；存档恢复后，旧点击不得再次生效。
-    public int FoodCooldownTicks, SelectedQuickSlot;
+    public int HealingCharges, SelectedQuickSlot;
     public uint LastInventoryRequest;
     public InventoryResult LastInventoryResult;
 }

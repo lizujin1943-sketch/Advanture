@@ -35,6 +35,9 @@ namespace Advanture.HookIsland.Tests
             Assert.That(buy.Target,Is.EqualTo(FirearmCatalog.OfferOffset));
             selected.Select(AmmunitionCatalog.OfferOffset);buy=selected.Command(true);
             Assert.That(buy.Action,Is.EqualTo(InventoryAction.None));Assert.That(selected.Offer,Is.EqualTo(-1));
+            selected.Select(FoodCatalog.OfferOffset);
+            Assert.That(selected.Command(false).Action,Is.EqualTo(InventoryAction.None),"Retired healing food must not create a purchase request.");
+            Assert.That(selected.Offer,Is.EqualTo(-1));
             selected.Bind(Shelf(2,0));Assert.That(selected.Command(false).Action,Is.EqualTo(InventoryAction.None));
             selected.Bind(Shelf(2,6,10));Assert.That(selected.Offer,Is.EqualTo(-1));
         }
@@ -86,6 +89,7 @@ namespace Advanture.HookIsland.Tests
             Assert.That(Allowed(new InventoryCommand(InventoryAction.SelectQuickSlot,3)),Is.False);
             Assert.That(Allowed(new InventoryCommand(InventoryAction.Buy,FirearmCatalog.OfferOffset)),Is.False);
             Assert.That(Allowed(new InventoryCommand(InventoryAction.Move,1,x:0,y:0)),Is.False);
+            Assert.That(Allowed(new InventoryCommand(InventoryAction.Heal,0)),Is.False);
             player.Firearm.ReloadTicks=0;player.Firearm.DrawTicks=2;
             Assert.That(Allowed(new InventoryCommand(InventoryAction.Equip,2)),Is.False);
         }

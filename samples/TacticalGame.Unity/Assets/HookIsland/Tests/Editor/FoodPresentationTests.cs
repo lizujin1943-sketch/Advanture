@@ -29,16 +29,18 @@ namespace Advanture.HookIsland.Tests
                     typeof(FishingEquipmentController).GetField("room",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(equipment,room);
                     equipment.SelectQuickSlot(2);
                     Assert.That(equipment.Pending,Is.False,"A map without inventory can never acknowledge this request.");
+                    Assert.That(equipment.Heal(),Is.False,"A legacy map cannot acknowledge healing charges either.");
+                    Assert.That(equipment.Pending,Is.False);
                     Assert.That(equipment.Compose(new HookInput(0,0,10000,0,true)).Fire,Is.True);
                 }
                 finally{Object.DestroyImmediate(go);}
             }
         }
-        [Test] public void EatingFeedbackDeduplicatesActualHealingAndRestoreIsSilent()
+        [Test] public void HealingChargeFeedbackDeduplicatesActualHealingAndRestoreIsSilent()
         {
             var feedback=new FishingFeedback();var session=new object();var id=Guid.NewGuid();int meals=0;
             var state=AcquisitionFeedbackTests.State(12,new Fisher{Slot=0});
-            var events=new[]{new ConfirmedGameplayEvent(id,1,12,0,new HookGameplayEvent(HookGameplayEventKind.FoodConsumed,0,amount:7,itemKind:ItemKind.Food,itemType:2))};
+            var events=new[]{new ConfirmedGameplayEvent(id,1,12,0,new HookGameplayEvent(HookGameplayEventKind.Healed,0,amount:7,value:2))};
             feedback.Update(session,1,12,state,0,events,1,true,_=>meals++);
             feedback.Update(session,1,12,state,0,events,1.1,true,_=>meals++);
             Assert.That(meals,Is.EqualTo(1));Assert.That(feedback.Healing.Notices.Single().Amount,Is.EqualTo(7));

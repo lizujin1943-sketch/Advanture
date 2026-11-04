@@ -30,6 +30,7 @@ namespace Advanture.HookIsland
                 !GetComponent<FishingOverlay>().MenuOpen)
             {
                 if(Input.GetKeyDown(KeyCode.F))PickupNearest(p);
+                if(room.InputProvider==null && Input.GetKeyDown(KeyCode.V))Heal();
                 for(int slot=0;slot<QuickbarRules.SlotCount;slot++)
                     if(Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+slot)))SelectQuickSlot(slot);
             }
@@ -39,6 +40,7 @@ namespace Advanture.HookIsland
             if(room.State?.Tackle==null || slot<0 || slot>=QuickbarRules.SlotCount || !room.TryGetLocalPlayer(out _))return;
             RequestInventory(new InventoryCommand(InventoryAction.SelectQuickSlot,slot+1));
         }
+        public bool Heal()=>RequestInventory(new InventoryCommand(InventoryAction.Heal,0));
         // Return true when this click belongs to a food / empty slot, including failed use.
         public bool UseSelected()
         {
@@ -46,9 +48,7 @@ namespace Advanture.HookIsland
             var inventory=room.State.Tackle.Inventory;var binding=inventory.Quickbar[p.Slot*QuickbarRules.SlotCount+p.SelectedQuickSlot];
             if(binding.Empty)return true;
             if(binding.Kind!=ItemKind.Food)return InventoryCatalog.Get(binding.Kind,binding.Type).Slot!=EquipmentSlot.RightHand;
-            var item=QuickbarRules.Resolve(inventory,p.Slot,p.SelectedQuickSlot);
-            if(item.HasValue)RequestInventory(new InventoryCommand(InventoryAction.Use,item.Value.Id));
-            else Notify("没有携带这份食物");
+            Notify("按 V 使用回血机会");
             return true;
         }
         public void ToggleInventory()
@@ -104,7 +104,8 @@ namespace Advanture.HookIsland
             switch(result)
             {
                 case InventoryResult.HealthFull:return "生命已满";
-                case InventoryResult.CoolingDown:return "食物冷却中";
+                case InventoryResult.CoolingDown:return "回血冷却中";
+                case InventoryResult.NoHealingCharges:return "回血次数已用完";
                 case InventoryResult.Success:return "操作已确认 · 背包已同步";
                 case InventoryResult.Disabled:return "当前角色无法操作装备";
                 case InventoryResult.NotOwned:return "只能操作自己背包中的物品";

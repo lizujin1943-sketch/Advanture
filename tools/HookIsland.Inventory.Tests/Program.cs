@@ -8,12 +8,13 @@ namespace Advanture.HookIsland.InventoryTests;
 internal static partial class Program
 {
     private static readonly Point Ground = new Point(0, 0);
+    private static int StarterCells => InventoryCatalog.Backpack(1).Size.Width * InventoryCatalog.Backpack(1).Size.Height;
     private static void Require(bool value, string message) { if (!value) throw new Exception(message); }
     private static InventoryItem Stored(InventorySystem inventory, ItemKind kind, int owner = 0) =>
         inventory.Capture().Items.First(i => i.Owner == owner && i.Kind == kind && i.Location == ItemLocation.Backpack);
     private static int Main(string[] args)
     {
-        var cases = DomainCases().Concat(CommandCases()).Concat(GameCases()).Concat(InteractionCases()).Concat(MaterialStackCases()).Concat(FoodCases()).Concat(FoodGameCases()).Concat(FirearmInventoryCases()).Concat(FirearmMerchantCases());
+        var cases = DomainCases().Concat(BackpackCapacityCases()).Concat(CommandCases()).Concat(GameCases()).Concat(InteractionCases()).Concat(MaterialStackCases()).Concat(FoodCases()).Concat(HealingCases()).Concat(FirearmInventoryCases()).Concat(FirearmMerchantCases());
         if (!args.Contains("--simulation-only")) cases = cases.Concat(NetworkCases());
         string? filter = args.FirstOrDefault(a => a.StartsWith("--filter=", StringComparison.Ordinal));
         if (filter != null) cases = cases.Where(c => c.Item1.Contains(filter.Substring(9), StringComparison.Ordinal));
@@ -59,7 +60,7 @@ internal static partial class Program
         });
         yield return ("inventory_stacks_fill_existing_before_occupying_another_cell", () => {
             var inventory = new InventorySystem(2);
-            Require(inventory.Capture().Size(0).Width == 4 && inventory.Capture().Size(0).Height == 4, "Starter backpack must be equipped and free.");
+            Require(inventory.Capture().Size(0).Width == 8 && inventory.Capture().Size(0).Height == 8, "Starter backpack must be equipped and free.");
             int limit = InventoryCatalog.MaterialStackLimit;
             inventory.CreditMaterial(0, ItemKind.Wood, limit - 2, Ground);
             inventory.CreditMaterial(0, ItemKind.Wood, limit + 5, Ground);
@@ -72,8 +73,8 @@ internal static partial class Program
         });
         yield return ("inventory_overflow_partial_pickup_and_distance_preserve_materials", () => {
             var inventory = new InventorySystem(2);
-            int capacity = 16 * InventoryCatalog.MaterialStackLimit;
-            Require(inventory.CreditMaterial(0, ItemKind.Fishbone, capacity + 7, Ground) == capacity, "4x4 bag did not hold 16 full material stacks.");
+            int capacity = StarterCells * InventoryCatalog.MaterialStackLimit;
+            Require(inventory.CreditMaterial(0, ItemKind.Fishbone, capacity + 7, Ground) == capacity, "Starter bag did not hold a full stack in every cell.");
             var drop = inventory.Capture().Items.Single(i => i.Location == ItemLocation.Ground);
             Require(drop.Count == 7, "Overflow was lost.");
             inventory.CreditMaterial(1, ItemKind.Fishbone, capacity - 3, Ground);
@@ -100,34 +101,34 @@ internal static partial class Program
             Require(before.SequenceEqual(InventoryStateCodec.Encode(inventory.Capture())), "Failed operation mutated inventory.");
         });
         yield return ("inventory_full_bag_can_buy_equip_larger_bag_and_keep_old_bag", () => {
-            int capacity = 16 * InventoryCatalog.MaterialStackLimit;
+            int capacity = StarterCells * InventoryCatalog.MaterialStackLimit;
             var inventory = new InventorySystem(1); inventory.CreditMaterial(0, ItemKind.Wood, capacity, Ground);
             int wallet = 200;
             Require(inventory.Purchase(0, ItemKind.Backpack, 2, true, false, Ground, ref wallet) == InventoryResult.Success, "Full bag cannot directly equip purchased larger bag.");
             var s = inventory.Capture();
-            Require(wallet == 0 && s.Size(0).Height == 5 && inventory.Balance(0, ItemKind.Wood) == capacity, "Purchase lost contents or charged wrong price.");
+            Require(wallet == 0 && s.Size(0).Height == 10 && inventory.Balance(0, ItemKind.Wood) == capacity, "Purchase lost contents or charged wrong price.");
             Require(s.Items.Count(i => i.Kind == ItemKind.Backpack) == 2 && Stored(inventory, ItemKind.Backpack).Type == 1, "Old bag must be preserved as empty 2x2 item.");
             Require(s.SpentCoins[0] == 200, "Personal purchase ledger missing.");
             var before = InventoryStateCodec.Encode(s); int old = Stored(inventory, ItemKind.Backpack).Id;
             Require(inventory.Equip(0, old, false, Ground) == InventoryResult.NoSpace, "Shrinking full bag silently discarded old equipped bag or contents.");
             Require(before.SequenceEqual(InventoryStateCodec.Encode(inventory.Capture())), "Failed shrink partially applied.");
-            Require(inventory.Equip(0, old, true, Ground) == InventoryResult.Success && inventory.Capture().Size(0).Height == 4, "Explicitly dropping outgoing bag should permit full contents transfer.");
+            Require(inventory.Equip(0, old, true, Ground) == InventoryResult.Success && inventory.Capture().Size(0).Height == 8, "Explicitly dropping outgoing bag should permit full contents transfer.");
             Require(inventory.Capture().Items.Single(i => i.Location == ItemLocation.Ground).Type == 2, "Wrong backpack was put on ground.");
         });
         yield return ("inventory_rods_share_material_space_rotate_and_survive_bag_swaps", () => {
-            int occupied = 13 * InventoryCatalog.MaterialStackLimit;
+            int occupied = (StarterCells - 3) * InventoryCatalog.MaterialStackLimit;
             var inventory = new InventorySystem(1); inventory.CreditMaterial(0, ItemKind.Wood, occupied, Ground);
             int wallet = 1000;
             var before = InventoryStateCodec.Encode(inventory.Capture()); int money = wallet;
-            // Rod type 1 is 1x4: thirteen 1x1 stacks leave only three cells.
+            // Rod type 1 is 1x4: material stacks leave only three cells.
             Require(inventory.Purchase(0, ItemKind.Rod, 1, false, false, Ground, ref wallet) == InventoryResult.NoSpace, "Rod bypassed material occupancy.");
             Require(wallet == money && before.SequenceEqual(InventoryStateCodec.Encode(inventory.Capture())), "Failed purchase consumed money or item IDs.");
             Require(inventory.TrySpendMaterial(0, ItemKind.Wood, occupied), "Material spend failed.");
             Require(inventory.Purchase(0, ItemKind.Rod, 1, false, false, Ground, ref wallet) == InventoryResult.Success, "Rod purchase failed in empty bag.");
             var rod = Stored(inventory, ItemKind.Rod);
-            Require(inventory.Move(0, rod.Id, 0, 3, true) == InventoryResult.Success, "1x4 rod cannot rotate to 4x1.");
+            Require(inventory.Move(0, rod.Id, 4, 7, true) == InventoryResult.Success, "1x4 rod cannot rotate to 4x1.");
             Require(inventory.Capture().Items.Single(i => i.Id == rod.Id).Rotated, "Rotation was not stored.");
-            Require(inventory.Move(0, rod.Id, 1, 3, true) == InventoryResult.InvalidPlacement, "Rotated rod went past right border.");
+            Require(inventory.Move(0, rod.Id, 5, 7, true) == InventoryResult.InvalidPlacement, "Rotated rod went past right border.");
             Require(inventory.Equip(0, rod.Id, false, Ground) == InventoryResult.Success, "Equipping should reuse incoming rod's freed cells for old rod.");
             Require(inventory.Capture().Equipped(0, EquipmentSlot.RightHand)!.Value.Id == rod.Id, "Equipped rod identity lost.");
         });
@@ -138,23 +139,26 @@ internal static partial class Program
             Require(inventory.Unequip(0, EquipmentSlot.Backpack, Ground) == InventoryResult.Success && inventory.Capture().Size(0).Width == 0, "Unbagged player still has grid capacity.");
             var bag = inventory.Capture().Items.Single(i => i.Location == ItemLocation.Ground);
             Require(inventory.Pickup(0, bag.Id, Ground, out _) == InventoryResult.NoSpace, "Empty backpack added capacity while on ground.");
-            Require(inventory.PickupAndEquip(0, bag.Id, Ground, false) == InventoryResult.Success && inventory.Capture().Size(0).Width == 4, "Cannot recover backpack without an existing bag.");
+            Require(inventory.PickupAndEquip(0, bag.Id, Ground, false) == InventoryResult.Success && inventory.Capture().Size(0).Width == 8, "Cannot recover backpack without an existing bag.");
             Require(inventory.Capture().Equipped(0, EquipmentSlot.RightHand).HasValue, "Removing bag removed unrelated equipped rod.");
         });
-        yield return ("inventory_shrink_checks_rectangle_shapes_not_only_area", () => {
+        yield return ("inventory_purchase_checks_rectangle_shapes_not_only_area", () => {
             var inventory = new InventorySystem(1); int wallet = 2000;
-            Require(inventory.Purchase(0, ItemKind.Backpack, 2, true, false, Ground, ref wallet) == InventoryResult.Success, "Cannot upgrade fixture bag.");
-            Require(inventory.Purchase(0, ItemKind.Rod, 3, false, false, Ground, ref wallet) == InventoryResult.Success, "First 2x3 rod not placed.");
-            Require(inventory.Purchase(0, ItemKind.Rod, 3, false, false, Ground, ref wallet) == InventoryResult.Success, "Second 2x3 rod not placed.");
-            var before = InventoryStateCodec.Encode(inventory.Capture()); var oldBag = Stored(inventory, ItemKind.Backpack);
-            // 两件 2x3 加一件 2x2 虽然面积等于 16，仍无法排进 4x4。
-            Require(inventory.Equip(0, oldBag.Id, false, Ground) == InventoryResult.NoSpace, "Area-only check accepted an impossible rectangle layout.");
-            Require(before.SequenceEqual(InventoryStateCodec.Encode(inventory.Capture())), "Failed shape packing moved existing items.");
+            inventory.CreditMaterial(0, ItemKind.Wood, (StarterCells - 4) * InventoryCatalog.MaterialStackLimit, Ground);
+            // Leave a 2x2 hole: its area is enough for a 1x4 rod, but neither rotation fits.
+            for (int x = 6; x < 8; x++)
+            {
+                var stack = inventory.Capture().Items.Single(i => i.Location == ItemLocation.Backpack && i.X == x && i.Y == 6);
+                Require(inventory.Move(0, stack.Id, x - 2, 7, false) == InventoryResult.Success, "Cannot arrange shape fixture.");
+            }
+            var before = InventoryStateCodec.Encode(inventory.Capture());
+            Require(inventory.Purchase(0, ItemKind.Rod, 1, false, false, Ground, ref wallet) == InventoryResult.NoSpace, "Area-only check accepted an impossible rectangle layout.");
+            Require(wallet == 2000 && before.SequenceEqual(InventoryStateCodec.Encode(inventory.Capture())), "Failed shape packing charged money or moved existing items.");
         });
         yield return ("inventory_each_player_pays_their_own_wallet", () => {
             var inventory = new InventorySystem(2); int a = 1000, b = 0;
             Require(inventory.Purchase(1, ItemKind.Backpack, 2, true, false, Ground, ref b) == InventoryResult.InsufficientCoins, "Poor player could buy from teammate's funds.");
-            Require(a == 1000 && b == 0 && inventory.Capture().Size(1).Height == 4, "Rejected personal purchase changed another player.");
+            Require(a == 1000 && b == 0 && inventory.Capture().Size(1).Height == 8, "Rejected personal purchase changed another player.");
             Require(inventory.Purchase(0, ItemKind.Backpack, 2, true, false, Ground, ref a) == InventoryResult.Success && a == 800 && b == 0, "Personal purchase charged the wrong balance.");
             Require(inventory.Capture().SpentCoins.SequenceEqual(new[] { 200, 0 }), "Spending ledger was shared.");
         });
@@ -171,7 +175,7 @@ internal static partial class Program
         yield return ("inventory_snapshot_detaches_and_roundtrips_ground_and_layout", () => {
             var inventory = new InventorySystem(2); inventory.CreditMaterial(0, ItemKind.Wood, 19, Ground);
             var checkpoint = inventory.Capture(); var bytes = InventoryStateCodec.Encode(checkpoint);
-            inventory.CreditMaterial(0, ItemKind.Wood, InventoryCatalog.MaterialStackLimit * 17, Ground);
+            inventory.CreditMaterial(0, ItemKind.Wood, InventoryCatalog.MaterialStackLimit * (StarterCells + 1), Ground);
             Require(bytes.SequenceEqual(InventoryStateCodec.Encode(checkpoint)), "Capture aliases mutable live arrays.");
             var restored = new InventorySystem(InventoryStateCodec.Decode(InventoryStateCodec.Encode(inventory.Capture())));
             var a = inventory.Capture().Items.Single(i => i.Location == ItemLocation.Ground);

@@ -27,7 +27,7 @@ public sealed class BackpackDefinition
     {
         Id = cells[0]; Name = cells[1]; Level = Parse(cells[2]);
         Size = new InventorySize(Parse(cells[3]), Parse(cells[4])); Price = Parse(cells[5]); Tier = Parse(cells[6]);
-        if (Size.Width < 1 || Size.Width > 8 || Size.Height < 1 || Size.Height > 9 || Price <= 0 || Tier < 1 || Tier > 5)
+        if (Size.Width < 1 || Size.Width > InventoryCatalog.MaxBackpackColumns || Size.Height < 1 || Size.Height > InventoryCatalog.MaxBackpackRows || Price <= 0 || Tier < 1 || Tier > 5)
             throw new InvalidDataException("Invalid backpack catalog.");
     }
     private static int Parse(string value) => int.Parse(value, CultureInfo.InvariantCulture);
@@ -58,6 +58,7 @@ public readonly struct InventoryDefinition
 public static class InventoryCatalog
 {
     public const int MaterialStackLimit = 99, PickupDistance = 2000;
+    public const int MaxBackpackColumns = 16, MaxBackpackRows = 18;
     // 预留足够的材料包空间：512 地块最多两种材料包，再加四人网格和装备。
     public const int MaxEquipmentItems = 1024, MaxItems = 4096;
     public static IReadOnlyList<BackpackDefinition> Backpacks { get; } =

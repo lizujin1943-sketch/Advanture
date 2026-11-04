@@ -11,6 +11,7 @@ namespace Advanture.HookIsland
     {
         private readonly AudioSource audio;
         private readonly AudioClip caught,cast,hooked,comboStart,comboCap,sip,bite;
+        private readonly AudioClip healed;
         private readonly List<AudioClip> clips=new List<AudioClip>();
         public int PresentedCatches {get;private set;}
         public int PresentedCasts {get;private set;}
@@ -19,6 +20,7 @@ namespace Advanture.HookIsland
         {
             audio=root.gameObject.AddComponent<AudioSource>();audio.spatialBlend=0;audio.volume=.25f;
             sip=MealSound(true);bite=MealSound(false);
+            healed=Tone("Healing charge",540,860,.23f);
             caught=Tone("Catch chime",880,1320,.2f);cast=Tone("Hook cast",220,500,.09f);
             hooked=Tone("Teammate hooked",430,150,.19f);
             comboStart=Tone("Combo started",1046,1568,.16f);comboCap=Tone("Combo maximum",1318,2093,.25f);
@@ -27,6 +29,8 @@ namespace Advanture.HookIsland
         {
             switch(value.Kind)
             {
+                case HookGameplayEventKind.Healed:
+                    audio.PlayOneShot(healed,value.Slot==local?.65f:.3f);break;
                 case HookGameplayEventKind.FoodConsumed:
                     audio.PlayOneShot(value.ItemType==0?sip:bite,value.Slot==local?.65f:.3f);break;
                 case HookGameplayEventKind.HookCast:

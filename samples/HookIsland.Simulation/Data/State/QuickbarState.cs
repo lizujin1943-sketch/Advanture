@@ -40,7 +40,6 @@ public static class QuickbarRules
                 var item=items.FirstOrDefault(i=>i.Owner==owner && i.Kind==kind && i.Location!=ItemLocation.Ground);
                 if(item.Id!=0)result[owner*SlotCount+(kind==ItemKind.Rod?0:1)]=new QuickbarBinding(kind,item.Type,item.Id);
             }
-            for(int type=0;type<FoodCatalog.All.Count && type<SlotCount-2;type++)result[owner*SlotCount+2+type]=new QuickbarBinding(ItemKind.Food,type);
             var gun=items.FirstOrDefault(i=>i.Owner==owner && i.Kind==ItemKind.Firearm && i.Location!=ItemLocation.Ground);
             int gunSlot=2+FoodCatalog.All.Count;
             if(gun.Id!=0 && gunSlot<SlotCount)result[owner*SlotCount+gunSlot]=new QuickbarBinding(gun.Kind,gun.Type,gun.Id);

@@ -80,7 +80,7 @@ internal static partial class Program
         yield return ("firearm_inventory_ammunition_full_fit_is_atomic",()=>{
             var inventory=new InventorySystem(1);int coins=1000;
             Require(inventory.Purchase(0,(ItemKind)10,0,false,false,Ground,ref coins)==InventoryResult.Success,"Ammo purchase rejected.");
-            inventory.CreditMaterial(0,ItemKind.Wood,15*99,Ground);
+            inventory.CreditMaterial(0,ItemKind.Wood,(StarterCells-1)*InventoryCatalog.MaterialStackLimit,Ground);
             for(int n=0;n<6;n++)Require(inventory.Purchase(0,(ItemKind)10,0,false,false,Ground,ref coins)==InventoryResult.Success,"Existing ammo stack could not grow.");
             var before=InventoryStateCodec.Encode(inventory.Capture());
             Require(inventory.Purchase(0,(ItemKind)10,0,false,false,Ground,ref coins)==InventoryResult.NoSpace && coins==790,"Partial pack purchase committed.");

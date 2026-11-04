@@ -16,8 +16,8 @@ namespace Advanture.HookIsland
         private int offer {get=>selection.Offer;set=>selection.Select(value);}
         private bool rotated, dropOld, firearmShelf;
         private int groundPage;
+        private Vector2 backpackScroll;
         private readonly InventoryEquipmentPreview equipmentPreview = new InventoryEquipmentPreview();
-        private readonly bool[,] shopOccupied = new bool[8, 8];
         private readonly Color accent = new Color(.38f, .88f, .75f), gold = new Color(1, .8f, .38f);
         internal BackpackOverlay(Font font)
         {
@@ -53,18 +53,28 @@ namespace Advanture.HookIsland
 
             var size = inventory.Size(player.Slot); var bag = inventory.Equipped(player.Slot, EquipmentSlot.Backpack);
             GUI.Label(new Rect(x + 330, y + 104, 300, 30), bag.HasValue ? $"Lv.{bag.Value.Type}  {size.Width} × {size.Height} · {size.Width * size.Height} 格" : "未装备背包 · 0 格", text);
-            int cell = size.Width == 0 ? 40 : Math.Min(50, Math.Min(288 / size.Width, 310 / size.Height));
-            var area = new Rect(x + 330, y + 142, size.Width * cell, size.Height * cell);
-            DrawGrid(inventory, player.Slot, area, cell, pending, request);
+            const int cell = 34;
+            var viewport = new Rect(x + 330, y + 142, 294, 310);
+            var area = new Rect(0, 0, size.Width * cell, size.Height * cell);
+            // Reserve both scrollbars when needed so scrolling never changes the cell size or hit target.
+            bool scrolling = area.width > viewport.width || area.height > viewport.height;
+            float gutter = scrolling ? 16 : 0;
+            var visibleGrid = new Rect(viewport.x, viewport.y, viewport.width - gutter, viewport.height - gutter);
+            bool pointerInside = visibleGrid.Contains(Event.current.mousePosition);
+            backpackScroll.x = Mathf.Clamp(backpackScroll.x, 0, Mathf.Max(0, area.width - visibleGrid.width));
+            backpackScroll.y = Mathf.Clamp(backpackScroll.y, 0, Mathf.Max(0, area.height - visibleGrid.height));
+            backpackScroll = GUI.BeginScrollView(viewport, backpackScroll, area, scrolling, scrolling);
+            DrawGrid(inventory, player.Slot, area, cell, pending, pointerInside, request);
+            GUI.EndScrollView();
             if (size.Width == 0) GUI.Label(new Rect(x + 330, y + 150, 285, 90), "先从地面拾取并穿戴背包，或在商店购买并装备。身上的钓竿仍然保留。", text);
-            GUI.Label(new Rect(x + 330, y + 463, 294, 48), placing == 0 ? "选择物品查看操作\n移动：选择目标格，R 旋转" : placing == 1 ? "点击目标格完成移动 · R 旋转" : $"点击空格拆出 {amount} 个材料", small);
+            GUI.Label(new Rect(x + 330, y + 463, 294, 48), placing == 0 ? (scrolling ? "滚轮 / 滚动条查看全部格子\n选择物品查看操作 · R 旋转" : "选择物品查看操作\n移动：选择目标格，R 旋转") : placing == 1 ? "点击目标格完成移动 · R 旋转" : $"点击空格拆出 {amount} 个材料", small);
             if (placing != 0 && GUI.Button(new Rect(x + 330, y + 495, 294, 24), "取消摆放", button)) placing = 0;
             DrawDetails(state, player, x + 658, y + 104, shop, pending, request);
             GUI.Label(new Rect(x + 24, y + 521, 1050, 28), message ?? "物品只在确认后转移 · Tab / I 关闭背包 · 金币各自所有", small);
         }
         private void DrawShop(int coins, float x, float y)
         {
-            if(GUI.Toggle(new Rect(x,y,138,28),!firearmShelf,"装备 / 食物",button))firearmShelf=false;
+            if(GUI.Toggle(new Rect(x,y,138,28),!firearmShelf,"装备",button))firearmShelf=false;
             if(GUI.Toggle(new Rect(x+142,y,138,28),firearmShelf,"枪械",button))firearmShelf=true;
             y += 37;
             if(firearmShelf)
@@ -76,47 +86,21 @@ namespace Advanture.HookIsland
                 }
                 GUI.Label(new Rect(x,y+190,280,75),"AK47：按住左键连射\n狙击枪：按住右键开镜\n无限备用弹药 · R 换弹",small);return;
             }
-            Array.Clear(shopOccupied, 0, shopOccupied.Length);
             for (int row = 0; row < 8; row++) for (int col = 0; col < 8; col++) Fill(new Rect(x + col * 34 + 1, y + row * 34 + 1, 32, 32), new Color(.08f, .17f, .2f));
             if(shelf==null)return;
             for (int n = 0; n < shelf.Stock.Count; n++)
             {
                 var stock = shelf.Stock[n]; var def = InventoryCatalog.Get(stock.Kind, stock.Type);
-                // Keep sold positions occupied so buying never moves the remaining offers.
-                for (int row = stock.Y; row < stock.Y + def.Height; row++)
-                    for (int col = stock.X; col < stock.X + def.Width; col++) shopOccupied[col, row] = true;
                 var rect = new Rect(x + stock.X * 34 + 2, y + stock.Y * 34 + 2, def.Width * 34 - 4, def.Height * 34 - 4);
                 if (DrawItem(rect, stock.Kind, stock.Type, def.Name, stock.Sold ? 0 : 1, itemId == 0 && offer == n, stock.Sold, price: def.Price, coins: coins))
                 { offer = n; itemId = 0; placing = 0; dropOld = false; }
             }
-            for (int type = 0; type < shelf.FoodStock.Count; type++)
-            {
-                // A readable display card uses 2 x 2 shelf cells; backpack footprint remains 1 x 1.
-                // Fit into the same shelf without changing authoritative stock positions or offer IDs.
-                var cell = FindShopSpace();
-                var rect = new Rect(x + cell.x * 34 + 2, y + cell.y * 34 + 2, 64, 64);
-                var food = FoodCatalog.Get(type); int index = FoodCatalog.OfferOffset + type;
-                if (DrawItem(rect, ItemKind.Food, type, food.Name, shelf.FoodStock[type], itemId == 0 && offer == index,
-                    shelf.FoodStock[type] == 0, price: food.Price, coins: coins))
-                { offer = index; itemId = 0; placing = 0; dropOld = false; }
-            }
         }
+
         private void DrawCommodity(ItemKind kind,int type,int index,int stock,int price,int coins,float x,float y)
         {
             if(DrawItem(new Rect(x,y,132,70),kind,type,InventoryCatalog.Get(kind,type).Name,stock,itemId==0 && offer==index,stock==0,price:price,coins:coins))
             {offer=index;itemId=placing=0;dropOld=false;}
-        }
-        private Vector2Int FindShopSpace()
-        {
-            // Equipment occupies at most the original 8 x 6 area. The two extra rows guarantee
-            // space for all three food offers even when no earlier 2 x 2 gap is available.
-            for (int row = 0; row < 7; row++) for (int col = 0; col < 7; col++)
-            {
-                if (shopOccupied[col, row] || shopOccupied[col + 1, row] || shopOccupied[col, row + 1] || shopOccupied[col + 1, row + 1]) continue;
-                shopOccupied[col, row] = shopOccupied[col + 1, row] = shopOccupied[col, row + 1] = shopOccupied[col + 1, row + 1] = true;
-                return new Vector2Int(col, row);
-            }
-            throw new InvalidOperationException("The merchant display shelf has no free offer space.");
         }
         private void DrawSlots(InventoryState state, Fisher player, float x, float y)
         {
@@ -157,13 +141,13 @@ namespace Advanture.HookIsland
             }
         }
 
-        private void DrawGrid(InventoryState state, int owner, Rect area, int cell, bool pending, Func<InventoryCommand, bool> request)
+        private void DrawGrid(InventoryState state, int owner, Rect area, int cell, bool pending, bool pointerInside, Func<InventoryCommand, bool> request)
         {
             var size = state.Size(owner);
             for (int y = 0; y < size.Height; y++) for (int x = 0; x < size.Width; x++) Fill(new Rect(area.x + x * cell + 1, area.y + y * cell + 1, cell - 2, cell - 2), new Color(.075f, .16f, .2f));
             var selected = state.Items.FirstOrDefault(i => i.Id == itemId && i.Owner == owner);
             if (placing != 0 && selected.Id == 0) placing = 0;
-            if (placing != 0 && area.Contains(Event.current.mousePosition))
+            if (placing != 0 && pointerInside && area.Contains(Event.current.mousePosition))
             {
                 int x = (int)((Event.current.mousePosition.x - area.x) / cell), y = (int)((Event.current.mousePosition.y - area.y) / cell);
                 var preview = new InventorySystem(state);
@@ -198,7 +182,6 @@ namespace Advanture.HookIsland
             GUI.Label(new Rect(x + 64, y, 346, 55), definition.Name, title);
             GUI.Label(new Rect(x, y + 53, 410, 28), $"占格 {definition.Width} × {definition.Height}" + (buying ? $"    售价 {definition.Price:N0} G" : $"    数量 {item.Count}"), text);
             if(kind==ItemKind.Ammunition){DrawAmmunitionDetails(player,item,type,x,y,pending,request);return;}
-            if(kind==ItemKind.Food){DrawFoodDetails(state,player,item,type,buying,x,y,pending,request);return;}
             if (kind == ItemKind.Rod)
             {
                 var rod = RodCatalog.Get(type); var current = FishingRules.Equipped(state, player);
@@ -283,10 +266,10 @@ namespace Advanture.HookIsland
         }
         private static void DrawPreview(InventoryState state, int owner, float x, float y)
         {
-            var size = state.Size(owner); const int cell = 5;
+            var size = state.Size(owner); float cell = Math.Min(5f, 46f / Math.Max(1, size.Height));
             Fill(new Rect(x, y, size.Width * cell, size.Height * cell), new Color(.08f, .2f, .23f));
             foreach (var item in state.Items.Where(i => i.Owner == owner && i.Location == ItemLocation.Backpack))
-                Fill(new Rect(x + item.X * cell + 1, y + item.Y * cell + 1, item.Width * cell - 2, item.Height * cell - 2), ColorFor(item.Kind));
+                Fill(new Rect(x + item.X * cell + .5f, y + item.Y * cell + .5f, item.Width * cell - 1, item.Height * cell - 1), ColorFor(item.Kind));
         }
         private static Color ColorFor(ItemKind kind) => kind == ItemKind.Apparel ? new Color(.35f,.37f,.55f) : kind == ItemKind.SwimRing ? new Color(.68f,.38f,.15f) : kind == ItemKind.Wood ? new Color(.48f, .3f, .16f) : kind == ItemKind.Fishbone ? new Color(.65f, .68f, .56f) : kind == ItemKind.Backpack ? new Color(.24f, .42f, .39f) : new Color(.27f, .34f, .48f);
         private bool DrawItem(Rect rect, ItemKind kind, int type, string name, int count, bool selected, bool sold, bool rotated = false, int? price = null, int coins = 0)

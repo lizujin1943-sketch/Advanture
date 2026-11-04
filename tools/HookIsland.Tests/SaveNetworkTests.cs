@@ -15,7 +15,7 @@ internal static partial class Program
     {
         internal readonly IslandHost Host;internal readonly IslandMap Map;internal readonly List<IslandClient> Clients=new List<IslandClient>();
         private readonly Stopwatch clock=Stopwatch.StartNew();
-        internal SaveParty(IslandSave? save=null){Map=save?.Map??RecoveryMap();Host=save==null?new IslandHost(Map,0,4):new IslandHost(save,0);}
+        internal SaveParty(IslandSave? save=null,IslandMap? map=null){Map=save?.Map??map??RecoveryMap();Host=save==null?new IslandHost(Map,0,4):new IslandHost(save,0);}
         internal IslandClient Add(int identity,bool owner=false)
         {var c=new IslandClient(Map,IPAddress.Loopback,Host.Port,owner?(ushort)0:ushort.MaxValue,playerKey:SaveKey(identity));Clients.Add(c);return c;}
         internal void Poll(Func<IslandClient,ulong,HookInput>? input=null)

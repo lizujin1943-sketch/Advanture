@@ -16,15 +16,15 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     public static SimulationModule<HookState> CreateModule(bool initialFriendlyPranks=true)
     {
         var game=new HookGame(initialFriendlyPranks);
-        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"37",inputFormatVersion:"14",
-            stateFormatVersion:"33",contentHash:CatalogData.Hash()+"/"+BossPoseData.Hash,determinismHash:"integer-mm-abyssal-3d-v37"),game,game,game);
+        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"39",inputFormatVersion:"15",
+            stateFormatVersion:"34",contentHash:CatalogData.Hash()+"/"+BossPoseData.Hash,determinismHash:"integer-mm-healing-charges-v39"),game,game,game);
     }
     public IDeterministicSimulation<HookState> Create()=>new Model(initialFriendlyPranks);
     public void ValidateCanonical(ReadOnlySpan<byte> bytes)=>HookInput.Decode(bytes);
     public byte[] Encode(HookState s)
     {
         using var stream=new MemoryStream();using var w=new BinaryWriter(stream);
-        w.Write(0x4D534948);w.Write(s.Steps);w.Write(s.Coins);w.Write(s.Players.Count);
+        w.Write(0x4E534948);w.Write(s.Steps);w.Write(s.Coins);w.Write(s.Players.Count);
         foreach(var p in s.Players)
         {
             w.Write(p.Slot);w.Write(p.X);w.Write(p.Z);w.Write(p.AimX);w.Write(p.AimZ);w.Write(p.RemainderX);w.Write(p.RemainderZ);
@@ -60,7 +60,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     {
         if(bytes.Length<24 || bytes.Length>MaximumStateBytes)throw new InvalidDataException("Invalid state length.");
         using var r=new BinaryReader(new MemoryStream(bytes.ToArray(),false));
-        if(r.ReadInt32()!=0x4D534948)throw new InvalidDataException("State version mismatch.");
+        if(r.ReadInt32()!=0x4E534948)throw new InvalidDataException("State version mismatch.");
         ulong tick=r.ReadUInt64();int coins=r.ReadInt32(),count=r.ReadInt32();
         if(count<1 || count>4 || coins<0)throw new InvalidDataException("Invalid players/wallet.");
         var players=new Fisher[count];
@@ -253,7 +253,6 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             {
                 var p=players[i];var c=commands[i];
                 if(p.WaitingToJoin)continue;
-                if(p.FoodCooldownTicks>0)p.FoodCooldownTicks--;
                 bool wasDowned=p.Vitals.Downed;
                 if(equipment!=null)RevivalSystem.Respawn(map,tiles,players,ref p,c.Revival,equipment.Attributes(p),ref coins);
                 if(wasDowned && !p.Vitals.Downed)

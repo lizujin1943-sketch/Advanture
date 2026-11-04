@@ -22,6 +22,7 @@ internal sealed class EquipmentSystem
         {
             Recalculate(i);Refresh(ref players[i]);
             players[i].Vitals=CharacterSystem.Spawn(attributes[i]);players[i].Stamina=attributes[i].StaminaMax;
+            HealingSystem.Refill(ref players[i],config.Healing);
         }
     }
     internal EquipmentSystem(TackleState state)
@@ -114,13 +115,7 @@ internal sealed class EquipmentSystem
             }
             if(command.Target>=FoodCatalog.OfferOffset && command.Target<FoodCatalog.OfferOffset+FoodCatalog.All.Count)
             {
-                int type=command.Target-FoodCatalog.OfferOffset;
-                if(command.Action!=InventoryAction.Buy)return InventoryResult.InvalidItem;
-                if(type<0 || type>=merchant.FoodStock.Count || merchant.FoodStock[type]==0)return InventoryResult.SoldOut;
-                int before=player.Coins;
-                var purchased=Inventory.Purchase(owner,ItemKind.Food,type,false,false,point,ref player.Coins);
-                if(purchased==InventoryResult.Success){coins-=before-player.Coins;merchants.SellFood(command.MerchantId,type);}
-                return purchased;
+                return InventoryResult.Disabled;
             }
             var stock=merchant.Stock;
             if(command.Target<0 || command.Target>=stock.Count || stock[command.Target].Sold)return InventoryResult.SoldOut;
@@ -132,8 +127,10 @@ internal sealed class EquipmentSystem
             {coins-=previousCoins-player.Coins;merchants.Sell(command.MerchantId,command.Target);if(equip && InventoryCatalog.Get(offer.Kind,offer.Type).Slot==EquipmentSlot.RightHand)player.SelectedQuickSlot=-1;}
             return result;
         }
-        if(command.Action==InventoryAction.Use)
-            return FoodUseSystem.Use(Inventory,ref player,command.Target,Attributes(player),config.FoodCooldownTicks,grounded,rescuing);
+        if(command.Action==InventoryAction.Heal)
+            return HealingSystem.Use(ref player,Attributes(player),config.Healing,grounded,rescuing,Inventory.Events);
+        // Food is retired from gameplay; stale use intents cannot provide extra healing.
+        if(command.Action==InventoryAction.Use)return InventoryResult.Disabled;
         if(command.Action==InventoryAction.BindQuickSlot)return Inventory.BindQuickSlot(owner,command.Target,command.Amount-1);
         if(command.Action==InventoryAction.ClearQuickSlot)return Inventory.ClearQuickSlot(owner,command.Target-1);
         if(command.Action==InventoryAction.SelectQuickSlot)

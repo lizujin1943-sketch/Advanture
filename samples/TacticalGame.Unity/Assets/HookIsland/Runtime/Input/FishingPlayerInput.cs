@@ -53,7 +53,7 @@ namespace Advanture.HookIsland
         private void CaptureCameraInput(IslandFishingController room)
         {
             bool active=CameraControlsActive(room);
-            if(active && Input.GetKeyDown(KeyCode.V))TogglePerspective(room);
+            if(active && Input.GetKeyDown(KeyCode.C))TogglePerspective(room);
             if(cameraView==null){cameraInput.Reset();return;}
             if(cameraView.SetLookInputActive(active))skipPointerFrame=true;
             bool canLook=cameraView.LookInputActive && cameraView.PointerCaptured;

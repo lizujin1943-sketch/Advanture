@@ -37,5 +37,6 @@ MonoBehaviour:
   additionalAnglerSpeedBonus: 0.5
   merchantLevel: 1
   restockSeconds: 600
-  foodCooldownSeconds: 8
+  healingCharges: 3
+  healingPercent: 40
   worldSeed: 7381

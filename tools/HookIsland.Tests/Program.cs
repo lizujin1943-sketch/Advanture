@@ -71,7 +71,7 @@ internal static partial class Program
         tests=tests.Concat(MerchantInputCases()).Concat(PresenceCases()).Concat(RecoveryProtocolCases()).Concat(ReelingMovementCases()).Concat(ComboCases()).Concat(GameplayEventCases()).Concat(PlatformDragCases());
         if(!args.Contains("--simulation-only"))tests=tests.Concat(ReelingMovementNetworkCases()).Concat(ComboNetworkCases()).Concat(GameplayEventNetworkCases());
         tests=tests.Concat(SaveCases());
-        if(!args.Contains("--simulation-only"))tests=tests.Concat(MerchantNetworkCases()).Concat(RecoveryNetworkCases()).Concat(RecoveryLifecycleCases()).Concat(SaveNetworkCases()).Concat(FoodSaveNetworkCases());
+        if(!args.Contains("--simulation-only"))tests=tests.Concat(MerchantNetworkCases()).Concat(RecoveryNetworkCases()).Concat(RecoveryLifecycleCases()).Concat(SaveNetworkCases()).Concat(HealingSaveNetworkCases());
         var filter=args.FirstOrDefault(a=>a.StartsWith("--filter="));
         if(filter!=null)tests=tests.Where(t=>t.Item1.Contains(filter.Substring(9),StringComparison.Ordinal));
         foreach(var (name,test) in tests){total++;try{test();Console.WriteLine("PASS "+name);}catch(Exception e){failed++;Console.WriteLine("FAIL "+name+": "+e.Message);}}
