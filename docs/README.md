@@ -33,3 +33,5 @@ Unity 双人试玩：[七号转运站](../samples/TacticalGame.Unity/README.md)�
 - [Protobuf 房间与帧同步协议](protobuf-protocol.md)：协议分层、字段含义、源码阅读顺序、兼容规则和迁移验证。
 
 - [螃蟹主动登岸与夹击](crab-implementation.md)：确定性导航、平底锅战斗、攻击者奖励、Blender 模型与验证边界。
+
+- [首个投掷物：手榴弹设计](superpowers/specs/2026-11-04-grenade-design.md)：第 4 类入口、当前镜头拉远与鼠标选点、落地延时、自伤友伤及存档联机边界；目前为设计稿，尚未实现。
