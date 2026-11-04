@@ -26,7 +26,7 @@ namespace Advanture.HookIsland.Tests
             Assert.That(layout.Contains(layout.LocalHealing.center,4,false),Is.True,"医疗罐和次数区域不能穿透成出钩或开火。");
             Assert.That(layout.LocalHealing.xMin,Is.EqualTo(32));
             Assert.That(layout.LocalHealing.xMax,Is.LessThan(layout.LocalHealth.xMin),"医疗罐应位于血条左侧，互不覆盖。");
-            Assert.That(layout.Height-layout.LocalHealing.yMax,Is.EqualTo(32));
+            Assert.That(layout.LocalHealing.center.y,Is.EqualTo(layout.LocalHealth.center.y),"医疗罐与整组血条的中心应处于同一水平线。");
             Assert.That(layout.Height-layout.LocalHealth.yMax,Is.EqualTo(32),"血条始终锚定左下角。");
         }
         [Test] public void CollapsedTaskDrawerOnlyBlocksItsVisibleHandleAndCanBeReversed()

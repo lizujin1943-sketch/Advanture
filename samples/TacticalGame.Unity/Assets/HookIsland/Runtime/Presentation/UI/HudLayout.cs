@@ -14,8 +14,8 @@ namespace Advanture.HookIsland
         public Rect Combo => new Rect(Width/2+240,Height-220,210,118);
         /// <summary>弹药整组锚定右下角，右、下安全边距均为 24；顶部为临时换弹反馈留出空间。</summary>
         public Rect FirearmAmmo => new Rect(Width-174,Height-110,150,86);
-        /// <summary>医疗罐与次数等比缩为 60×80；与生命条共用 32 像素底部安全边距。</summary>
-        public Rect LocalHealing => new Rect(32,Height-112,60,80);
+        /// <summary>医疗罐与次数保持 60×80；相对底部对齐上移 12 像素，与整组生命信息的中心处于同一水平线。</summary>
+        public Rect LocalHealing => new Rect(32,Height-124,60,80);
         /// <summary>生命条位于医疗罐右侧，预留 6 像素间距；坐标与其他 HUD 一起缩放。</summary>
         public Rect LocalHealth => new Rect(LocalHealing.xMax+6,Height-136,260,104);
         // 扩建菜单放在整组生命信息上方；医疗罐缩小时不能下移到血量数字上。
