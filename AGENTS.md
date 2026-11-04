@@ -24,6 +24,8 @@
 
 改动前先读要调用的函数实现；分清确认态与预测态；验证成本要和改动半径匹配，跳过的验证要说明。细节和实际踩过的坑见 `docs/agent-workflow.md`。
 
+Git 提交说明使用中文；按用户要求自动提交时也遵循此约定。
+
 ## Unity MCP
 
 - 本仓库 Unity 工程是 `samples/TacticalGame.Unity`，不是仓库根目录。

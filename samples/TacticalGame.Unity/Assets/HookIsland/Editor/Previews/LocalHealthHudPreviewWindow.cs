@@ -10,18 +10,19 @@ namespace Advanture.HookIsland.Editor
         private Font font;
         private HudPainter painter;
         private LocalHealthHud hud;
+        private HealingChargesHud healing;
 
         [MenuItem("Tools/Hook Island/Preview Local Health HUD")]
         public static void Open()
         {
             var window=GetWindow<LocalHealthHudPreviewWindow>();
             window.titleContent=new GUIContent("本地生命 HUD");
-            window.minSize=new Vector2(740,340);window.Show();
+            window.minSize=new Vector2(820,380);window.Show();
         }
         private void OnEnable()
         {
             font=Font.CreateDynamicFontFromOSFont(new[]{"PingFang SC","Microsoft YaHei","Arial"},24);
-            painter=new HudPainter(font);hud=new LocalHealthHud(painter);
+            painter=new HudPainter(font);hud=new LocalHealthHud(painter);healing=new HealingChargesHud(painter);
             EditorApplication.update+=Repaint;
         }
         private void OnDisable()
@@ -29,17 +30,20 @@ namespace Advanture.HookIsland.Editor
         private void OnGUI()
         {
             HudPainter.Fill(new Rect(0,0,position.width,position.height),new Color(.045f,.12f,.15f));
-            painter.Text(new Rect(24,16,680,30),"本地生命 HUD · 满血 / 受伤 / 低生命 / 倒地",18,HudPainter.White,TextAnchor.MiddleLeft,true);
+            painter.Text(new Rect(24,16,760,30),"生命与医疗罐 · 3 / 2 / 1 / 0 次 · 填充表示剩余次数",18,HudPainter.White,TextAnchor.MiddleLeft,true);
             int[] values={100,64,22,0};
             float now=(float)EditorApplication.timeSinceStartup;
             for (int index=0;index<values.Length;index++)
             {
                 // 正式角色通过 Health == 0 推导倒地；预览沿用该规则，不另设可写的倒地标志。
-                var player=new Fisher{Slot=(ushort)index,Vitals=new CharacterVitals{Health=values[index]}};
+                var player=new Fisher{Slot=(ushort)index,Vitals=new CharacterVitals{Health=values[index]},HealingCharges=3-index};
                 float fraction=values[index]/100f;
-                // 第二张保留一小段受伤拖尾，便于静态检查白色生命与红色损失的区别。
-                var frame=new HealthBarFeedback.Frame(index==1?.83f:fraction,fraction,fraction);
-                hud.Draw(new Rect(26+index%2*360,70+index/2*126,320,96),player,100,frame,now);
+                // 第二张展示 40% → 64% 的绿色治疗段，第三张展示受伤红色拖尾。
+                var frame=index==1?new HealthBarFeedback.Frame(.4f,fraction,fraction,.4f,fraction):
+                    new HealthBarFeedback.Frame(index==2?.42f:fraction,fraction,fraction);
+                float x=24+index%2*400,y=62+index/2*152;
+                healing.Draw(new Rect(x,y,78,104),player,new HealingConfig());
+                hud.Draw(new Rect(x+84,y,260,104),player,100,frame,now);
             }
         }
     }

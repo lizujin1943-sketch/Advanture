@@ -15,9 +15,11 @@ namespace Advanture.HookIsland
             Coral=new Color(1,.43f,.39f), Health=DisplayColor(new Color(196/255f,18/255f,28/255f)), Track=new Color(.14f,.24f,.27f);
         // IMGUI tints are converted to sRGB by the Linear project. Author semantic colors in display space.
         public static Color DisplayColor(Color srgb) => QualitySettings.activeColorSpace==ColorSpace.Linear?srgb.linear:srgb;
+        public static readonly Color Healing=DisplayColor(new Color(.28f,.9f,.49f));
         private readonly Font font;
         private readonly Texture2D atlas, coin;
         private Texture2D scopeMask, slantMask;
+        private HealingCanisterPainter healingCanister;
         private readonly Dictionary<int,GUIStyle> styles=new Dictionary<int,GUIStyle>();
         private string tooltip;
         private Rect tooltipAnchor;
@@ -98,7 +100,34 @@ namespace Advanture.HookIsland
         public float TextWidth(string text,int size,bool bold=true,bool italic=true)=>Style(size,TextAnchor.MiddleLeft,bold,italic).CalcSize(new GUIContent(text)).x;
 
         /// <summary>
-        /// 可重复使用的斜切遮罩。from/to 裁切原图的 UV，受伤残影与部分生命仍沿同一个斜切轮廓显示。
+        /// 数字以固定 13 度前倾绘制。部分系统中文字体忽略 BoldAndItalic，故这里对正体字形显式错切，
+        /// 保留水平基线；不会把整个读数旋转，也不会随 macOS / Windows 字体的斜体支持情况变直。
+        /// </summary>
+        public void SlantedNumber(Rect rect,string text,int size,Color color,bool outlined=false)
+        {
+            var previous=GUI.matrix;
+            var shear=Matrix4x4.identity;shear.m01=-.23f;shear.m03=.23f*rect.yMax;
+            GUI.matrix=previous*shear;
+            var style=Style(size,TextAnchor.LowerLeft,true);style.wordWrap=false;
+            // 倾斜后的末笔允许越出文字测量框，避免把最后一位数字的右上角裁掉。
+            style.clipping=TextClipping.Overflow;
+            try
+            {
+                if(outlined)
+                {
+                    style.normal.textColor=DisplayColor(new Color(.025f,.04f,.045f,.94f));
+                    for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++)
+                        if(x!=0 || y!=0)GUI.Label(new Rect(rect.x+x*1.6f,rect.y+y*1.6f,rect.width,rect.height),text,style);
+                }
+                style.normal.textColor=DisplayColor(new Color(.025f,.05f,.065f,.6f*color.a));
+                GUI.Label(new Rect(rect.x+1,rect.y+1.5f,rect.width,rect.height),text,style);
+                style.normal.textColor=color;GUI.Label(rect,text,style);
+            }
+            finally{style.clipping=TextClipping.Clip;GUI.matrix=previous;}
+        }
+
+        /// <summary>
+        /// 可重复使用的斜切遮罩。from/to 在每格的水平容量上取区间，填充末端与格子边缘始终平行。
         /// 只在首次绘制创建贴图；不像逐帧生成网格或贴图，不随人数和帧数累积资源。
         /// </summary>
         public void Slanted(Rect rect,Color tint,float from=0,float to=1)
@@ -117,9 +146,22 @@ namespace Advanture.HookIsland
                 slantMask=new Texture2D(width,height,TextureFormat.RGBA32,false){name="HUD slanted segment",wrapMode=TextureWrapMode.Clamp,filterMode=FilterMode.Bilinear};
                 slantMask.SetPixels32(pixels);slantMask.Apply(false,true);
             }
-            var previous=GUI.color;GUI.color=tint;
-            GUI.DrawTextureWithTexCoords(new Rect(rect.x+rect.width*from,rect.y,rect.width*(to-from),rect.height),slantMask,new Rect(from,0,to-from,1));
-            GUI.color=previous;
+            var previous=GUI.color;var previousMatrix=GUI.matrix;GUI.color=tint;
+            float span=to-from;
+            // 直接裁切 UV 会产生竖直的进度末端。这里保留完整斜切形状，再补回压窄时损失的倾斜量。
+            // 每行的有效容量是格宽的 72%；白色、绿色和红色区间因此能精确相接，不跨过空隙。
+            float lean=.28f*rect.width*(1-span)/rect.height;
+            var shear=Matrix4x4.identity;shear.m01=-lean;shear.m03=lean*rect.yMax;
+            GUI.matrix=previousMatrix*shear;
+            GUI.DrawTexture(new Rect(rect.x+.72f*rect.width*from,rect.y,rect.width*span,rect.height),slantMask);
+            GUI.matrix=previousMatrix;GUI.color=previous;
+        }
+        /// <summary>医疗罐绘制资源归 HUD 所有；首次重绘创建，两张遮罩供后续帧复用。</summary>
+        public void HealingCanister(Rect rect,float remaining)
+        {
+            if(rect.width<=0 || rect.height<=0 || Event.current.type!=EventType.Repaint)return;
+            if(healingCanister==null)healingCanister=new HealingCanisterPainter();
+            healingCanister.Draw(rect,remaining);
         }
         public static float Fraction(int value,int maximum) => maximum<=0?0:Mathf.Clamp01((float)value/maximum);
         public void Bar(Rect rect,float progress,Color color,bool ticks=false)
@@ -142,6 +184,8 @@ namespace Advanture.HookIsland
             Bar(rect,frame.Fill,Health);
             if(frame.WhiteTo>frame.WhiteFrom)
                 Surface(new Rect(rect.x+rect.width*frame.WhiteFrom,rect.y,rect.width*(frame.WhiteTo-frame.WhiteFrom),rect.height),Color.white);
+            if(frame.HealingTo>frame.HealingFrom)
+                Fill(new Rect(rect.x+rect.width*frame.HealingFrom,rect.y,rect.width*(frame.HealingTo-frame.HealingFrom),rect.height),Healing);
         }
         public void Hint(Rect rect,string text)
         {
@@ -175,6 +219,7 @@ namespace Advanture.HookIsland
         public void Dispose()
         {
             styles.Clear();Release(scopeMask);Release(slantMask);scopeMask=slantMask=null;
+            healingCanister?.Dispose();healingCanister=null;
         }
         private static void Release(Texture2D texture)
         {if(texture==null)return;if(Application.isPlaying)UnityEngine.Object.Destroy(texture);else UnityEngine.Object.DestroyImmediate(texture);}

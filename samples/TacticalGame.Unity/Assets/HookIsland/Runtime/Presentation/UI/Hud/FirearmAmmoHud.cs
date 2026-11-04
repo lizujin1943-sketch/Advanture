@@ -20,8 +20,10 @@ namespace Advanture.HookIsland
             ui.FloatingText(new Rect(rect.x+82,rect.y+4,22,48),"/",36,HudPainter.DisplayColor(new Color(.13f,.68f,.94f)));
             // 当前玩法仍为无限后备弹药，只展示既有规则；HUD 不扣弹、不开始换弹，也不推测完成时间。
             ui.FloatingText(new Rect(rect.x+113,rect.y+10,37,40),"∞",28,Color.white,bold:false);
-            string status=player.Firearm.Reloading?$"换弹中 · {player.Firearm.ReloadTicks/(float)HookGame.Rate:0.0}s":"R 换弹";
-            ui.FloatingText(new Rect(rect.x,rect.y+56,rect.width,26),status,16,player.Firearm.Reloading?HudPainter.Gold:Color.white,TextAnchor.MiddleRight);
+            // 常驻 HUD 不显示 R 按键教学；真正换弹期间仍提供确认态的进度反馈。
+            if(player.Firearm.Reloading)
+                ui.FloatingText(new Rect(rect.x,rect.y+56,rect.width,26),
+                    $"换弹中 · {player.Firearm.ReloadTicks/(float)HookGame.Rate:0.0}s",16,HudPainter.Gold,TextAnchor.MiddleRight);
         }
     }
 }

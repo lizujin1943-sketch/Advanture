@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Advanture.HookIsland
 {
-    /// <summary>确认态的悬浮 HUD。常驻信息保持精简，完整任务与功能入口仍由既有按键打开。</summary>
+    /// <summary>确认态的悬浮 HUD。任务显示由视图配置控制，不影响模拟中的任务推进或结算。</summary>
     public sealed class GameplayHud
     {
         private readonly IslandFishingController room;
@@ -18,8 +18,8 @@ namespace Advanture.HookIsland
         private readonly HealingChargesHud healing;
         private readonly ObjectivePanelMotion objectives = new ObjectivePanelMotion(true);
         private readonly HealthBarFeedback squadHealth = new HealthBarFeedback();
-        public float ObjectiveReveal => objectives.Reveal(Time.unscaledTime);
-        public void ToggleObjectives() => objectives.Toggle(Time.unscaledTime);
+        public float ObjectiveReveal => overlay.ShowObjectives?objectives.Reveal(Time.unscaledTime):0;
+        public void ToggleObjectives(){if(overlay.ShowObjectives)objectives.Toggle(Time.unscaledTime);}
         public void Hide() => squadHealth.Reset();
         public GameplayHud(IslandFishingController room,FishingOverlay overlay,HudPainter painter)
         {this.room=room;this.overlay=overlay;ui=painter;commissions=new CommissionHud(room,painter);finale=new FinaleHud(room,painter);combo=new ComboHud();ammo=new FirearmAmmoHud(room,painter);reticle=new FirearmReticleHud(room,painter);localHealth=new LocalHealthHud(painter);healing=new HealingChargesHud(painter);}
@@ -37,7 +37,8 @@ namespace Advanture.HookIsland
                 int maximum=FishingRules.Attributes(room.State,local).HealthMax;
                 localHealth.Draw(layout.LocalHealth,local,maximum,
                     squadHealth.Observe(local.Slot,local.Vitals.Health,maximum),Time.unscaledTime);
-                if(room.Construction?.Open!=true)healing.Draw(layout.LocalHealth,local,room.State.Tackle.Config.Healing);
+                // 医疗罐和生命读取同一份确认态；建造菜单在两者上方，不遮挡个人次数。
+                healing.Draw(layout.LocalHealing,local,room.State.Tackle.Config.Healing);
             }
             ammo.Draw(layout.FirearmAmmo,local);
             DrawObjectives(layout);
@@ -50,6 +51,7 @@ namespace Advanture.HookIsland
 
         private void DrawObjectives(HudLayout layout)
         {
+            if(!overlay.ShowObjectives)return;
             bool active=room.State.Finale.Phase!=FinalePhase.Dormant;
             if(!active && room.State.Tackle?.Config.Commissions.Enabled!=true)return;
             if(active)finale.DrawSummary(layout.ObjectiveSummary);
@@ -97,13 +99,13 @@ namespace Advanture.HookIsland
         private void DrawWallet(HudLayout layout,Fisher player)
         {
             var rect=layout.Wallet;
-            Resource(rect.x+12,rect.y,HudIcon.Coin,room.State.Tackle==null?room.State.Coins:player.Coins,HudPainter.Gold,"金币");
-        }
-        private void Resource(float x,float y,HudIcon icon,int value,Color color,string label)
-        {
-            ui.Icon(new Rect(x,y+9,30,30),icon,color);
-            ui.FloatingText(new Rect(x+38,y,112,48),Compact(value),28,Color.white,TextAnchor.MiddleRight);
-            ui.Hint(new Rect(x,y,104,48),$"{label} · {value:N0}");
+            int value=room.State.Tackle==null?room.State.Coins:player.Coins;
+            string text=Compact(value);
+            // 整组右对齐；图标随实际字宽移动，不能把数字塞进一个过宽的固定右对齐区域。
+            float numberWidth=ui.TextWidth(text,28)+4,numberX=rect.xMax-numberWidth;
+            ui.Icon(new Rect(numberX-34,rect.y+9,30,30),HudIcon.Coin,HudPainter.Gold);
+            ui.FloatingText(new Rect(numberX,rect.y,numberWidth,48),text,28,Color.white);
+            ui.Hint(new Rect(numberX-34,rect.y,numberWidth+34,48),$"金币 · {value:N0}");
         }
         private static string Compact(int value)=>value<10000?value.ToString("N0"):value<1000000?(value/1000f).ToString("0.#")+"k":(value/1000000f).ToString("0.#")+"m";
 
@@ -160,7 +162,7 @@ namespace Advanture.HookIsland
             var rect=layout.Help;ui.Surface(rect);ui.Text(new Rect(rect.x+26,rect.y+18,300,32),"操作指南",20,HudPainter.White,TextAnchor.MiddleLeft,true);
             if(ui.IconButton(new Rect(rect.xMax-48,rect.y+13,32,32),HudIcon.Close,"关闭 · Esc"))overlay.MenuOpen=false;
             string[] keys={"WASD","鼠标","左键","右键","C / V","R","E","Tab / I","B / 1–9","滚轮"};
-            string[] hints={"移动 · 持枪时按视角方向","鼠标瞄准 / 转向","开火 / 出钩 · AK47 按住连射","狙击枪按住开镜 / 收钩 / 取消","C 切换视角 · V 回血","R 换弹 · 按住优先救起队友","开箱 / 商店","角色与背包 · J 任务","B 扩建 · 1–9 选择快捷物品","俯视角缩放 / 第三人称拉近拉远"};
+            string[] hints={"移动 · 持枪时按视角方向","鼠标瞄准 / 转向","开火 / 出钩 · AK47 按住连射","狙击枪按住开镜 / 收钩 / 取消","C 切换视角 · V 回血","R 换弹 · 按住优先救起队友","开箱 / 商店",overlay.ShowObjectives?"角色与背包 · J 任务":"角色与背包","B 扩建 · 1–9 选择快捷物品","俯视角缩放 / 第三人称拉近拉远"};
             for(int i=0;i<keys.Length;i++)
             {float y=rect.y+65+i*32;ui.Surface(new Rect(rect.x+26,y+3,70,24),HudPainter.Track);ui.Text(new Rect(rect.x+26,y+3,70,24),keys[i],12,HudPainter.White,TextAnchor.MiddleCenter);ui.Text(new Rect(rect.x+116,y,280,30),hints[i],14,HudPainter.Muted);}
         }

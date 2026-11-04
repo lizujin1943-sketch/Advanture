@@ -5,7 +5,7 @@ namespace Advanture.HookIsland
 {
     /// <summary>
     /// 左下角无头像生命 HUD：当前／最大生命、十段斜切血条和身份／生存状态，不绘制区域底板。
-    /// 只消费调用方传入的确认值与受伤动画，不持有模拟、不发命令，也不依赖世界镜头。
+    /// 只消费调用方传入的确认值与受伤／治疗动画，不持有模拟、不发命令，也不依赖世界镜头。
     /// </summary>
     public sealed class LocalHealthHud
     {
@@ -55,18 +55,22 @@ namespace Advanture.HookIsland
         private void DrawSegments(Rect rect, HealthBarFeedback.Frame frame, Color health)
         {
             // 每格代表上限的 10%，不是固定十点生命。末格按实际比例连续填充，换装后仍然准确。
-            // 白色（低生命时为红色）立即到达确认值；刚失去的部分用红色短暂拖尾，复用原受伤时序。
+            // 受伤时白色立即退到确认值，损失部分用红色拖尾；治疗则先亮绿色增量，再由白色追上。
             // 斜切带来的空隙由遮罩本身提供；相邻贴图略有重叠，避免额外扩大每格的间距。
             float pitch=rect.width/(Segments+.28f), width=pitch*1.28f;
             for (int index=0;index<Segments;index++)
             {
                 var cell=new Rect(rect.x+index*pitch,rect.y,width,rect.height);
                 ui.Slanted(cell,Empty);
-                float actual=Mathf.Clamp01(frame.WhiteFrom*Segments-index);
+                float solid=frame.HealingTo>frame.HealingFrom?frame.HealingFrom:frame.WhiteFrom;
+                float actual=Mathf.Clamp01(solid*Segments-index);
                 float trailing=Mathf.Clamp01(frame.Fill*Segments-index);
                 if (trailing>actual)
                     ui.Slanted(cell,Damage,actual,trailing);
                 if (actual>0) ui.Slanted(cell,health,0,actual);
+                float restored=Mathf.Clamp01(frame.HealingTo*Segments-index);
+                if(frame.HealingTo>frame.HealingFrom && restored>actual)
+                    ui.Slanted(cell,HudPainter.Healing,actual,restored);
             }
         }
     }

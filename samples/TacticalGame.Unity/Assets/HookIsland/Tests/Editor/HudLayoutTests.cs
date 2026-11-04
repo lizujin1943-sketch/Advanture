@@ -15,7 +15,7 @@ namespace Advanture.HookIsland.Tests
         public void VisibleControlsFitAndDoNotOverlapAtSupportedWindowSizes(int width,int height)
         {
             float scale=HudLayout.Scale(width,height);var layout=new HudLayout(width/scale,height/scale);
-            var rects=new[]{layout.ObjectiveSummary,layout.CommissionPanel(true),layout.Squad(3,1,true),layout.Wallet,layout.Construction,layout.Acquisitions,layout.Combo,layout.FirearmAmmo,layout.LocalHealth};
+            var rects=new[]{layout.ObjectiveSummary,layout.CommissionPanel(true),layout.Squad(3,1,true),layout.Wallet,layout.Construction,layout.Acquisitions,layout.Combo,layout.FirearmAmmo,layout.LocalHealing,layout.LocalHealth};
             for(int i=0;i<rects.Length;i++)
             {
                 Assert.That(rects[i].xMin,Is.GreaterThanOrEqualTo(0));Assert.That(rects[i].yMin,Is.GreaterThanOrEqualTo(0));
@@ -23,7 +23,10 @@ namespace Advanture.HookIsland.Tests
                 for(int j=i+1;j<rects.Length;j++)Assert.That(rects[i].Overlaps(rects[j]),Is.False,$"HUD overlap: {i}, {j}");
             }
             Assert.That(layout.Contains(layout.LocalHealth.center,4,false),Is.True,"点击固定血条不能穿透成出钩或开火。");
-            Assert.That(layout.LocalHealth.xMin,Is.EqualTo(32));
+            Assert.That(layout.Contains(layout.LocalHealing.center,4,false),Is.True,"医疗罐和次数区域不能穿透成出钩或开火。");
+            Assert.That(layout.LocalHealing.xMin,Is.EqualTo(32));
+            Assert.That(layout.LocalHealing.xMax,Is.LessThan(layout.LocalHealth.xMin),"医疗罐应位于血条左侧，互不覆盖。");
+            Assert.That(layout.Height-layout.LocalHealing.yMax,Is.EqualTo(32));
             Assert.That(layout.Height-layout.LocalHealth.yMax,Is.EqualTo(32),"血条始终锚定左下角。");
         }
         [Test] public void CollapsedTaskDrawerOnlyBlocksItsVisibleHandleAndCanBeReversed()
@@ -45,11 +48,20 @@ namespace Advanture.HookIsland.Tests
             Assert.That(layout.Contains(new Vector2(640,650),4,false),Is.False,"Removed vitals panel must not block casting.");
             Assert.That(layout.Contains(layout.Construction.center,4,false),Is.False);
             Assert.That(layout.Contains(layout.Construction.center,4,true),Is.True);
-            Assert.That(layout.Contains(new Vector2(360,680),4,false),Is.False,"Old bottom instruction strip must be playable.");
+            Assert.That(layout.Contains(new Vector2(440,680),4,false),Is.False,"生命与医疗罐以外的旧操作提示区域仍允许操作。");
             Assert.That(layout.Contains(new Vector2(220,210),4,false),Is.False,"Old large left panel must be playable.");
             Assert.That(layout.Contains(new Vector2(640,360),4,true),Is.False,"Scene center must stay playable.");
             Assert.That(layout.Contains(layout.FirearmAmmo.center,0,false),Is.False,"只读弹药和已移除的右下按钮不能拦截开火。");
             Assert.That(layout.Contains(new Vector2(1200,680),0,false),Is.False,"旧工具按钮区域不再遮挡操作。");
+        }
+        [Test] public void DisabledTaskDisplayDoesNotBlockItsSummaryTabOrFormerDrawer()
+        {
+            var layout=new HudLayout(1280,720);
+            foreach(var point in new[]{layout.ObjectiveSummary.center,layout.ObjectiveTab().center,layout.CommissionPanel(true).center})
+                Assert.That(layout.Contains(point,0,false,true,true,true,1,showObjectives:false),Is.False,
+                    "即使委托或终局规则正在运行，隐藏的任务区域也不能拦截射击或出钩。");
+            Assert.That(layout.Contains(layout.Squad(1).center,1,false,true,true,true,1,showObjectives:false),Is.True,
+                "任务隐藏后队友不能保留已展开抽屉造成的偏移。");
         }
         [TestCase(-10,100,0f)]
         [TestCase(150,100,1f)]

@@ -5,6 +5,9 @@ namespace Advanture.HookIsland
 {
     public sealed class FishingOverlay : MonoBehaviour
     {
+        [SerializeField,Tooltip("是否显示任务摘要、详情抽屉及 J 入口。仅影响 HUD，任务结算继续运行。")]
+        private bool showObjectives;
+        public bool ShowObjectives=>showObjectives;
         private IslandFishingController room;
         private Font font;
         private FishingEquipmentOverlay equipmentView;
@@ -28,7 +31,7 @@ namespace Advanture.HookIsland
                 if(room.Incapacitated || MenuOpen || room.Equipment?.InventoryOpen==true || room.ShopOpen)return true;
                 if(!room.Playing)return room.InRoom;
                 var layout=new HudLayout(Screen.width/Scale,Screen.height/Scale);
-                return layout.Contains(p,GameplayHud.TeammateCount(room.State,room.LocalSlot),room.Construction?.Open==true,room.State?.Tackle?.Config.Commissions.Enabled==true,room.State?.Tackle?.Config.Ocean.Enabled==true,room.State!=null && room.State.Finale.Phase!=FinalePhase.Dormant,hud?.ObjectiveReveal??0);
+                return layout.Contains(p,GameplayHud.TeammateCount(room.State,room.LocalSlot),room.Construction?.Open==true,room.State?.Tackle?.Config.Commissions.Enabled==true,room.State?.Tackle?.Config.Ocean.Enabled==true,room.State!=null && room.State.Finale.Phase!=FinalePhase.Dormant,hud?.ObjectiveReveal??0,showObjectives);
             }
         }
         private void Awake()
@@ -43,7 +46,7 @@ namespace Advanture.HookIsland
             if(Input.GetKeyDown(KeyCode.Escape))
             {if(room.Construction?.Open==true)room.Construction.Close();else if(room.ShopOpen)room.CloseShop();else if(room.Equipment?.InventoryOpen==true)room.Equipment.Close();else MenuOpen=!MenuOpen;}
             else if(Input.GetKeyDown(KeyCode.F1)) { if(helpOpen)MenuOpen=false;else OpenHelp(); }
-            else if(Input.GetKeyDown(KeyCode.J) && room.Playing && !MenuOpen && !room.ShopOpen && room.Equipment?.InventoryOpen!=true)hud?.ToggleObjectives();
+            else if(showObjectives && Input.GetKeyDown(KeyCode.J) && room.Playing && !MenuOpen && !room.ShopOpen && room.Equipment?.InventoryOpen!=true)hud?.ToggleObjectives();
             else if(Input.GetKeyDown(KeyCode.E) && !MenuOpen)
             {if(room.ShopOpen)room.CloseShop();else if(room.Boss?.TryAwakenNearest()!=true && room.Treasures?.TryOpenNearest()!=true)room.OpenShop();}
         }
