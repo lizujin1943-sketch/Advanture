@@ -103,7 +103,8 @@ namespace Advanture.HookIsland
             string text=Compact(value);
             // 整组右对齐；图标随实际字宽移动，不能把数字塞进一个过宽的固定右对齐区域。
             float numberWidth=ui.TextWidth(text,28)+4,numberX=rect.xMax-numberWidth;
-            ui.Icon(new Rect(numberX-34,rect.y+9,30,30),HudIcon.Coin,HudPainter.Gold);
+            // 数字的可见字形受字体基线影响，比文字框中心低约 4 像素；图标跟随字形中线对齐。
+            ui.Icon(new Rect(numberX-34,rect.center.y+4-15,30,30),HudIcon.Coin,HudPainter.Gold);
             ui.FloatingText(new Rect(numberX,rect.y,numberWidth,48),text,28,Color.white);
             ui.Hint(new Rect(numberX-34,rect.y,numberWidth+34,48),$"金币 · {value:N0}");
         }

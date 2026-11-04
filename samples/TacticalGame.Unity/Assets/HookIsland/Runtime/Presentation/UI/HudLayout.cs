@@ -12,7 +12,8 @@ namespace Advanture.HookIsland
         public Rect Squad(int teammates,float reveal=0,bool ocean=false) => new Rect(32,Mathf.Lerp(112,CommissionPanel(ocean).yMax+12,Mathf.Clamp01(reveal)),Mathf.Clamp(teammates,0,3)*80,52);
         public Rect Wallet => new Rect(Width-196,26,164,48);
         public Rect Combo => new Rect(Width/2+240,Height-220,210,118);
-        public Rect FirearmAmmo => new Rect(Width-182,Height-118,150,86);
+        /// <summary>弹药整组锚定右下角，右、下安全边距均为 24；顶部为临时换弹反馈留出空间。</summary>
+        public Rect FirearmAmmo => new Rect(Width-174,Height-110,150,86);
         /// <summary>医疗罐占据左下角，包含左下角次数；与生命条共用 32 像素底部安全边距。</summary>
         public Rect LocalHealing => new Rect(32,Height-136,78,104);
         /// <summary>生命条位于医疗罐右侧，预留 6 像素间距；坐标与其他 HUD 一起缩放。</summary>
