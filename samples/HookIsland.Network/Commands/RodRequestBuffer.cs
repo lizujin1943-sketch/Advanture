@@ -22,7 +22,7 @@ public sealed class RodRequestBuffer
     }
     public HookInput Compose(HookInput input)
     {
-        if(!Pending)return input;
+        if(!Pending || !input.Grenade.IsEmpty)return input;
         return new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,false,false,shopping:input.Shopping,
             rodAction:action,rodTarget:target,rodBatch:batch,rodRequestId:id,roomRules:input.RoomRules,
             aimVertical:input.AimVertical);

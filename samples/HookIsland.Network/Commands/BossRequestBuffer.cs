@@ -30,7 +30,7 @@ public sealed class BossRequestBuffer
     /// <summary>与库存等事务排队执行；等待时保留编号，不抢占已在交付的操作。</summary>
     public HookInput Compose(HookInput input) => !Pending || input.Upgrade != HookUpgrade.None ||
         input.Build != TileKind.None || input.RodAction != RodAction.None || input.Inventory.Action != InventoryAction.None ||
-        !input.Revival.IsEmpty || !input.Treasure.IsEmpty ? input : new HookInput(
+        !input.Revival.IsEmpty || !input.Treasure.IsEmpty || !input.Grenade.IsEmpty ? input : new HookInput(
         input.MoveX, input.MoveZ, input.AimX, input.AimZ, input.Fire, input.Cancel,
         input.Upgrade, input.PurchaseId, input.Shopping, input.Build, input.BuildX, input.BuildZ, input.BuildId,
         input.RodAction, input.RodTarget, input.RodBatch, input.RodRequestId,

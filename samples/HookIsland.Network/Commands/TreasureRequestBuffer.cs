@@ -19,7 +19,7 @@ public sealed class TreasureRequestBuffer
     public HookInput Compose(HookInput input)
     {
         if(!Pending || input.Build!=TileKind.None || input.Upgrade!=HookUpgrade.None || input.RodAction!=RodAction.None ||
-            input.Inventory.Action!=InventoryAction.None || !input.Revival.IsEmpty)return input;
+            input.Inventory.Action!=InventoryAction.None || !input.Revival.IsEmpty || !input.Grenade.IsEmpty)return input;
         return new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,shopping:input.Shopping,roomRules:input.RoomRules,treasure:Command,
             aimVertical:input.AimVertical);
     }

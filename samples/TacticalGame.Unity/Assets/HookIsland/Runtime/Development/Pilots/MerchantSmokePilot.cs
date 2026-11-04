@@ -10,8 +10,11 @@ namespace Advanture.HookIsland
     public sealed class MerchantSmokePilot
     {
         public const int PurchaseMerchantId=2;
+        private static readonly Point[] fishingStands={new Point(-2600,-1000),new Point(-2300,-1800),new Point(-1700,-2400),new Point(-900,-2700)};
         private readonly int[] visited=new int[4],returnCatches={-1,-1,-1,-1};
         private readonly ulong[,] arrival=new ulong[4,5];
+        private readonly Point[] navigationTargets=new Point[4],navigationWaypoints=new Point[4];
+        private readonly bool[] hasWaypoint=new bool[4];
         public int VisitedMask {get;private set;}
         public int ReturnedMask {get;private set;}
         public int PurchaseTier {get;private set;}
@@ -67,8 +70,16 @@ namespace Advanture.HookIsland
             while(target<=4 && (VisitedMask&(1<<(target-1)))!=0 && (target!=PurchaseMerchantId || state.Players.All(f=>f.LastInventoryRequest>=1)))target++;
             if(target>4)return (ReturnedMask&(1<<slot))==0?Fish(map,state,p,delay):default;
             var def=map.Fishing.Merchants.Definitions[target-1];
-            var destination=new Point((def.CellX-Math.Sign(def.CellX))*2000,(def.CellZ-Math.Sign(def.CellZ))*2000);
-            var movement=Navigate(state,p,destination,delay);
+            // 单格桥无法穿过已经停好的后排：先让前两人靠船，后两人暂回起始岛等待。
+            // 折返时后排先离开，前排自然跟随；不瞬移、不扩大交互范围，也不豁免单位碰撞。
+            if(state.Players.Count==4 && slot>=2 && !state.Players.Take(2).All(f=>MerchantRules.Near(map,state.Tiles,f,target)))
+                return Navigate(map,state,p,map.Spawns[slot],delay);
+            // 四人分两排停在船前，全部处于交互范围内，不能继续要求同伴站到同一个点。
+            int directionX=Math.Sign(def.CellX),directionZ=Math.Sign(def.CellZ);
+            int distance=state.Players.Count<=2?2000:1500+slot/2*900;
+            int lateral=state.Players.Count==1?0:(slot%2==0?-400:400);
+            var destination=new Point(def.X-directionX*distance+(directionX==0?lateral:0),def.Z-directionZ*distance+(directionZ==0?lateral:0));
+            var movement=Navigate(map,state,p,destination,delay);
             if(movement.MoveX!=0 || movement.MoveZ!=0)return movement;
             if(target==PurchaseMerchantId && p.LastInventoryRequest==0 && state.Players.All(f=>MerchantRules.Near(map,state.Tiles,f,PurchaseMerchantId)))
             {
@@ -80,11 +91,11 @@ namespace Advanture.HookIsland
             }
             return new HookInput(0,0,shopping:true);
         }
-        private static HookInput Fish(IslandMap map,HookState state,Fisher p,int delay)
+        private HookInput Fish(IslandMap map,HookState state,Fisher p,int delay)
         {
             if(state.Tackle==null)return default;
-            var stand=new Point(-2600+p.Slot*300,-1700-p.Slot*300);
-            var move=Navigate(state,p,stand,delay);if(move.MoveX!=0 || move.MoveZ!=0)return move;
+            // 沿西南岸错开钓位，保持大于 660 毫米的角色直径，钩路也不会穿过同伴。
+            var move=Navigate(map,state,p,fishingStands[p.Slot],delay);if(move.MoveX!=0 || move.MoveZ!=0)return move;
             int speed=FishingRules.Speed(state,p),range=FishingRules.Range(map,state,p);if(speed==0 || range==0)return default;
             var fish=state.Fish[0];var home=map.FishSpots[0];
             if(fish.Owner>=0)
@@ -105,10 +116,25 @@ namespace Advanture.HookIsland
             }
             return default;
         }
-        private static HookInput Navigate(HookState state,Fisher p,Point target,int delay)
+        private HookInput Navigate(IslandMap map,HookState state,Fisher p,Point target,int delay)
         {
+            // 绕行可能先跨过相邻地格；在中间点到达前保持它，避免 CellAt 改变后立刻反向规划。
+            var previous=navigationTargets[p.Slot];var waypoint=navigationWaypoints[p.Slot];
+            if(hasWaypoint[p.Slot] && previous.X==target.X && previous.Z==target.Z &&
+                (Math.Abs(p.X-waypoint.X)>70 || Math.Abs(p.Z-waypoint.Z)>70))return Move(map,state,p,waypoint,delay);
+            hasWaypoint[p.Slot]=false;navigationTargets[p.Slot]=target;
+            // 一段直线路面能走通时，直接导航到最终站位并绕过同伴。
+            // 不把地格中心当成必须到达的终点，否则中心附近正在通行的人会让两边互相等待。
+            int samples=Math.Max(1,(Math.Max(Math.Abs(target.X-p.X),Math.Abs(target.Z-p.Z))+49)/50);
+            bool direct=true;
+            for(int n=1;n<=samples;n++)
+            {
+                int probeX=p.X+(int)((long)(target.X-p.X)*n/samples),probeZ=p.Z+(int)((long)(target.Z-p.Z)*n/samples);
+                if(!SwimmingTerrain.Ground(map,state.Tiles,probeX,probeZ) || SwimmingTerrain.Obstacle(map,probeX,probeZ)){direct=false;break;}
+            }
+            if(direct)return Move(map,state,p,target,delay);
             var start=(PlatformRules.CellAt(p.X),PlatformRules.CellAt(p.Z));var goal=(PlatformRules.CellAt(target.X),PlatformRules.CellAt(target.Z));
-            if(start==goal)return Move(p,target,delay);
+            if(start==goal)return Move(map,state,p,target,delay);
             var parents=new Dictionary<(int,int),(int,int)>();var queue=new Queue<(int,int)>();queue.Enqueue(start);parents[start]=start;
             while(queue.Count>0 && !parents.ContainsKey(goal))
             {
@@ -117,18 +143,20 @@ namespace Advanture.HookIsland
             }
             if(!parents.ContainsKey(goal))return default;
             var step=goal;while(parents[step]!=start)step=parents[step];
-            if(step.Item1!=start.Item1 && Math.Abs(p.Z-start.Item2*2000)>80)return Move(p,new Point(p.X,start.Item2*2000),delay);
-            if(step.Item2!=start.Item2 && Math.Abs(p.X-start.Item1*2000)>80)return Move(p,new Point(start.Item1*2000,p.Z),delay);
-            return Move(p,new Point(step.Item1*2000,step.Item2*2000),delay);
+            // 最后一个地格直接走向各自站位；该格中心可能已被先到的同伴占据。
+            if(step==goal)return Move(map,state,p,target,delay);
+            // 往返都保持同一全局侧道，避免在窄桥上先对齐同一个中心，或折返时互换侧道。
+            int lane=state.Players.Count==1?0:(p.Slot%2==0?-400:400);
+            // 局部绕行可以暂时离开侧道，不能下一帧又把人拉回去，否则会来回震荡。
+            waypoint=step.Item1!=start.Item1?new Point(step.Item1*2000,start.Item2*2000+lane):new Point(start.Item1*2000+lane,step.Item2*2000);
+            navigationWaypoints[p.Slot]=waypoint;hasWaypoint[p.Slot]=true;
+            return Move(map,state,p,waypoint,delay);
         }
-        private static HookInput Move(Fisher p,Point destination,int delay)
+        private static HookInput Move(IslandMap map,HookState state,Fisher p,Point destination,int delay)
         {
-            int dx=destination.X-p.X,dz=destination.Z-p.Z;
-            if(Math.Abs(dx)>65)return new HookInput(Approach(dx,delay),0);
-            if(Math.Abs(dz)>65)return new HookInput(0,Approach(dz,delay));
-            return default;
+            // 地格 BFS 负责绕过海面，局部导航负责避让其他玩家；只产生正式移动输入。
+            SmokeNavigation.Toward(map,state,p.Slot,destination,delay,out var move);return move;
         }
-        private static short Approach(int delta,int delay)=>(short)Math.Max(-1000,Math.Min(1000,delta*10/(2*(delay+1))));
     }
 }
 #endif

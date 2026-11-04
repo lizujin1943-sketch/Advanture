@@ -43,7 +43,7 @@ namespace Advanture.HookIsland
                 var prefab=Resources.Load<GameObject>("Enemies/ShoreCrab");
                 if(prefab==null)throw new InvalidOperationException("Missing authored ShoreCrab model.");
                 model=Object.Instantiate(prefab,root,false).transform;model.name="Blender crab";
-                modelRestRotation=model.localRotation;modelRestScale=model.localScale;
+                modelRestRotation=AuthoredFacing(model,root);model.localRotation=modelRestRotation;modelRestScale=model.localScale;
                 foreach(var t in model.GetComponentsInChildren<Transform>(true))
                 {
                     if(t.name.StartsWith("Leg_")){int index=int.Parse(t.name.Substring(t.name.Length-1));legs.Add((t,t.localRotation,t.name.Contains("_L_")?-1:1,index));}
@@ -69,6 +69,19 @@ namespace Advanture.HookIsland
                 warning=Line("Pinch warning",line,new Color(1,.3f,.08f),.035f);
                 health=Line("Crab health",line,new Color(.95f,.35f,.15f),.045f);
                 root.gameObject.SetActive(false);
+            }
+            private static Quaternion AuthoredFacing(Transform model,Transform root)
+            {
+                var joints=model.GetComponentsInChildren<Transform>(true);
+                var eyes=joints.Where(t=>t.name=="Eye" || t.name.StartsWith("Eye.",StringComparison.Ordinal)).ToArray();
+                var shell=joints.Single(t=>t.name=="Carapace");
+                if(eyes.Length!=2)throw new InvalidOperationException("Missing authored crab face markers.");
+                Vector3 eyeCenter=eyes.Aggregate(Vector3.zero,(sum,t)=>sum+t.position)/eyes.Length;
+                Vector3 forward=root.InverseTransformPoint(eyeCenter)-root.InverseTransformPoint(shell.position);forward.y=0;
+                if(forward.sqrMagnitude<.000001f)throw new InvalidOperationException("Invalid authored crab forward axis.");
+                // 实际 FBX 的眼、嘴与双钳在 Blender -Y 一侧；导入后按真实几何校准，不能假设模型的 +Z 是脸。
+                // 只转模型子层，逻辑根节点、攻击方向和预警扇区仍共同指向权威 Direction。
+                return Quaternion.AngleAxis(-Mathf.Atan2(forward.x,forward.z)*Mathf.Rad2Deg,Vector3.up)*model.localRotation;
             }
             private LineRenderer Line(string name,Material material,Color color,float width)
             {

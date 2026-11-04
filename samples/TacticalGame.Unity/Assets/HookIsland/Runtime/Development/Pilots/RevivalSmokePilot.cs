@@ -16,11 +16,17 @@ namespace Advanture.HookIsland
             p=s.Players[2];PaidRespawnSeen|=p.Revival.LastResult==RespawnResult.Success && p.Revival.CoinsSpent>0 && !p.Vitals.Downed;
         }
         public bool Complete(HookState s){Observe(s);return FreeRescueSeen && PaidRespawnSeen;}
-        private static short Axis(int delta,int lead)=>(short)Math.Max(-1000,Math.Min(1000,delta*5/(lead+1)));
         private static HookInput Move(Fisher p,int x,int z,int lead)
         {
-            if(Math.Abs(p.X-x)>80)return new HookInput(Axis(x-p.X,lead),0);
-            if(Math.Abs(p.Z-z)>80)return new HookInput(0,Axis(z-p.Z,lead));return default;
+            // 水中接触会同时扰动两个坐标，不能一直修正 X 而不开始修正 Z。组合输入后归一化，保持正常限速。
+            if(Math.Abs(p.X-x)<=80 && Math.Abs(p.Z-z)<=80)return default;
+            int dx=(x-p.X)*5/(lead+1),dz=(z-p.Z)*5/(lead+1);long square=(long)dx*dx+(long)dz*dz;
+            if(square>1000000)
+            {
+                int length=HookGame.Sqrt(square);if((long)length*length<square)length++;
+                dx=(int)((long)dx*1000/length);dz=(int)((long)dz*1000/length);
+            }
+            return new HookInput((short)dx,(short)dz);
         }
         public HookInput Sample(IslandMap map,HookState s,int slot,ulong tick)
         {
@@ -30,6 +36,9 @@ namespace Advanture.HookIsland
             if(p.Vitals.Downed || p.PulledBy>=0 || p.Knockback.Active)return default;
             if(slot==0)
             {
+                // 地面绕行器不处理游泳；被水球击落后，先取消空钩并游回岸上再继续救人。
+                if(p.Swimming.InWater)
+                    return p.Phase==HookPhase.Ready?(p.Stamina<15000?default:Move(p,-2200,-400,lead)):new HookInput(0,0,cancel:true);
                 var target=s.Players[1];
                 if(target.Vitals.Downed && !target.Revival.Dead)
                 {
@@ -37,9 +46,11 @@ namespace Advanture.HookIsland
                         return new HookInput(0,0,target.X,target.Z,true);
                     if(RevivalSystem.CanHelp(map,s.Tiles,p,target))return new HookInput(0,0,revival:new RevivalCommand(rescueSlot:1));
                 }
-                if(!FreeRescueSeen)return Move(p,-2600,-1400,lead);
+                // 救援者从侧岸等待，给同伴保留向西落水的通道，再按真实拖拽和帮助规则救援。
+                if(!FreeRescueSeen && SmokeNavigation.Toward(map,s,slot,new Point(-2600,-400),lead,out var move))return move;
             }
-            if(slot==1 && !FreeRescueSeen)return p.X> -3750?new HookInput(-1000,0):default;
+            // 水球可能改变两个坐标，持续游向约定水点，避免同伴被冲走后超出救援者的射程。
+            if(slot==1 && !FreeRescueSeen)return Move(p,-3900,-1400,lead);
             if(slot==2 && !PaidRespawnSeen)
             {
                 // A waterball now detaches the catch immediately. Recover from an accidental

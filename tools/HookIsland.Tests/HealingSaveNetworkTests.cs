@@ -13,7 +13,8 @@ internal static partial class Program
         short Speed(int delta)=>(short)Math.Max(-1000,Math.Min(1000,delta*10/(lead+3)));
         // Separate the four approach lanes on land before entering water. Crossing along the
         // water edge can exhaust swimming stamina or block another player's landing.
-        return Math.Abs(p.Z-z)>60?new HookInput(0,Speed(z-p.Z)):Math.Abs(p.X-x)>60?new HookInput(Speed(x-p.X),0):default;
+        // 对齐只在岸上做；水中追逐确认延迟造成的少量纵向偏差，会持续耗体力并妨碍返回岸上。
+        return !p.Swimming.InWater && Math.Abs(p.Z-z)>60?new HookInput(0,Speed(z-p.Z)):Math.Abs(p.X-x)>60?new HookInput(Speed(x-p.X),0):default;
     }
     private static IEnumerable<(string,Action)> HealingSaveNetworkCases()
     {

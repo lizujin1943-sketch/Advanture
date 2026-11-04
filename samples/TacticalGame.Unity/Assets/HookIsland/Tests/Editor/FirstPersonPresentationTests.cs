@@ -61,6 +61,23 @@ namespace Advanture.HookIsland.Tests
             Assert.That(new HookGame().Encode(state),Is.EqualTo(before));
         }
 
+        [Test] public void GrenadeKeepsLocalHeadHiddenUntilTheCameraIsPulledBack()
+        {
+            var inventory=new InventorySystem(state.Tackle.Inventory);var players=state.Players.ToArray();
+            Assert.That(inventory.SelectWeapon(0,EquipmentSlot.Throwable),Is.EqualTo(InventoryResult.Success));
+            players[0].Firearm=default;players[0].EquippedRod=0;
+            var grenade=new HookState(state.Steps,players,state.Fish,state.Coins,state.Tiles,state.Driftwood,
+                new TackleState(state.Tackle.Config,inventory.Capture(),state.Tackle.Merchants),state.Enemies,state.RoomRules,
+                state.Treasure,state.Commissions,state.Ocean,state.Finale,state.Crabs,state.Boss,state.Grenades);
+            presentation.Present(grenade,grenade,0,Vector3.forward,false);
+            presentation.PresentFirstPerson(grenade,grenade,0,true,camera,Vector3.forward);
+            var local=root.transform.Find("Fishing visuals/Fisher 1/Body");
+            Assert.That(local.GetComponentsInChildren<Renderer>(true).All(r=>r.forceRenderingOff),Is.True,"无枪时也不能让头遮住眼睛处的镜头");
+            Assert.That(root.transform.Find("Fishing visuals/First person firearm").gameObject.activeSelf,Is.False);
+            presentation.PresentFirstPerson(grenade,grenade,0,false,camera,Vector3.forward);
+            Assert.That(local.GetComponentsInChildren<Renderer>(true).All(r=>!r.forceRenderingOff),Is.True);
+        }
+
         [Test] public void FirstPersonGunTracksLookReloadsAndResetsWithoutMovingTheWorldGun()
         {
             var peer=root.transform.Find("Fishing visuals/Fisher 2/Body/Desert Eagle");var peerPosition=peer.position;

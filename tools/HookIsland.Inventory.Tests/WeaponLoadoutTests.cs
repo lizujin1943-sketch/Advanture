@@ -11,7 +11,8 @@ internal static partial class Program
     private static IEnumerable<(string,Action)> WeaponLoadoutCases()
     {
         yield return ("weapon_slots_switch_with_full_backpack_without_moving_items_or_refilling_ammo",()=>{
-            var inventory=new InventorySystem(1,true,true,false);int coins=5000;
+            // 枚举全部四类武器时，显式准备第四槽的初始手雷。
+            var inventory=new InventorySystem(1,true,true,false,starterGrenade:true);int coins=5000;
             var pistol=inventory.ActiveItem(0)!.Value;
             Require(pistol.Kind==ItemKind.Firearm && pistol.Type==0 && !inventory.Capture().Items.Any(i=>i.Kind==ItemKind.Rod || i.Location==ItemLocation.Backpack),"Starting weapons are not independently equipped.");
             Require(inventory.TryFireRound(0,pistol.Id),"Starter pistol cannot fire.");
@@ -28,7 +29,7 @@ internal static partial class Program
             Require(inventory.Find(pistol.Id)!.Value.LoadedAmmo==6 && coins==4100,"Switch refilled ammunition or charged coins.");
             var saved=InventoryStateCodec.Encode(inventory.Capture());
             var restored=new InventorySystem(InventoryStateCodec.Decode(saved));
-            Require(saved.SequenceEqual(InventoryStateCodec.Encode(restored.Capture())) && restored.ActiveItem(0)?.Kind==ItemKind.Weapon,"Active selection did not round-trip.");
+            Require(saved.SequenceEqual(InventoryStateCodec.Encode(restored.Capture())) && restored.ActiveItem(0)?.Kind==ItemKind.Throwable,"Active selection did not round-trip.");
         });
         yield return ("weapon_same_category_replacement_is_atomic_and_preserves_other_slots",()=>{
             var inventory=new InventorySystem(1,true,true,false);int coins=5000;
@@ -82,7 +83,7 @@ internal static partial class Program
                 var command=new InventoryCommand(InventoryAction.SelectWeapon,(int)slot,requestId:1);
                 Require(InventoryCommand.Decode(command.Encode()).Target==(int)slot,"Weapon slot changed in transit.");
             }
-            foreach(int target in new[]{0,1,3,8,12,265,int.MaxValue})
+            foreach(int target in new[]{0,1,3,8,(int)EquipmentSlot.Throwable+1,265,int.MaxValue})
             {
                 bool rejected=false;try{new InventoryCommand(InventoryAction.SelectWeapon,target,requestId:1).Encode();}catch(InvalidDataException){rejected=true;}
                 Require(rejected,"Noncanonical or wrapped weapon slot accepted.");

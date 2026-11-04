@@ -12,6 +12,11 @@ namespace Advanture.HookIsland
         public void Draw(Rect rect,Fisher player)
         {
             if(room.State.Tackle==null || room.Construction?.Open==true)return;
+            // 手雷沿用同一处纯文字读数，只有已确认装备时显示；不新增常驻快捷栏或按键教学。
+            if(room.HoldingGrenade)
+                ui.FloatingText(new Rect(rect.x-40,rect.y+26,rect.width+40,54),"手榴弹 ×1",26,Color.white,TextAnchor.MiddleRight);
+            if(room.Grenades?.Message!=null)
+                ui.FloatingText(new Rect(rect.x-160,rect.y-4,rect.width+160,28),room.Grenades.Message,16,HudPainter.Gold,TextAnchor.MiddleRight);
             var firearm=ActiveToolView.Firearm(room.State,player);
             if(firearm==null)return;
             var loaded=room.State.Tackle.Inventory.ActiveItem(player.Slot);

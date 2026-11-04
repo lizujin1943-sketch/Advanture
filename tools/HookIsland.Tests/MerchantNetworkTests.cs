@@ -26,6 +26,12 @@ internal static partial class Program
         var result=runner.InspectState();
         if(count==1 && delay==3)Console.WriteLine("MERCHANT_OFFERS "+string.Join(";",result.Tackle!.Merchants.Select(m=>m.Id+":"+string.Join(",",m.Stock.Where(o=>o.Kind==ItemKind.Rod).Select(o=>RodCatalog.Get(o.Type).Tier+"/"+o.Type)))));
         Console.WriteLine($"MERCHANT_INPUT players={count} delay={delay} tick={runner.Tick} active={result.Tackle!.Merchants.Count(m=>m.Active)} tiles={result.Tiles.Count} tier={pilot.PurchaseTier} visited={pilot.VisitedMask} returned={pilot.ReturnedMask} coins={string.Join(",",result.Players.Select(p=>p.Coins))} catches={string.Join(",",result.Players.Select(p=>p.Catches))} receipts={string.Join(",",result.Players.Select(p=>p.LastInventoryResult))}");
+        if(!pilot.Complete(result))foreach(var p in result.Players)
+        {
+            // 失败时保留站位与下一条普通输入，便于区分资源不足、钩路受阻和导航堵塞。
+            var next=pilot.Sample(map,result,p.Slot,runner.Tick+(ulong)delay+1);
+            Console.WriteLine($"MERCHANT_STALLED slot={p.Slot} position={p.X},{p.Z} phase={p.Phase} move={next.MoveX},{next.MoveZ} materials={p.Fishbones}/{p.FishbonesEarned} earned={p.CoinsEarned}");
+        }
         Require(pilot.Complete(result),"Ordinary input did not earn/build/reach all ships, buy a better rod and catch after returning.");
         Require(pilot.PurchaseTier>=2,"The route must purchase a tier unavailable from the starting merchant.");
         Require(result.Tiles.Count==33 && result.Tackle.Merchants.All(m=>m.Active),"A configured route or merchant is missing.");

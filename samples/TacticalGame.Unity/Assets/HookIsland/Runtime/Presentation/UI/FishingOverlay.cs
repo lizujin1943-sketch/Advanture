@@ -21,7 +21,7 @@ namespace Advanture.HookIsland
         private bool menuOpen,helpOpen;
         public bool MenuOpen { get=>menuOpen; set { menuOpen=value;if(!value)helpOpen=false; } }
         private float Scale=>HudLayout.Scale(Screen.width,Screen.height);
-        public void OpenMenu() { room.CloseShop();room.Equipment?.Close();room.Construction?.Close();helpOpen=false;MenuOpen=true; }
+        public void OpenMenu() { room.Grenades?.CancelAim();room.CloseShop();room.Equipment?.Close();room.Construction?.Close();helpOpen=false;MenuOpen=true; }
         public void OpenHelp() { OpenMenu();helpOpen=true; }
         public bool PointerOverHud
         {

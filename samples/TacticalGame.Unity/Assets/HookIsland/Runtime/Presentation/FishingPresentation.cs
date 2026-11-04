@@ -114,11 +114,13 @@ namespace Advanture.HookIsland
                 !state.RoundFinished && local<state.Players.Count && avatars.ContainsKey(local);
             Fisher player=active?state.Players[local]:default;
             var gun=active?ActiveToolView.Firearm(state,player):null;
-            active&=gun!=null && !player.Unavailable && !player.Vitals.Downed;
-            firstPersonSlot=active?local:-1;
+            // 身体是否遮挡镜头由视角决定，不能依赖当前是不是枪。拿出手雷也会保留第一人称。
+            active&=!player.Unavailable && !player.Vitals.Downed;
+            firstPersonSlot=active && gun!=null?local:-1;
             foreach(var pair in avatars)pair.Value.Visibility.SetHidden(active && pair.Key==local);
             if(!active){firstPersonFirearm?.Reset();return;}
             localPlayerMarker.Hide();
+            if(gun==null || player.Grenade.Active){firstPersonFirearm?.Reset();return;}
             var motion=predicted!=null && local<predicted.Players.Count?predicted.Players[local]:player;
             bool interrupted=!FirearmRules.CanAct(player,SwimRingCatalog.Equipped(state.Tackle.Inventory,local)!=null) || player.Revival.RescueTicks>0;
             firstPersonFirearm.Present(camera,player,motion,gun,aim,coats[local],interrupted,scoped);

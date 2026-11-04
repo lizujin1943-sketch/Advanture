@@ -35,6 +35,14 @@ public sealed class EnemySystem
     public int PiranhaCount=>piranhas.Length;
     public WaterMonster Monster=>monster;
     public Piranha GetPiranha(int id)=>piranhas[id];
+    /// <summary>占位分离不接管被钩住、逃逸或待刷新的鱼，也不修改攻击目标、方向和结算状态。</summary>
+    internal bool TryDisplacePiranha(int id,int x,int z)
+    {
+        if(id<0 || id>=piranhas.Length || Math.Abs((long)x)>SwimmingTerrain.WorldLimit || Math.Abs((long)z)>SwimmingTerrain.WorldLimit)return false;
+        ref var f=ref piranhas[id];
+        if(f.Owner>=0 || f.RespawnTicks>0 || f.Escape.Active || f.RewardOwner>0)return false;
+        f.X=x;f.Z=z;return true;
+    }
     public bool TryHook(int id,int owner)
     {
         if(id<0 || id>=piranhas.Length || owner<0 || owner>=4 || piranhas[id].Owner>=0 || piranhas[id].RespawnTicks>0 || piranhas[id].Escape.Active)return false;

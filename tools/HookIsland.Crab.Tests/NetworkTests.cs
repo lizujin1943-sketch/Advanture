@@ -43,7 +43,8 @@ internal static partial class Program
                                 if(walk>100)return new HookInput((short)(walkX*1000/(walk+1)),(short)(walkZ*1000/(walk+1)),-2500,0);
                                 if(FirearmRules.Equipped(s,p)==null)
                                 {var gun=s.Tackle!.Inventory.Items.Single(i=>i.Owner==p.Slot && i.Kind==ItemKind.Firearm);return new HookInput(0,0,inventory:new InventoryCommand(InventoryAction.Equip,gun.Id,requestId:3));}
-                                if(s.Tackle!.Inventory.Equipped(p.Slot,EquipmentSlot.RightHand)!.Value.LoadedAmmo==0)return new HookInput(0,0,reload:true);
+                                // 读取当前持枪实例，武器分类槽与鱼竿的右手槽彼此独立。
+                                if(s.Tackle!.Inventory.ActiveItem(p.Slot)!.Value.LoadedAmmo==0)return new HookInput(0,0,reload:true);
                                 var fish=s.Enemies.Piranhas[0];return new HookInput(0,0,fish.X,fish.Z,fire:true);
                             }
                             if(MeleeRules.Equipped(s,p)==null)

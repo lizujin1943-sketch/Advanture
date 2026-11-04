@@ -5,7 +5,10 @@
     <ProjectReference Include="../../samples/HookIsland.Network/HookIsland.Network.csproj" />
     <ProjectReference Include="../../framework/src/FrameSync.Runtime/FrameSync.Runtime.csproj" />
   </ItemGroup>
-  <ItemGroup><Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Development/Pilots/InventorySmokePilot.cs" Link="InventorySmokePilot.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Development/Pilots/InventorySmokePilot.cs" Link="InventorySmokePilot.cs" />
+    <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Development/Pilots/SmokeNavigation.cs" Link="SmokeNavigation.cs" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Application/Commands/GroundPickupSelection.cs" Link="GroundPickupSelection.cs" />
     <Compile Include="../../samples/TacticalGame.Unity/Assets/HookIsland/Runtime/Presentation/UI/Inventory/InventoryEquipmentPreview.cs" Link="InventoryEquipmentPreview.cs" />

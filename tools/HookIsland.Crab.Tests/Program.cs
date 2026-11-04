@@ -38,7 +38,8 @@ internal static partial class Program
             var c=Ready(-2400,-1400);c.Phase=CrabPhase.Windup;c.Timer=1;c.AttackSerial=1;c.Target=0;
             m.Restore(Replace(m.Capture(),c));Step(m);var state=m.Capture();var p=state.Players[0];
             Require(p.Vitals.Health==88 && p.Knockback.Active && p.Knockback.TotalDistance==735,"Crab hit or configured knockback was lost");
-            Require(!p.Firearm.Reloading && p.Firearm.ShotSequence==1 && state.Tackle!.Inventory.Equipped(0,EquipmentSlot.RightHand)?.LoadedAmmo==6,"Crab hit completed reload or lost firearm state");
+            // 枪械现在有独立武器槽；按原枪的实例 ID 核对弹药，避免误查鱼竿所在的右手槽。
+            Require(!p.Firearm.Reloading && p.Firearm.ShotSequence==1 && state.Tackle!.Inventory.Items.Single(i=>i.Id==gun.Id).LoadedAmmo==6,"Crab hit completed reload or lost firearm state");
             var restored=Model(1,config,firearms:true);restored.Restore(new HookGame().Decode(new HookGame().Encode(state)));
             for(int i=0;i<60;i++){Step(m);Step(restored);Same(m.Capture(),restored.Capture());}
         });

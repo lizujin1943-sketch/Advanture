@@ -65,8 +65,9 @@ namespace Advanture.HookIsland
         public void Toggle()
         {
             if (Open) Close();
-            else if (room.Playing && !room.Incapacitated && !room.FirearmBusy)
+            else if (room.Playing && !room.Incapacitated && !room.FirearmBusy && room.Grenades?.Busy!=true)
             {
+                room.Grenades?.CancelAim();
                 Open = true;
                 room.Equipment?.Close();
                 room.CloseShop();

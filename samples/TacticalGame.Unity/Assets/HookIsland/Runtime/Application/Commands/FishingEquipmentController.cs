@@ -38,6 +38,9 @@ namespace Advanture.HookIsland
         public void SelectWeapon(int slot)
         {
             if(slot<0 || slot>=WeaponLoadout.Slots.Count)return;
+            if(WeaponLoadout.Slots[slot]==EquipmentSlot.Throwable && room.TryGetLocalPlayer(out var p) && room.State.Tackle?.Inventory.Equipped(p.Slot,EquipmentSlot.Throwable)==null)
+            {room.Grenades?.Notify("没有手榴弹");return;}
+            room.Grenades?.CancelAim();
             RequestInventory(new InventoryCommand(InventoryAction.SelectWeapon,(int)WeaponLoadout.Slots[slot]));
         }
         public void SelectQuickSlot(int slot)
@@ -59,18 +62,20 @@ namespace Advanture.HookIsland
         public void ToggleInventory()
         {
             if(!room.Playing || room.Incapacitated)return;
+            room.Grenades?.CancelAim();
             InventoryOpen=!InventoryOpen;room.CloseShop();room.Construction?.Close();
             GetComponent<FishingOverlay>().MenuOpen=false;
         }
         public void Close(){InventoryOpen=false;}
         public bool Request(RodAction action,int target=0,uint batch=0)
         {
-            if(!room.Playing || !room.TryGetLocalPlayer(out var p) || Pending || room.Construction?.Pending==true || room.Treasures?.Pending==true)return false;
+            if(!room.Playing || room.Grenades?.BlocksOtherActions==true || !room.TryGetLocalPlayer(out var p) || Pending || room.Construction?.Pending==true || room.Treasures?.Pending==true)return false;
             return requests.TryQueue(p.LastRodRequest,action,target,batch);
         }
         /// <summary>只排队意图；库存和金币由确认帧更新。挂起时不接收第二个点击。</summary>
         public bool RequestInventory(InventoryCommand intent)
         {
+            if(room.Grenades?.BlocksOtherActions==true)return false;
             if(room.State?.Tackle==null || !room.Playing || !room.TryGetLocalPlayer(out var player) || Pending || room.Construction?.Pending==true || room.PurchasePending || room.Treasures?.Pending==true)return false;
             if(!CanRequestDuringFirearmAction(room.State,player,intent))
             {Notify(player.Firearm.Reloading?"换弹中 · 可切换武器取消":"请等待举枪或射击收势结束");return false;}
@@ -78,7 +83,7 @@ namespace Advanture.HookIsland
         }
         public static bool CanRequestDuringFirearmAction(HookState state,Fisher player,InventoryCommand command)
         {
-            if(player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0)return false;
+            if(player.Grenade.Active || player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0)return false;
             if(!player.Firearm.Reloading)return true;
             return state.Tackle!=null && WeaponLoadout.CanCancelReload(state.Tackle.Inventory,player.Slot,command);
         }

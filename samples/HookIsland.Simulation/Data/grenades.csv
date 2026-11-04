@@ -1,0 +1,2 @@
+id,min_range_mm,max_range_mm,scatter_mm,min_flight_ticks,max_flight_ticks,min_arc_mm,max_arc_mm,fuse_ticks,radius_mm,full_damage_radius_mm,damage,edge_damage,windup_ticks,action_ticks
+frag,1500,18000,350,18,30,2000,4000,24,4500,1500,120,20,6,9

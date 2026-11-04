@@ -16,8 +16,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     public static SimulationModule<HookState> CreateModule(bool initialFriendlyPranks=true)
     {
         var game=new HookGame(initialFriendlyPranks);
-        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"40",inputFormatVersion:"16",
-            stateFormatVersion:"35",contentHash:CatalogData.Hash()+"/"+BossPoseData.Hash,determinismHash:"integer-mm-weapon-loadout-v40"),game,game,game);
+        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"41",inputFormatVersion:"17",
+            stateFormatVersion:"36",contentHash:CatalogData.Hash()+"/"+BossPoseData.Hash,determinismHash:"integer-mm-grenades-v41"),game,game,game);
     }
     public IDeterministicSimulation<HookState> Create()=>new Model(initialFriendlyPranks);
     public void ValidateCanonical(ReadOnlySpan<byte> bytes)=>HookInput.Decode(bytes);
@@ -54,6 +54,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         FirearmStateCodec.Write(w,s);
         CrabStateCodec.Write(w,s);
         BossStateCodec.Write(w,s);
+        GrenadeStateCodec.Write(w,s);
         return stream.ToArray();
     }
     public HookState Decode(ReadOnlySpan<byte> bytes)
@@ -119,6 +120,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         state=FirearmStateCodec.Read(r,state);
         state=CrabStateCodec.Read(r,state);
         state=BossStateCodec.Read(r,state);
+        state=GrenadeStateCodec.Read(r,state);
         PlatformStateCodec.Validate(state);
         PlatformStateCodec.ValidateBalances(state);
         if(state.Tackle!=null)foreach(var p in state.Players)RevivalStateCodec.Validate(state,p);
@@ -206,6 +208,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             InitializeFinale();
             boss=new BossSystem(map.Fishing?.Boss??BossConfig.Disabled,players.Length);
             fish=map.FishSpots.Select((p,i)=>CreateFish(i,i*5,0)).ToArray();
+            grenades.Clear();
             tick=0;coins=players.Sum(p=>p.Coins);roomRules=new RoomRulesState(initialFriendlyPranks);
             InitializeTreasure();
             crabNavigation=new CrabNavigation(map);
@@ -231,7 +234,13 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                     {var absent=players[i];StopCharacterHook(ref absent);absent.Swimming.Active=false;absent.Unavailable=true;absent.Shopping=false;players[i]=absent;}
             // A previous-round identity can reconnect to inspect the result, but a reserved
             // body must not enter a finished world and turn defeat back into a playable round.
-            if(finished){AdvanceBossWhileFinished();return Array.Empty<ByteString>();}
+            if(finished)
+            {
+                AdvanceBossWhileFinished();InterruptFinishedGrenades();
+                // 已出手的物体有自己的寿命，回合结束也不能把引信永久冻结。
+                if(grenades.Count>0){AdvanceGrenadeProjectiles();tick++;}
+                return events.ToArray();
+            }
             equipment?.Advance(map,tiles,players,tick+1);
             var healthAtFrameStart=players.Select(p=>p.Vitals.Health).ToArray();
             var previousReloads=players.Select(p=>p.Firearm.ReloadTicks).ToArray();
@@ -272,7 +281,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 // governs this movement interval; action/equipment gates use the updated clock.
                 bool recoveryMovement=p.Firearm.RecoveryTicks>0;
                 PrepareFirearm(ref p,c);
-                p.Shopping=canAct && !p.Melee.Active && !knockedBack && !p.Swimming.InWater && (equipment!=null || map.Platform==null) && c.Shopping && p.PulledBy<0 && p.HookedPlayer<0 && FishingRules.NearShop(map,tiles,p);
+                p.Shopping=canAct && !p.Grenade.Active && !p.Melee.Active && !knockedBack && !p.Swimming.InWater && (equipment!=null || map.Platform==null) && c.Shopping && p.PulledBy<0 && p.HookedPlayer<0 && FishingRules.NearShop(map,tiles,p);
                 Purchase(ref p,c);equipment?.Apply(map,tiles,ref p,c,ref coins,c.Revival.RescueTarget!=0 || players.Any(other=>other.Revival.RescueTicks>0 && other.Revival.Rescuer==i+1));
                 SyncFirearm(ref p);
                 if(c.Cancel || (equipment!=null && p.Swimming.InWater && equipment.Ring(p)==null))RetractHook(ref p);
@@ -280,11 +289,11 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 if(p.Cooldown>0)p.Cooldown--;
                 var melee=p.Melee;if(melee.CooldownTicks>0)melee.CooldownTicks--;p.Melee=melee;
                 if(!MeleeRules.CanAct(p,equipment?.Ring(p)!=null))MeleeRules.Cancel(ref p);
-                if(map.Fishing?.Melee.Enabled==true && equipment?.ActiveTool(p)==true && c.Fire && c.Build==TileKind.None && c.RodAction==RodAction.None && c.Inventory.Action==InventoryAction.None && c.Treasure.IsEmpty && c.Revival.RescueTarget==0)
+                if(map.Fishing?.Melee.Enabled==true && !p.Grenade.Active && equipment?.ActiveTool(p)==true && c.Fire && c.Build==TileKind.None && c.RodAction==RodAction.None && c.Inventory.Action==InventoryAction.None && c.Treasure.IsEmpty && c.Revival.RescueTarget==0)
                 {var weapon=equipment?.Weapon(p);if(weapon!=null && MeleeRules.Begin(ref p,weapon,c.AimX,c.AimZ,equipment!.Ring(p)!=null))
                     Record(HookGameplayEventKind.MeleeSwing,p,itemKind:ItemKind.Weapon,itemType:p.Melee.WeaponType);}
                 bool canCast=equipment==null || SwimmingSystem.CanCast(p.Swimming.InWater,p.Vitals.Downed,equipment.Ring(p)!=null);
-                if(canAct && canCast && (equipment==null || equipment.ActiveTool(p)) && c.Fire && c.Build==TileKind.None && c.RodAction==RodAction.None && c.Inventory.Action==InventoryAction.None && c.Treasure.IsEmpty && !p.Melee.Active &&
+                if(canAct && canCast && !p.Grenade.Active && (equipment==null || equipment.ActiveTool(p)) && c.Fire && c.Build==TileKind.None && c.RodAction==RodAction.None && c.Inventory.Action==InventoryAction.None && c.Treasure.IsEmpty && !p.Melee.Active &&
                     (equipment==null || p.EquippedRod!=0) && p.PulledBy<0 && !p.Shopping && p.Phase==HookPhase.Ready && p.Cooldown==0)
                 {
                     int dx=c.AimX-p.X,dz=c.AimZ-p.Z,length=Sqrt((long)dx*dx+(long)dz*dz);
@@ -363,6 +372,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             AdvanceCatches();
             AdvanceMelee(commands);
             AdvanceFirearms(commands);
+            AdvanceGrenades(commands);
             SettlePiranhaKills();
             AdvanceCrabs();
             AdvanceBoss();
@@ -401,6 +411,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             FinishFirearmReloads(previousReloads);
             ocean?.Advance(map,tiles,players,fish,commissions.Completed,enemies?.Capture()??EnemyState.Empty,tick+1);
             AdvanceFinale();
+            ResolveCombatSpacing();
             tick++;return events.ToArray();
         }
         private void ApplyEnemyHit(EnemyHit hit)
@@ -733,7 +744,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             players[owner.HookedPlayer]=target;owner.HookedPlayer=-1;owner.PullTicks=0;
         }
         private bool CanStand(int x,int z)=>map.Platform==null?map.CanStand(x,z):PlatformRules.CanStand(tiles,x,z);
-        public HookState Capture()=>new HookState(tick,players,fish,coins,tiles,driftwood,equipment?.Capture(),enemies?.Capture(),roomRules,new TreasureState(chests),commissions,ocean?.Capture(),finale?.Capture(),crabs.Select(c=>c.Capture()),boss.Capture());
+        public HookState Capture()=>new HookState(tick,players,fish,coins,tiles,driftwood,equipment?.Capture(),enemies?.Capture(),roomRules,new TreasureState(chests),commissions,ocean?.Capture(),finale?.Capture(),crabs.Select(c=>c.Capture()),boss.Capture(),grenades);
         public void Restore(HookState state)
         {
             // Validate ownership as well as positions before using a received checkpoint.
@@ -747,6 +758,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             OceanStateCodec.ValidateMap(map,state);
             FinaleStateCodec.ValidateMap(map,state);
             CrabStateCodec.ValidateMap(map,state);
+            grenades=state.Grenades.ToList();
             tick=state.Steps;coins=state.Coins;players=state.Players.ToArray();fish=state.Fish.ToArray();roomRules=state.RoomRules;chests=state.Treasure.Chests.ToArray();
             commissions=state.Commissions;
             ocean=map.Fishing?.Ocean.Enabled==true?new OceanSystem(map.Fishing.Ocean,state.Ocean):null;

@@ -27,7 +27,7 @@ public static class RevivalSystem
     {
         if(map.Fishing==null || helper.Unavailable || target.WaitingToJoin || helper.Knockback.Active || target.Knockback.Active || helper.Slot==target.Slot || helper.Vitals.Downed || helper.Revival.Dead ||
             !target.Vitals.Downed || target.Revival.Dead || helper.Swimming.InWater || target.Swimming.InWater ||
-            helper.PulledBy>=0 || target.PulledBy>=0 || helper.Shopping || helper.Melee.Active || helper.Firearm.DrawTicks>0 || helper.Firearm.RecoveryTicks>0 || helper.Phase!=HookPhase.Ready)return false;
+            helper.PulledBy>=0 || target.PulledBy>=0 || helper.Shopping || helper.Grenade.Active || helper.Melee.Active || helper.Firearm.DrawTicks>0 || helper.Firearm.RecoveryTicks>0 || helper.Phase!=HookPhase.Ready)return false;
         int range=map.Fishing.Revival.RescueRange;
         if(IslandMap.DistanceSquared(helper.X,helper.Z,target.X,target.Z)>(long)range*range)return false;
         int segments=Math.Max(1,(HookGame.Sqrt(IslandMap.DistanceSquared(helper.X,helper.Z,target.X,target.Z))+99)/100);
@@ -40,7 +40,7 @@ public static class RevivalSystem
     }
     private static bool HoldsHelp(HookInput c,int target)=>c.Revival.RescueSlot==target && c.MoveX==0 && c.MoveZ==0 &&
         !c.Fire && !c.Cancel && !c.Shopping && c.Build==TileKind.None && c.Upgrade==HookUpgrade.None &&
-        c.RodAction==RodAction.None && c.Inventory.Action==InventoryAction.None;
+        c.RodAction==RodAction.None && c.Inventory.Action==InventoryAction.None && c.Grenade.IsEmpty;
     public static bool CanHelp(IslandMap map,IReadOnlyList<PlatformTile> tiles,Fisher helper,Fisher target,HookInput command)=>
         HoldsHelp(command,target.Slot) && CanHelp(map,tiles,helper,target);
 

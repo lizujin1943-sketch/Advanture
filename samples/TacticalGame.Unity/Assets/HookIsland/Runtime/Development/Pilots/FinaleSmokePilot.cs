@@ -25,9 +25,8 @@ namespace Advanture.HookIsland
             if(p.Phase!=HookPhase.Ready)return (state.Finale.Phase!=FinalePhase.Surfaced && p.Phase==HookPhase.Flying) || CooperativeFishing.Attached(p)?new HookInput(0,0,cancel:true):default;
             if(state.Finale.Phase!=FinalePhase.Surfaced || p.Cooldown>0)return default;
             int delay=(int)Math.Min(30UL,tick>state.Steps?tick-state.Steps-1:0);
-            var stand=Stand(state,slot);int dx=stand.X-p.X,dz=stand.Z-p.Z;
-            if(Math.Abs(dx)>70)return new HookInput(Approach(dx,delay),0);
-            if(Math.Abs(dz)>70)return new HookInput(0,Approach(dz,delay));
+            var stand=Stand(state,slot);
+            if(SmokeNavigation.Toward(map,state,slot,stand,delay,out var move))return move;
             // Wait for everyone to reach the bank and recover through normal idle regeneration.
             foreach(var other in state.Players)
             {
@@ -43,15 +42,30 @@ namespace Advanture.HookIsland
         private static Point Stand(HookState state,int slot)
         {
             var anchor=FinaleRules.Anchor(state.Tackle!.Config.Finale,state.Finale);var d=FinaleRules.Direction(state.Finale.Direction);
-            int offset=(slot*2-state.Players.Count+1)*300;
+            // 玩家占位直径为 660 毫米；预留间隙，并整体平移队列，不能把岸角外的多个目标各自压回同一位置。
+            for(int shift=0;shift<=6000;shift+=100)
+                for(int sign=0;sign<(shift==0?1:2);sign++)
+                {
+                    int center=sign==0?shift:-shift;bool fits=true;
+                    for(int member=0;member<state.Players.Count;member++)
+                    {
+                        int offset=center+(member*2-state.Players.Count+1)*360;
+                        if(!PlatformRules.CanStand(state.Tiles,anchor.X-d.Z*offset,anchor.Z+d.X*offset)){fits=false;break;}
+                    }
+                    if(fits)
+                    {
+                        int offset=center+(slot*2-state.Players.Count+1)*360;
+                        return new Point(anchor.X-d.Z*offset,anchor.Z+d.X*offset);
+                    }
+                }
+            int fallback=(slot*2-state.Players.Count+1)*360;
             while(true)
             {
-                var p=new Point(anchor.X-d.Z*offset,anchor.Z+d.X*offset);
-                if(PlatformRules.CanStand(state.Tiles,p.X,p.Z) || offset==0)return p;
-                offset-=Math.Sign(offset)*Math.Min(100,Math.Abs(offset));
+                var p=new Point(anchor.X-d.Z*fallback,anchor.Z+d.X*fallback);
+                if(PlatformRules.CanStand(state.Tiles,p.X,p.Z) || fallback==0)return p;
+                fallback-=Math.Sign(fallback)*Math.Min(100,Math.Abs(fallback));
             }
         }
-        private static short Approach(int delta,int delay)=>(short)Math.Max(-1000,Math.Min(1000,delta*10/(2*(delay+1))));
     }
 }
 #endif

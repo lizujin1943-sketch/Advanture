@@ -18,6 +18,6 @@ namespace Advanture.HookIsland
         public bool CenterAim=>playerInput.CenterAim;
         public bool CameraPointerCaptured=>playerInput.CameraPointerCaptured;
         private void LateUpdate()=>playerInput.EndFrame(this);
-        private void OnDisable(){playerInput.Reset();presentation?.ClearFirstPerson();}
+        private void OnDisable(){Grenades?.CancelAim();playerInput.Reset();presentation?.ClearFirstPerson();}
     }
 }

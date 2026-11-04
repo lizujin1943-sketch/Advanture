@@ -55,8 +55,8 @@ public readonly struct InventoryCommand
         if (Action == InventoryAction.None && (Target != 0 || Amount != 0 || X != 0 || Y != 0 || Rotated || DropOld || Batch != 0)) Invalid();
         if (Action == InventoryAction.Heal && Target != 0) Invalid();
         if (Action != InventoryAction.None && Action != InventoryAction.Heal && !buying && Target <= 0) Invalid();
-        if (Action == InventoryAction.Unequip && (Target < (int)EquipmentSlot.Hat || Target > (int)EquipmentSlot.MeleeWeapon)) Invalid();
-        if(Action==InventoryAction.SelectWeapon && (Target<(int)EquipmentSlot.PrimaryWeapon || Target>(int)EquipmentSlot.MeleeWeapon))Invalid();
+        if (Action == InventoryAction.Unequip && (Target < (int)EquipmentSlot.Hat || Target > (int)EquipmentSlot.Throwable)) Invalid();
+        if(Action==InventoryAction.SelectWeapon && (Target<(int)EquipmentSlot.PrimaryWeapon || Target>(int)EquipmentSlot.Throwable))Invalid();
         if ((Action==InventoryAction.SelectQuickSlot || Action==InventoryAction.ClearQuickSlot) && Target>QuickbarRules.SlotCount) Invalid();
         if (Action==InventoryAction.BindQuickSlot && (Amount<1 || Amount>QuickbarRules.SlotCount)) Invalid();
         if (grid ? (X < 0 || X >= InventoryCatalog.MaxBackpackColumns || Y < 0 || Y >= InventoryCatalog.MaxBackpackRows) : (X != 0 || Y != 0)) Invalid();

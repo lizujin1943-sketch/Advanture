@@ -10,6 +10,7 @@ public enum FishPhase : byte { Waiting, Swimming, Jumping, Hooked, Diving, Escap
 // Mutable structs are kept only inside the simulation; captures expose independent, read-only arrays.
 public struct Fisher
 {
+    public GrenadeAction Grenade;
     public MeleeState Melee;
     public FirearmState Firearm;
     public ushort Slot;
@@ -64,8 +65,9 @@ public struct Fish
 public sealed class HookState
 {
     public HookState(ulong steps, IEnumerable<Fisher> players, IEnumerable<Fish> fish, int coins,
-        IEnumerable<PlatformTile>? tiles=null,IEnumerable<Driftwood>? driftwood=null,TackleState? tackle=null,EnemyState? enemies=null,RoomRulesState? roomRules=null,TreasureState? treasure=null,CommissionState? commissions=null,OceanState? ocean=null,FinaleState? finale=null,IEnumerable<CrabState>? crabs=null,BossState? boss=null)
+        IEnumerable<PlatformTile>? tiles=null,IEnumerable<Driftwood>? driftwood=null,TackleState? tackle=null,EnemyState? enemies=null,RoomRulesState? roomRules=null,TreasureState? treasure=null,CommissionState? commissions=null,OceanState? ocean=null,FinaleState? finale=null,IEnumerable<CrabState>? crabs=null,BossState? boss=null,IEnumerable<GrenadeState>? grenades=null)
     {
+        Grenades=Array.AsReadOnly((grenades??Array.Empty<GrenadeState>()).ToArray());
         Boss=boss??BossState.Empty;
         Steps=steps;Players=Array.AsReadOnly(players.ToArray());Fish=Array.AsReadOnly(fish.ToArray());Coins=coins;
         Tiles=Array.AsReadOnly((tiles??Array.Empty<PlatformTile>()).ToArray());
@@ -79,6 +81,7 @@ public sealed class HookState
         Finale=finale??FinaleState.Empty;
         Crabs=Array.AsReadOnly((crabs??Array.Empty<CrabState>()).ToArray());
     }
+    public IReadOnlyList<GrenadeState> Grenades {get;}
     public BossState Boss {get;}
     public bool Won=>Finale.Phase==FinalePhase.Victory;
     public bool RoundFinished=>Won || GameOver;

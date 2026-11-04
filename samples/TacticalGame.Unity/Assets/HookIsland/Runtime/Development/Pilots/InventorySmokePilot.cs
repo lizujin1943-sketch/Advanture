@@ -9,6 +9,8 @@ namespace Advanture.HookIsland
     public sealed class InventorySmokePilot
     {
         private static readonly Point[] Stands={new Point(-1400,-2600),new Point(2600,-1400),new Point(1400,2600),new Point(-2600,1400)};
+        // 900 mm 方形站位：大于 660 mm 的角色直径，四人到任意掉落包也都小于 2 m 拾取距离。
+        private static readonly Point[] TradingStands={new Point(-450,-450),new Point(450,-450),new Point(450,450),new Point(-450,450)};
         private int groundTarget;
         private static uint Base(int slot)=>(uint)(slot==0?1:0);
         public bool Complete(HookState s)=>s.Tackle!=null && s.Tackle.Inventory.Equipped(0,EquipmentSlot.Backpack)?.Type==2 &&
@@ -23,11 +25,11 @@ namespace Advanture.HookIsland
             if(collecting)
             {
                 if(p.FishbonesEarned>=8 && (slot!=0 || p.CoinsEarned>=200))return default;
-                var move=Move(p,Stands[slot],lead);if(move.MoveX!=0 || move.MoveZ!=0)return move;
+                var move=Move(map,s,p,Stands[slot],lead);if(move.MoveX!=0 || move.MoveZ!=0)return move;
                 return Fish(map,s,p,lead);
             }
             if(p.Phase!=HookPhase.Ready || p.Cooldown>0)return default;
-            var walking=Move(p,new Point(-600+slot*400,0),lead);if(walking.MoveX!=0 || walking.MoveZ!=0)return walking;
+            var walking=Move(map,s,p,TradingStands[slot],lead);if(walking.MoveX!=0 || walking.MoveZ!=0)return walking;
             if(inventory.Equipped(0,EquipmentSlot.Backpack)?.Type!=2)
             {
                 if(slot!=0)return default;
@@ -55,12 +57,9 @@ namespace Advanture.HookIsland
             return default;
         }
         private static HookInput Command(InventoryCommand command)=>new HookInput(0,0,inventory:command);
-        private static HookInput Move(Fisher p,Point target,int lead)
+        private static HookInput Move(IslandMap map,HookState state,Fisher p,Point target,int lead)
         {
-            int dx=target.X-p.X,dz=target.Z-p.Z;
-            short Velocity(int delta)=>(short)Math.Max(-1000,Math.Min(1000,delta*10/(lead+3)));
-            if(Math.Abs(dx)>60)return new HookInput(Velocity(dx),0);
-            if(Math.Abs(dz)>60)return new HookInput(0,Velocity(dz));return default;
+            SmokeNavigation.Toward(map,state,p.Slot,target,lead,out var move);return move;
         }
         private static HookInput Fish(IslandMap map,HookState s,Fisher p,int lead)
         {

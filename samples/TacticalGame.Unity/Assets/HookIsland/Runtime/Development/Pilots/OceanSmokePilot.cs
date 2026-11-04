@@ -51,12 +51,11 @@ namespace Advanture.HookIsland
                 if(id<0)return default;
             }
             var home=OceanRules.Home(map,state,id);var fish=state.Fish[id];
-            int offset=(slot*2-state.Players.Count+1)*300;
+            int offset=(slot*2-state.Players.Count+1)*450;
             var stand=Math.Abs(home.X)>Math.Abs(home.Z)?new Point(Math.Sign(home.X)*2600,Clamp(home.Z,-1200,1200)+offset):
                 new Point(Clamp(home.X,-1200,1200)+offset,Math.Sign(home.Z)*2600);
-            int delay=(int)Math.Min(30UL,tick>state.Steps?tick-state.Steps-1:0),dx=stand.X-p.X,dz=stand.Z-p.Z;
-            if(Math.Abs(dx)>70)return new HookInput(Approach(dx,delay),0);
-            if(Math.Abs(dz)>70)return new HookInput(0,Approach(dz,delay));
+            int delay=(int)Math.Min(30UL,tick>state.Steps?tick-state.Steps-1:0);
+            if(SmokeNavigation.Toward(map,state,slot,stand,delay,out var move))return move;
             int speed=FishingRules.Speed(state,p),range=FishingRules.Range(map,state,p);if(speed==0 || range==0)return default;
             if(fish.Owner>=0)
             {
@@ -77,7 +76,6 @@ namespace Advanture.HookIsland
             return default;
         }
         private static int Clamp(int value,int min,int max)=>Math.Max(min,Math.Min(max,value));
-        private static short Approach(int delta,int delay)=>(short)Clamp(delta*10/(2*(delay+1)),-1000,1000);
     }
 }
 #endif

@@ -77,3 +77,9 @@ done
 
 # 海上可选 BOSS：三维命中、毁板与存档守恒、输入重试、四客户端完整战斗。
 ./scripts/verify-hook-boss.sh
+
+# 手榴弹：去重投掷、落地引信、自伤友伤与四客户端空中/落地存档。
+./scripts/verify-hook-grenades.sh
+
+# 战斗单位：空间网格分离、地形约束、回滚和四客户端拥挤测试。
+./scripts/verify-hook-combat-spacing.sh

@@ -13,7 +13,7 @@ internal static class HealingSystem
     {
         if(player.Unavailable || player.WaitingToJoin || player.Vitals.Downed || player.Revival.Dead || !grounded || player.Swimming.InWater)
             return InventoryResult.Disabled;
-        if(player.Phase!=HookPhase.Ready || player.Melee.Active || player.PulledBy>=0 || player.HookedPlayer>=0 || player.Knockback.Active || rescuing)
+        if(player.Phase!=HookPhase.Ready || player.Grenade.Active || player.Melee.Active || player.PulledBy>=0 || player.HookedPlayer>=0 || player.Knockback.Active || rescuing)
             return InventoryResult.HookBusy;
         if(player.Vitals.Health>=stats.HealthMax)return InventoryResult.HealthFull;
         if(player.HealingCharges==0)return InventoryResult.NoHealingCharges;

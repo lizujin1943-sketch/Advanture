@@ -69,7 +69,8 @@ internal static partial class Program
             new FishingConfig(swimming: new SwimmingConfig(healthLossBasisPointsPerSecond: 10000),
                 revival: new RevivalConfig(downedTicks: 30,baseFee:baseFee),startingCoins:startingCoins));
     }
-    private static HookInput LeavePlatform(IslandClient c) => new HookInput(c.Slot % 2 == 0 ? (short)1000 : (short)-1000, 0);
+    // 出生和开发场景的队形可能不同；按实际所处半边向外走，避免同排玩家交叉离场时互相阻挡。
+    private static HookInput LeavePlatform(IslandClient c) => new HookInput(c.Session!.InspectState().Players[c.Slot].X<0?(short)-1000:(short)1000,0);
     private static void RestartRounds(int count)
     {
         using var party = new Party(count);

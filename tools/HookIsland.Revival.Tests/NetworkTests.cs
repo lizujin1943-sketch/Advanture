@@ -30,7 +30,11 @@ internal static partial class Program
                 {
                     last=clock.Elapsed;host.Poll(last);
                     foreach(var c in clients)
-                    {c.Poll(last,_=>new HookInput(c.Slot%2==0?(short)1000:(short)-1000,0));Require(c.Failure==null,c.Failure??"");}
+                    {
+                        // 从各自所在一侧向外离场，不能让同排玩家迎面互顶而永远无法落水。
+                        c.Poll(last,_=>new HookInput(c.Session!.InspectState().Players[c.Slot].X<0?(short)-1000:(short)1000,0));
+                        Require(c.Failure==null,c.Failure??"");
+                    }
                     Require(host.Failure==null,host.Failure??"");
                     if(host.Session==null){System.Threading.Thread.Sleep(1);continue;}
                     var s=host.Session.InspectState();

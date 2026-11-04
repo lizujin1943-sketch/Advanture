@@ -20,6 +20,14 @@ public sealed class CrabSystem
         state=restored??new CrabState{Timer=config.InitialDelayTicks+slot*config.SpawnStaggerTicks,Target=-1};
     }
     public CrabState Capture()=>state;
+    /// <summary>占位系统只平移活体的站位或登岸终点，不重算锁定的攻击朝向和伤害回执。</summary>
+    internal bool TryDisplace(IReadOnlyList<PlatformTile> tiles,int x,int z)
+    {
+        if(!state.Damageable)return false;
+        // 路径的每段已由统一解算器校验；多次沿墙滑动后的首尾直线不一定可达。
+        navigation.Refresh(tiles);if(!navigation.CanStand(x,z))return false;
+        state.X=x;state.Z=z;return true;
+    }
     public bool ReachableHit(IReadOnlyList<PlatformTile> tiles,int x,int z)
     {navigation.Refresh(tiles);return navigation.AttackLine(x,z,state.X,state.Z);}
     /// <summary>平台被 BOSS 打碎后同帧退回水中；已死亡个体只移动尸体，保留待发和已发奖励回执。</summary>

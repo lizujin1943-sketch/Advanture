@@ -30,6 +30,7 @@ namespace Advanture.HookIsland
         public MerchantPresentation Merchants { get; private set; }
         public TreasureController Treasures { get; private set; }
         public RevivalController Revival { get; private set; }
+        public GrenadeController Grenades { get; private set; }
         public bool Incapacitated=>State?.Won==true || TryGetLocalPlayer(out var p) && State.Tackle!=null && p.Vitals.Downed;
         private FishingOverlay overlay;
         internal FishingOverlay Overlay=>overlay;
@@ -81,6 +82,8 @@ namespace Advanture.HookIsland
             (map.Fishing!=null?MerchantRules.Near(map,State.Tiles,p,id):id==0 && map.Platform==null && HookUpgrades.IsNearShop(p.X,p.Z));
         public bool Scoped=>playerInput?.Scoped==true;
         public bool HoldingFirearm=>TryGetLocalPlayer(out var player) && ActiveToolView.Firearm(State,player)!=null;
+        public bool HoldingGrenade=>TryGetLocalPlayer(out var player) && State.Tackle?.Inventory.ActiveItem(player.Slot)?.Kind==ItemKind.Throwable;
+        public void ShakeGrenadeCamera(float strength)=>playerInput.ConfirmGrenadeBlast(strength);
         public bool FirearmBusy=>TryGetLocalPlayer(out var player) && player.Firearm.Busy;
         public bool HoldingMelee=>TryGetLocalPlayer(out var player) && ActiveToolView.RightHand(State,player) && MeleeRules.Equipped(State,player)!=null;
         public bool CanCast=>Playing && State?.Won!=true && TryGetLocalPlayer(out var p) && !p.Unavailable && (State.Tackle==null || SwimmingSystem.CanCast(p.Swimming.InWater,p.Vitals.Downed,SwimRingCatalog.Equipped(State.Tackle.Inventory,p.Slot)!=null));
@@ -118,6 +121,7 @@ namespace Advanture.HookIsland
                 playerInput.Initialize(viewCamera,new FishingCameraView(viewCamera,map.Platform!=null,thirdPersonFieldOfView,mouseLookSensitivity,
                     thirdPersonPivotHeight,verticalLookSensitivityMultiplier,thirdPersonDistance,thirdPersonShoulderOffset,thirdPersonInitialPitch,overheadCamera,firearmCamera));
                 EnsureRoomSession();
+                if(map.Fishing?.Firearms.Enabled==true)Grenades=new GrenadeController(this,lineShader);
                 if(map.Fishing!=null)groundItems=new GroundItemPresentation(transform);
                 if(map.Fishing?.Treasure.Enabled==true)Treasures=new TreasureController(this,viewCamera);
                 if(map.Fishing?.Crabs.Enabled==true)Crabs=new CrabPresentation(transform,lineShader,map.Fishing.Crabs);
@@ -168,10 +172,11 @@ namespace Advanture.HookIsland
                 using(PresentationMarker.Auto())
                 {
                     presentation.Present(State,predicted,LocalSlot,Aim,
-                        Playing && CanCast && !HoldingMelee && !HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null,
+                        Playing && CanCast && !HoldingMelee && !HoldingFirearm && !HoldingGrenade && Grenades?.BlocksOtherActions!=true && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null,
                         Playing && CanCast && HoldingFirearm && overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true && !BeingPulled && Construction?.Open!=true && InputProvider==null);
                     if(TryGetLocalPlayer(out var local))playerInput.Follow(this,local);
-                    presentation.PresentFirstPerson(State,predicted,LocalSlot,FirstPerson,viewCamera,Aim,Scoped);
+                    presentation.PresentFirstPerson(State,predicted,LocalSlot,FirstPerson && !playerInput.GrenadeCameraOutsideBody,viewCamera,Aim,Scoped);
+                    Grenades?.Synchronize(State,viewCamera,FirstPerson);
                 }
                 Feedback.Update(Client,Client.RoundEpoch,Client.Session.ConfirmedTick,State,LocalSlot,Client.ConfirmedEvents,Time.unscaledTime,
                     overlay?.MenuOpen!=true && !ShopOpen && Equipment?.InventoryOpen!=true,PresentConfirmedEvent);
@@ -184,6 +189,7 @@ namespace Advanture.HookIsland
         private void PresentConfirmedEvent(HookGameplayEvent value)
         {
             presentation.PresentConfirmedEvent(value,LocalSlot);
+            Grenades?.Confirm(value);
             if(value.Kind==HookGameplayEventKind.FirearmShot)
             {Enemies?.ConfirmFirearmHit(value);if(value.Slot==LocalSlot)playerInput.ConfirmFirearmShot(value.ItemType);}
         }
@@ -194,13 +200,14 @@ namespace Advanture.HookIsland
             // Input frames may expire before delivery. Repeat one receipt until confirmation; simulation deduplicates it.
             result=new HookInput(result.MoveX,result.MoveZ,result.AimX,result.AimZ,result.Fire,result.Cancel,
                 PurchasePending?pendingUpgrade:result.Upgrade,PurchasePending?pendingPurchaseId:result.PurchaseId,ShopOpen || result.Shopping,
-                result.Build,result.BuildX,result.BuildZ,result.BuildId,result.RodAction,result.RodTarget,result.RodBatch,result.RodRequestId,result.Inventory,result.Revival,result.RoomRules,result.Treasure,result.Reload,result.AimVertical,result.BossRequest);
+                result.Build,result.BuildX,result.BuildZ,result.BuildId,result.RodAction,result.RodTarget,result.RodBatch,result.RodRequestId,result.Inventory,result.Revival,result.RoomRules,result.Treasure,result.Reload,result.AimVertical,result.BossRequest,result.Grenade);
             if(Equipment!=null)result=Equipment.Compose(result);
             if(Construction!=null)result=Construction.Compose(result);
             if(Revival!=null)result=Revival.Compose(result);
             if(Treasures!=null)result=Treasures.Compose(result);
             result=roomRulesRequests.Compose(result);
             if(Boss!=null)result=Boss.Compose(result);
+            if(Grenades!=null)result=Grenades.Compose(result);
             return result;
         }
         public bool TryGetLocalPlayer(out Fisher player)
@@ -210,7 +217,8 @@ namespace Advanture.HookIsland
         }
         public bool OpenShop()
         {
-            if(!Playing || Incapacitated || Treasures?.Pending==true || !NearShop || FirearmBusy || !TryGetLocalPlayer(out var p) || p.PulledBy>=0 || p.HookedPlayer>=0)return false;
+            if(!Playing || Incapacitated || Treasures?.Pending==true || !NearShop || FirearmBusy || Grenades?.Busy==true || !TryGetLocalPlayer(out var p) || p.PulledBy>=0 || p.HookedPlayer>=0)return false;
+            Grenades?.CancelAim();
             Equipment?.Close();Construction?.Close();ShopMerchantId=NearestMerchantId;ShopOpen=true;
             GetComponent<FishingEquipmentOverlay>()?.ResetShopSelection();if(overlay!=null)overlay.MenuOpen=false;
             playerInput.ClearCommands();return true;
@@ -250,7 +258,7 @@ namespace Advanture.HookIsland
                 default:return "";
             }
         }
-        private void OnApplicationFocus(bool focused){if(!focused)playerInput.ReleaseFocus();}
+        private void OnApplicationFocus(bool focused){if(!focused){Grenades?.CancelAim();playerInput.ReleaseFocus();}}
         public void LeaveRoom()
         {
             saves?.ResetSession();error=null;
@@ -262,6 +270,7 @@ namespace Advanture.HookIsland
             State=null;playerInput.Reset();Feedback.Reset();presentation?.ClearPlayers();
             ShopOpen=false;ShopMerchantId=-1;pendingPurchaseId=0;pendingUpgrade=HookUpgrade.None;shopMessage=null;
             roomRulesRequests.Reset();
+            Grenades?.Reset();
             Construction?.ResetSession();Equipment?.ResetSession();Revival?.ResetSession();groundItems?.Clear();Enemies?.Clear();Crabs?.Clear();Treasures?.Clear();
             Finale?.Clear();Boss?.Clear();Merchants?.Synchronize(null);
             if(overlay!=null)overlay.MenuOpen=false;
@@ -269,7 +278,7 @@ namespace Advanture.HookIsland
             {var spawn=map.Spawns[LocalSlot];viewCamera.transform.position=new Vector3(spawn.X/1000f,24,spawn.Z/1000f-20);}
         }
         private void OnDestroy()
-        {LeaveRoom();playerInput.Dispose();presentation?.Dispose();groundItems?.Dispose();Enemies?.Dispose();Crabs?.Dispose();Treasures?.Dispose();Finale?.Dispose();Boss?.Dispose();Merchants?.Dispose();Application.runInBackground=restoreBackground;}
+        {LeaveRoom();Grenades?.Dispose();playerInput.Dispose();presentation?.Dispose();groundItems?.Dispose();Enemies?.Dispose();Crabs?.Dispose();Treasures?.Dispose();Finale?.Dispose();Boss?.Dispose();Merchants?.Dispose();Application.runInBackground=restoreBackground;}
         private void OnApplicationQuit(){roomSession?.Dispose();}
         public static string LaunchValue(string key)
         {var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,key);return i>=0 && i+1<args.Length?args[i+1]:null;}

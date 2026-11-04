@@ -31,6 +31,7 @@ internal static partial class Program
         }
         var state=runner.InspectState();
         Console.WriteLine($"FINALE_INPUT players={count} delay={delay} defaults={defaults} tick={runner.Tick} completed={state.Finale.Completed} phase={state.Finale.Phase} hooks={maxHooks} participants={participants} catches={string.Join(",",state.Players.Select(p=>p.Catches))}");
+        if(!state.Won)Console.WriteLine($"FINALE_STUCK target={state.Finale.X},{state.Finale.Z} direction={state.Finale.Direction} players={string.Join(";",state.Players.Select(p=>$"{p.Slot}@{p.X},{p.Z} phase={p.Phase} stamina={p.Stamina} cooldown={p.Cooldown} water={p.Swimming.InWater}"))}");
         Require(state.Won && state.Finale.Completed==3 && banks.Count==3,"Normal inputs did not finish all three distinct shores.");
         Require(maxHooks==count && participants==(1<<count)-1 && state.Players.All(p=>p.Catches>0),"Not every player joined the commission and giant hooks.");
         Require(state.Commissions.Bait==3 && state.Finale.SpentBait==3,"Finale spent an incorrect amount of bait.");

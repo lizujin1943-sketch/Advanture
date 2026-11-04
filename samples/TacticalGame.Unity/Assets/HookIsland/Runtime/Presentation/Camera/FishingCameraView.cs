@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Advanture.HookIsland
 {
     /// <summary>Local camera and input-space conversion; never owns simulation state.</summary>
-    public sealed class FishingCameraView : IDisposable
+    public sealed partial class FishingCameraView : IDisposable
     {
         private readonly Camera camera;
         private readonly bool overheadOrthographic;
@@ -36,7 +36,7 @@ namespace Advanture.HookIsland
             }
             if(CenterAim)UpdatePerspectivePose();
         }
-        public void PrepareInput(){if(camera!=null)camera.transform.position-=lastKick;lastKick=Vector3.zero;}
+        public void PrepareInput(){RemoveGrenadePose();if(camera!=null)camera.transform.position-=lastKick;lastKick=Vector3.zero;}
         /// <summary>持枪时临时覆盖镜头模式，不覆盖玩家之前选择的俯视/第三人称模式。</summary>
         public bool FirstPerson { get; private set; }
         public bool ThirdPerson => thirdPerson && !FirstPerson;
@@ -63,7 +63,7 @@ namespace Advanture.HookIsland
         public void Toggle(Vector3 facing, Vector3 feet)
         {
             // 枪械固定使用第一人称；V 不改写退出持枪后应该恢复的镜头。
-            if(FirstPerson)return;
+            if(FirstPerson || grenadeAiming)return;
             if(ThirdPerson)
             {
                 RestoreOverhead();
@@ -84,7 +84,7 @@ namespace Advanture.HookIsland
         }
         public void Look(Vector2 delta)
         {
-            if(!CenterAim)return;
+            if(!CenterAim || grenadeAiming)return;
             float scopedSensitivity=LookSensitivityScale;
             yaw=Mathf.Repeat(yaw+delta.x*sensitivity*scopedSensitivity,360);
             // Free look in both directions; avoid flipping through the vertical poles.
@@ -94,7 +94,7 @@ namespace Advanture.HookIsland
         public void Zoom(float scroll)
         {
             // 第一人称不允许用滚轮把镜头拉出身体，也不改写之前的第三人称距离。
-            if(FirstPerson)return;
+            if(FirstPerson || grenadeAiming)return;
             if(!ThirdPerson)
             {
                 if(stageCamera!=null)stageCamera.Zoom(scroll);
@@ -106,6 +106,7 @@ namespace Advanture.HookIsland
         }
         public void UpdateFirearmFraming(bool equipped,float deltaTime)
         {
+            if(grenadeEquipped)return;
             if(equipped!=FirstPerson)
             {
                 PrepareInput();
@@ -165,6 +166,7 @@ namespace Advanture.HookIsland
             if(CenterAim)
                 UpdatePerspectivePose();
             else stageCamera?.Follow(renderedFeet);
+            ApplyGrenadePose();
             float age=Time.unscaledTime-kickStarted;
             if(camera!=null && age>=0 && age<.13f)
             {lastKick=(camera.transform.right*Mathf.Sin(age*105)+camera.transform.up*Mathf.Cos(age*85))*(.012f*kickStrength*(1-age/.13f));camera.transform.position+=lastKick;}
@@ -193,7 +195,7 @@ namespace Advanture.HookIsland
         }
         public bool SetLookInputActive(bool active)
         {
-            active&=CenterAim;
+            active&=CenterAim && !grenadeAiming;
             if(!active && Scoped)UpdateScope(null,false,false,0);
             var target=active?CursorLockMode.Locked:CursorLockMode.None;
             bool changed=LookInputActive!=active || Cursor.lockState!=target || Cursor.visible==active;
@@ -213,7 +215,7 @@ namespace Advanture.HookIsland
         }
         public void Reset()
         {
-            PrepareInput();kickStarted=float.NegativeInfinity;firearmBlend=scopeBlend=0;ScopeMagnification=1;FirstPerson=false;RestoreOverhead();orbitInitialized=false;distance=initialDistance;
+            PrepareInput();ResetGrenadeCamera();kickStarted=float.NegativeInfinity;firearmBlend=scopeBlend=0;ScopeMagnification=1;FirstPerson=false;RestoreOverhead();orbitInitialized=false;distance=initialDistance;
             if(camera!=null)
             {
                 if(stageCamera!=null)stageCamera.Reset();

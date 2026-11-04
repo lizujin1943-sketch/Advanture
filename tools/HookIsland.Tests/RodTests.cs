@@ -142,15 +142,17 @@ internal static partial class Program
             Require(s.Tackle!.Batch==2 && s.Coins==1000 && s.Players[0].LastRodResult==RodResult.StaleStock,"Old selected item bought from new batch.");
         });
         yield return ("rod_full_storage_purchase_is_atomic",()=>{
-            var m=RodModel(10000,config:new FishingConfig(restockSeconds:1));uint request=0;bool full=false;
-            for(int n=0;n<80 && !full;n++)
+            // 当前初始背包可放下五十余件钓竿；资金必须先覆盖填包成本，才能验收到 NoSpace 的原子失败。
+            var m=RodModel(100000,config:new FishingConfig(restockSeconds:1));uint request=0;bool full=false;
+            for(int n=0;n<160 && !full;n++)
             {
                 var s=m.Capture();int index=Enumerable.Range(0,s.Tackle!.Stock.Count).FirstOrDefault(i=>!s.Tackle.Stock[i].Sold && s.Tackle.Stock[i].Kind==ItemKind.Rod);
                 if(s.Tackle.Stock.Where(i=>i.Kind==ItemKind.Rod).All(i=>i.Sold)){for(int i=0;i<30;i++)ShopStep(m);continue;}
                 int coins=s.Coins,count=s.Tackle.Items.Count;ShopStep(m,RodCommand(RodAction.Buy,index,s.Tackle.Batch,++request));s=m.Capture();
                 if(s.Players[0].LastRodResult==RodResult.NoSpace){full=true;Require(s.Coins==coins && s.Tackle!.Items.Count==count && !s.Tackle.Stock[index].Sold,"Full storage consumed stock or currency.");}
             }
-            Require(full,"Storage has no real grid limit.");
+            var final=m.Capture();
+            Require(full,$"Storage fill scenario did not reach its limit: receipt={final.Players[0].LastRodResult}, coins={final.Coins}, items={final.Tackle!.Items.Count}, position={final.Players[0].X},{final.Players[0].Z}.");
         });
         yield return ("rod_starter_actual_flight_is_four_metres_per_second",()=>{
             var r=Runner(map:IslandMap.CreatePlatform());

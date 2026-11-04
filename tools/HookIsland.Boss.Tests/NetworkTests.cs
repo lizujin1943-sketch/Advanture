@@ -34,7 +34,8 @@ internal static partial class Program
                             if(!s.Boss.Damageable)return default;
                             var eye=BossGeometry.Proxies(s.Boss).Single(v=>v.Eye);int x=eye.X-p.X,y=eye.Y-BossGeometry.MuzzleHeight(p),z=eye.Z-p.Z;
                             int distance=HookGame.Sqrt((long)x*x+(long)y*y+(long)z*z);short vertical=(short)(y*1000/Math.Max(1,distance));
-                            return new HookInput(0,0,eye.X,eye.Z,fire:true,reload:s.Tackle!.Inventory.Equipped(p.Slot,EquipmentSlot.RightHand)!.Value.LoadedAmmo==0,aimVertical:vertical);
+                            // 弹药属于当前持枪实例；右手槽保留给鱼竿，查错槽会导致每发后都请求换弹。
+                            return new HookInput(0,0,eye.X,eye.Z,fire:true,reload:s.Tackle!.Inventory.ActiveItem(p.Slot)!.Value.LoadedAmmo==0,aimVertical:vertical);
                         });
                         Require(client.Failure==null,client.Failure??"");
                     }

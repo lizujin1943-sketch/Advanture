@@ -19,6 +19,7 @@ namespace Advanture.HookIsland
         public bool ThirdPerson=>cameraView?.ThirdPerson==true;
         public bool FirstPerson=>cameraView?.FirstPerson==true;
         public bool Scoped=>cameraView?.Scoped==true;
+        public bool GrenadeCameraOutsideBody=>cameraView?.GrenadeCameraOutsideBody==true;
         public bool CenterAim=>cameraView?.CenterAim==true;
         public bool CameraPointerCaptured=>cameraView?.PointerCaptured==true;
         public void Initialize(Camera camera,FishingCameraView view){viewCamera=camera;cameraView=view;}
@@ -38,6 +39,7 @@ namespace Advanture.HookIsland
             if(cameraView==null || local.WaitingToJoin)return;
             EnsureEntryPerspective(room);
             // Poll 可能刚确认一次装备切换或倒地；本帧显示立即跟上确认态，不多推进过渡时间。
+            cameraView.SetGrenadeEquipped(room.HoldingGrenade || local.Grenade.Active);
             cameraView.UpdateFirearmFraming(room.Playing && room.HoldingFirearm && !room.Incapacitated,0);
             UpdateScope(room,0);
             // Follow the same smoothed/predicted avatar that is rendered this frame, including
@@ -52,7 +54,7 @@ namespace Advanture.HookIsland
         }
         private void CaptureCameraInput(IslandFishingController room)
         {
-            bool active=CameraControlsActive(room);
+            bool active=CameraControlsActive(room) && room.Grenades?.Aiming!=true;
             if(active && Input.GetKeyDown(KeyCode.C))TogglePerspective(room);
             if(cameraView==null){cameraInput.Reset();return;}
             if(cameraView.SetLookInputActive(active))skipPointerFrame=true;
@@ -68,7 +70,7 @@ namespace Advanture.HookIsland
             if(room.TryGetLocalPlayer(out var player))
             {
                 gun=ActiveToolView.Firearm(room.State,player);
-                allowed=CameraControlsActive(room) && gun!=null && !player.Firearm.Reloading && player.Firearm.DrawTicks==0 &&
+                allowed=CameraControlsActive(room) && room.Grenades?.BlocksOtherActions!=true && gun!=null && !player.Firearm.Reloading && player.Firearm.DrawTicks==0 &&
                     FirearmRules.CanAct(player,SwimRingCatalog.Equipped(room.State.Tackle.Inventory,player.Slot)!=null) && player.Revival.RescueTicks==0;
             }
             if(!allowed && held)scopeReleaseRequired=true;
@@ -78,6 +80,9 @@ namespace Advanture.HookIsland
         {
             cameraView?.PrepareInput();
             EnsureEntryPerspective(room);
+            cameraView?.SetGrenadeEquipped(room.HoldingGrenade || room.TryGetLocalPlayer(out var carrier) && carrier.Grenade.Active);
+            room.Grenades?.BeginCapture(CameraControlsActive(room));
+            cameraView?.UpdateGrenadeAim(room.Grenades?.Aiming==true,Time.unscaledDeltaTime);
             // 装备及库存使用同一份确认态，避免预测换装被回滚时镜头来回跳动。
             cameraView?.UpdateFirearmFraming(room.Playing && room.HoldingFirearm && !room.Incapacitated,Time.unscaledDeltaTime);
             UpdateScope(room,Time.unscaledDeltaTime);
@@ -87,6 +92,14 @@ namespace Advanture.HookIsland
             Vector2 move=new Vector2((Input.GetKey(KeyCode.D)?1:0)-(Input.GetKey(KeyCode.A)?1:0),
                 (Input.GetKey(KeyCode.W)?1:0)-(Input.GetKey(KeyCode.S)?1:0));
             move=cameraView.Movement(move);moveX=(short)(move.x*1000);moveZ=(short)(move.y*1000);
+            if(room.HoldingGrenade || room.Grenades?.Busy==true)
+            {
+                // 瞄准保留移动，鼠标专门选择地面落点。先应用拉远后的相机，再采样屏幕射线。
+                trigger.Interrupt();pendingFire=pendingReload=pendingCancel=false;aimVertical=0;
+                cameraView.Follow(room.Presentation.PlayerPosition(room.LocalSlot));
+                room.Grenades?.SampleTarget(viewCamera);
+                return;
+            }
             bool overUi=!CameraPointerCaptured && room.Overlay!=null && room.Overlay.PointerOverHud;
             // Apply zoom before ray sampling; do not move a grid out from under an active drag.
             if(!CenterAim && !overUi && room.Construction?.Dragging!=true && Mathf.Abs(Input.mouseScrollDelta.y)>.01f)
@@ -132,6 +145,7 @@ namespace Advanture.HookIsland
             pendingFire=pendingCancel=pendingReload=false;return result;
         }
         public void ConfirmFirearmShot(int type)=>cameraView?.ConfirmFirearmShot(FirearmArt.Recoil(FirearmCatalog.Get(type)));
+        public void ConfirmGrenadeBlast(float strength)=>cameraView?.ConfirmGrenadeBlast(strength);
         /// <summary>方向的 Y 分量以千分比传输；限制极点，保证水平瞄准方向仍然有定义。</summary>
         public static short QuantizeVerticalAim(Vector3 direction)=>(short)Mathf.Clamp(Mathf.RoundToInt(direction.normalized.y*1000),-995,995);
         public void ClearCommands(){moveX=moveZ=0;pendingFire=pendingCancel=pendingReload=false;trigger.Interrupt();}

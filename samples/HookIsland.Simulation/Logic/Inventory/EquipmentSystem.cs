@@ -16,7 +16,7 @@ internal sealed class EquipmentSystem
     internal InventorySystem Inventory { get; }
     internal EquipmentSystem(FishingConfig config,Fisher[] players)
     {
-        this.config=config;Inventory=new InventorySystem(players.Length,config.Melee.StarterPan,config.Firearms.Enabled,config.FishingRodsEnabled);attributes=new CharacterStats[players.Length];
+        this.config=config;Inventory=new InventorySystem(players.Length,config.Melee.StarterPan,config.Firearms.Enabled,config.FishingRodsEnabled,config.Firearms.Enabled);attributes=new CharacterStats[players.Length];
         merchants=new MerchantSystem(config);
         for(int i=0;i<players.Length;i++)
         {
@@ -37,6 +37,8 @@ internal sealed class EquipmentSystem
     {var item=Inventory.ActiveItem(player.Slot);return config.Melee.Enabled && item?.Kind==ItemKind.Weapon?WeaponCatalog.Get(item.Value.Type):null;}
     internal CharacterStats Attributes(Fisher player)=>attributes[player.Slot];
     internal int Maximum(Fisher player)=>Attributes(player).StaminaMax;
+    /// <summary>自动回切也必须刷新派生属性和 EquippedRod；不能只改库存的活动物品编号。</summary>
+    internal void RefreshSelection(ref Fisher player){Recalculate(player.Slot);Refresh(ref player);}
     internal SwimRingDefinition? Ring(Fisher player)
     {var item=Inventory.Equipped(player.Slot,EquipmentSlot.SwimRing);return item.HasValue?SwimRingCatalog.Get(item.Value.Type):null;}
     private void Recalculate(int owner)
@@ -49,9 +51,14 @@ internal sealed class EquipmentSystem
     {
         if(command.Inventory.Action!=InventoryAction.None && command.Inventory.RequestId>player.LastInventoryRequest)
         {
+            int previousActive=Inventory.ActiveItem(player.Slot)?.Id??0;
             player.LastInventoryRequest=command.Inventory.RequestId;
             player.LastInventoryResult=Transact(map,tiles,ref player,command.Inventory,ref coins,rescuing);
-            if(player.LastInventoryResult==InventoryResult.Success)Recalculate(player.Slot);
+            if(player.LastInventoryResult==InventoryResult.Success)
+            {
+                if(Inventory.ActiveItem(player.Slot)?.Kind==ItemKind.Throwable && previousActive!=Inventory.ActiveItem(player.Slot)?.Id)player.Grenade.ReturnWeaponId=previousActive;
+                Recalculate(player.Slot);
+            }
         }
         // 保留旧钓竿输入适配，现有自动游玩和调用方也必须通过同一库存事务，不能绕过材料占格。
         if(command.RodAction!=RodAction.None && command.RodRequestId>player.LastRodRequest)
@@ -81,6 +88,7 @@ internal sealed class EquipmentSystem
     private InventoryResult Transact(IslandMap map,IReadOnlyList<PlatformTile> tiles,ref Fisher player,InventoryCommand command,ref int coins,bool rescuing=false)
     {
         if(player.Unavailable || player.Vitals.Downed)return InventoryResult.Disabled;
+        if(player.Grenade.Active)return InventoryResult.HookBusy;
         if(player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0)return InventoryResult.HookBusy;
         if(player.Firearm.Reloading && !WeaponLoadout.CanCancelReload(Inventory.Capture(),player.Slot,command))return InventoryResult.HookBusy;
         if(player.PulledBy>=0)return InventoryResult.HookBusy;

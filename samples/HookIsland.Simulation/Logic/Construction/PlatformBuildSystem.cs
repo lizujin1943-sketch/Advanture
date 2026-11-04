@@ -17,7 +17,7 @@ internal static class PlatformBuildSystem
 
             // Failed receipts also consume their ID: retries cannot change their position or price.
             player.LastBuildId = command.BuildId;
-            player.LastBuildResult = (command.Cancel || map.Fishing!=null && player.Vitals.Downed) ? BuildResult.Busy : PlatformRules.Check(
+            player.LastBuildResult = (command.Cancel || player.Grenade.Active || map.Fishing!=null && player.Vitals.Downed) ? BuildResult.Busy : PlatformRules.Check(
                 map.Platform, tiles, players, fish, driftwood, player, command.Build, command.BuildX, command.BuildZ,treasure,map.Fishing?.Finale,finale);
             if (player.LastBuildResult == BuildResult.Success)
             {

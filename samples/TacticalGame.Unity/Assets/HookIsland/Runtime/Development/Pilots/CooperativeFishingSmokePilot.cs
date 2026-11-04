@@ -41,11 +41,10 @@ namespace Advanture.HookIsland
             Observe(s);if(stage==3 || slot>=2)return default;
             var p=s.Players[slot];if(p.Phase!=HookPhase.Ready || p.Cooldown>0)return default;
             int leadFrames=(int)Math.Min(30UL,requested>s.Steps?requested-s.Steps-1:0);
-            var stand=Stand(slot);int dx=stand.X-p.X,dz=stand.Z-p.Z;
+            var stand=Stand(slot);
             // Commands arrive a few frames later over UDP. Ease into a stand so queued movement
             // cannot perpetually overshoot it and prevent the other angler from casting.
-            if(Math.Abs(dx)>70)return new HookInput(Approach(dx,leadFrames),0);
-            if(Math.Abs(dz)>70)return new HookInput(0,Approach(dz,leadFrames));
+            if(SmokeNavigation.Toward(map,s,slot,stand,leadFrames,out var move))return move;
             int active=Math.Min(2,s.Players.Count);
             for(int i=0;i<active;i++)
             {var at=Stand(i);if(IslandMap.DistanceSquared(s.Players[i].X,s.Players[i].Z,at.X,at.Z)>150L*150)return default;}
@@ -79,7 +78,6 @@ namespace Advanture.HookIsland
             }
             return default;
         }
-        private static short Approach(int delta,int leadFrames)=>(short)Math.Max(-1000,Math.Min(1000,delta*10/(2*(leadFrames+1))));
     }
 }
 #endif

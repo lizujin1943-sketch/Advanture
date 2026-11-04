@@ -7,10 +7,10 @@ using System.Linq;
 namespace Advanture.HookIsland.Simulation;
 
 /// <summary>已实现且能进入库存的物品类别；未实现的装备不生成占位商品。</summary>
-public enum ItemKind : byte { Wood = 1, Fishbone, Rod, Backpack, SwimRing, Apparel, Weapon, Food, Firearm = 9, Ammunition = 10 }
+public enum ItemKind : byte { Wood = 1, Fishbone, Rod, Backpack, SwimRing, Apparel, Weapon, Food, Firearm = 9, Ammunition = 10, Throwable = 11 }
 
 /// <summary>独立装备位。RightHand 保留为钓竿工具位，战斗武器各占一位。</summary>
-public enum EquipmentSlot : byte { None, Hat, LeftHand, RightHand, Clothes, Shoes, Backpack, Accessory, SwimRing, PrimaryWeapon, Sidearm, MeleeWeapon }
+public enum EquipmentSlot : byte { None, Hat, LeftHand, RightHand, Clothes, Shoes, Backpack, Accessory, SwimRing, PrimaryWeapon, Sidearm, MeleeWeapon, Throwable }
 
 /// <summary>网格列数与行数；未穿戴背包时两者都为零。</summary>
 public readonly struct InventorySize
@@ -77,6 +77,7 @@ public static class InventoryCatalog
         ItemKind.Food => type >= 0 && type < FoodCatalog.All.Count,
         ItemKind.Firearm => type >= 0 && type < FirearmCatalog.All.Count,
         ItemKind.Ammunition => type >= 0 && type < AmmunitionCatalog.All.Count,
+        ItemKind.Throwable => type == 0,
         ItemKind.Weapon => type >= 0 && type < WeaponCatalog.All.Count,
         _ => false
     };
@@ -88,6 +89,7 @@ public static class InventoryCatalog
         if (kind == ItemKind.Backpack) return new InventoryDefinition(Backpack(type).Name, 1, 1, 1, EquipmentSlot.Backpack, Backpack(type).Price);
         if (kind == ItemKind.SwimRing) return new InventoryDefinition(SwimRingCatalog.Get(type).Name, 1, 1, 1, EquipmentSlot.SwimRing, SwimRingCatalog.Get(type).Price);
         if (kind == ItemKind.Apparel) return ApparelCatalog.Get(type).Item;
+        if (kind == ItemKind.Throwable) return new InventoryDefinition("手榴弹",1,1,1,EquipmentSlot.Throwable,0);
         if (kind == ItemKind.Weapon) {var weapon=WeaponCatalog.Get(type);return new InventoryDefinition(weapon.Name,weapon.Width,weapon.Height,1,EquipmentSlot.MeleeWeapon,weapon.Price);}
         if (kind == ItemKind.Firearm) {var gun=FirearmCatalog.Get(type);return new InventoryDefinition(gun.Name,gun.Width,gun.Height,1,gun.Category==FirearmCategory.Pistol?EquipmentSlot.Sidearm:EquipmentSlot.PrimaryWeapon,gun.Price);}
         if (kind == ItemKind.Ammunition) {var ammo=AmmunitionCatalog.Get(type);return new InventoryDefinition(ammo.Name,1,1,ammo.StackLimit,EquipmentSlot.None,ammo.Price);}

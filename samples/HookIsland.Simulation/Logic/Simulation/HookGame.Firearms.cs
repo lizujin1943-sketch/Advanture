@@ -50,7 +50,7 @@ public sealed partial class HookGame
             {
                 var p=players[i];var c=commands[i];var item=ActiveFirearm(p);
                 if(!FirearmRules.CanMaintain(p,equipment!.Ring(p)!=null)){FirearmRules.CancelActions(ref p);players[i]=p;continue;}
-                if(p.Shopping)continue;
+                if(p.Shopping || p.Grenade.Active)continue;
                 if(!item.HasValue || p.Firearm.Busy || Rescuing(p,c) || c.Build!=TileKind.None || c.RodAction!=RodAction.None || c.Inventory.Action!=InventoryAction.None || !c.Treasure.IsEmpty)continue;
                 var gun=item.Value;var definition=FirearmCatalog.Get(gun.Type);
                 if(c.Reload && gun.LoadedAmmo<definition.Capacity)

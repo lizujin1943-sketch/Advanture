@@ -8,12 +8,12 @@ namespace Advanture.HookIsland.Simulation;
 public static class WeaponLoadout
 {
     public static IReadOnlyList<EquipmentSlot> Slots {get;}=Array.AsReadOnly(new[]{
-        EquipmentSlot.PrimaryWeapon,EquipmentSlot.Sidearm,EquipmentSlot.MeleeWeapon});
-    public static bool IsWeaponSlot(EquipmentSlot slot)=>slot==EquipmentSlot.PrimaryWeapon || slot==EquipmentSlot.Sidearm || slot==EquipmentSlot.MeleeWeapon;
+        EquipmentSlot.PrimaryWeapon,EquipmentSlot.Sidearm,EquipmentSlot.MeleeWeapon,EquipmentSlot.Throwable});
+    public static bool IsWeaponSlot(EquipmentSlot slot)=>slot==EquipmentSlot.PrimaryWeapon || slot==EquipmentSlot.Sidearm || slot==EquipmentSlot.MeleeWeapon || slot==EquipmentSlot.Throwable;
     public static bool IsHandSlot(EquipmentSlot slot)=>IsWeaponSlot(slot) || slot==EquipmentSlot.RightHand;
     internal static int Fallback(IReadOnlyList<InventoryItem> items,int owner)
     {
-        foreach(var slot in new[]{EquipmentSlot.Sidearm,EquipmentSlot.PrimaryWeapon,EquipmentSlot.MeleeWeapon,EquipmentSlot.RightHand})
+        foreach(var slot in new[]{EquipmentSlot.Sidearm,EquipmentSlot.PrimaryWeapon,EquipmentSlot.MeleeWeapon,EquipmentSlot.RightHand,EquipmentSlot.Throwable})
             foreach(var item in items)
                 if(item.Owner==owner && item.Location==ItemLocation.Equipped && item.Definition.Slot==slot)return item.Id;
         return 0;
@@ -25,7 +25,7 @@ public static class WeaponLoadout
         var current=inventory.ActiveItem(owner);
         if(command.Action==InventoryAction.Unequip)return current.HasValue && command.Target==(int)current.Value.Definition.Slot;
         InventoryItem? incoming=null;
-        if(command.Action==InventoryAction.SelectWeapon && command.Target>=(int)EquipmentSlot.PrimaryWeapon && command.Target<=(int)EquipmentSlot.MeleeWeapon)
+        if(command.Action==InventoryAction.SelectWeapon && command.Target>=(int)EquipmentSlot.PrimaryWeapon && command.Target<=(int)EquipmentSlot.Throwable)
             incoming=inventory.Equipped(owner,(EquipmentSlot)command.Target);
         else if(command.Action==InventoryAction.SelectQuickSlot)incoming=QuickbarRules.Resolve(inventory,owner,command.Target-1);
         else if(command.Action==InventoryAction.Equip)incoming=inventory.Items.Where(i=>i.Id==command.Target && i.Owner==owner && i.Location!=ItemLocation.Ground).Select(i=>(InventoryItem?)i).FirstOrDefault();

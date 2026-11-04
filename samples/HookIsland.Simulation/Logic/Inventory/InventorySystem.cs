@@ -31,7 +31,7 @@ public sealed partial class InventorySystem
     private QuickbarBinding[] quickbar;
     private int[] activeItems;
 
-    public InventorySystem(int players,bool starterPan=false,bool starterFirearm=false,bool starterRod=true)
+    public InventorySystem(int players,bool starterPan=false,bool starterFirearm=false,bool starterRod=true,bool starterGrenade=false)
     {
         if (players < 1 || players > 4) throw new ArgumentOutOfRangeException(nameof(players));
         playerCount = players; items = new List<InventoryItem>(); nextId = 1; spent = new int[players];
@@ -44,6 +44,7 @@ public sealed partial class InventorySystem
             var gun=EquippedItem(nextId++,owner,ItemKind.Firearm,0);gun.LoadedAmmo=FirearmCatalog.Get(0).Capacity;
             items.Add(gun);
         }
+        if(starterGrenade)for(int owner=0;owner<players;owner++)items.Add(EquippedItem(nextId++,owner,ItemKind.Throwable,0));
         purchasedAmmunition=new int[AmmunitionCatalog.All.Count];consumedAmmunition=new int[AmmunitionCatalog.All.Count];
         replenishedAmmunition=new int[AmmunitionCatalog.All.Count];
         consumedFoods=new int[FoodCatalog.All.Count];quickbar=QuickbarRules.Defaults(players,items);

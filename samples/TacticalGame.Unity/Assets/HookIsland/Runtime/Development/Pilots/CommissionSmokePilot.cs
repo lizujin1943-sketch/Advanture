@@ -20,9 +20,7 @@ namespace Advanture.HookIsland
             var p=s.Players[slot];if(p.Phase!=HookPhase.Ready || p.Cooldown>0)return default;
             int delay=(int)Math.Min(30UL,tick>s.Steps?tick-s.Steps-1:0);
             var stand=new Point((slot*2-s.Players.Count+1)*450,-2600);
-            int dx=stand.X-p.X,dz=stand.Z-p.Z;
-            if(Math.Abs(dx)>70)return new HookInput(Approach(dx,delay),0);
-            if(Math.Abs(dz)>70)return new HookInput(0,Approach(dz,delay));
+            if(SmokeNavigation.Toward(map,s,slot,stand,delay,out var move))return move;
             var fish=s.Fish[0];int speed=FishingRules.Speed(s,p),range=FishingRules.Range(map,s,p);
             if(fish.Owner>=0)
             {
@@ -44,7 +42,6 @@ namespace Advanture.HookIsland
             }
             return default;
         }
-        private static short Approach(int delta,int delay)=>(short)Math.Max(-1000,Math.Min(1000,delta*10/(2*(delay+1))));
     }
 }
 #endif

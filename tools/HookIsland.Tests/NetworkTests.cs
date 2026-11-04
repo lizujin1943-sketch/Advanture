@@ -62,7 +62,11 @@ internal static partial class Program
             finally{foreach(var c in clients)c.Dispose();}
         });
         yield return ("four_udp_clients_spend_fishing_income_and_sync_personal_upgrades",()=>{
-            var map=ShopMap();using var host=new IslandHost(map,0,4);
+            var original=ShopMap();
+            // 四人分别站在商店范围内；重叠出生会让鱼钩先命中队友，无法稳定验收个人升级。
+            var map=new IslandMap(original.Shore,original.Pier,new[]{new Point(-900,-2900),new Point(-300,-2900),
+                new Point(300,-2900),new Point(900,-2900)},original.FishSpots);
+            using var host=new IslandHost(map,0,4);
             var clients=Enumerable.Range(0,4).Select(i=>new IslandClient(map,IPAddress.Loopback,host.Port,i==0?(ushort)0:ushort.MaxValue)).ToArray();
             var requests=new uint[4];TimeSpan last=default;var clock=System.Diagnostics.Stopwatch.StartNew();
             try
@@ -79,6 +83,8 @@ internal static partial class Program
                             var state=c.Session.InspectState();var p=state.Players[c.Slot];
                             var upgrade=c.Slot%2==0?HookUpgrade.Range:HookUpgrade.Speed;
                             int level=upgrade==HookUpgrade.Range?p.RangeLevel:p.SpeedLevel;
+                            // 已升级者只重发旧交易回执，不再抢同一条鱼，避免测试由先升级的长竿永久垄断。
+                            if(level>0)return new HookInput(0,0,upgrade:upgrade,purchaseId:requests[index]);
                             if(level==0 && state.Coins>=50 && p.Phase==HookPhase.Ready)
                             {
                                 if(requests[index]==0 || p.LastPurchaseId==requests[index])requests[index]=p.LastPurchaseId+1;

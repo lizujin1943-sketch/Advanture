@@ -31,7 +31,8 @@ namespace Advanture.HookIsland
             int lead=(int)Math.Min(30,tick>s.Steps?tick-s.Steps-1:0);
             if(slot==1)
             {
-                if(p.Z> -2200)return MoveZ(p,-2300,lead);
+                // 救援者先到侧面的岸点，给落水同伴保留向南的通道，不能用同一条直线互相顶住。
+                if(SmokeNavigation.Toward(map,s,slot,new Point(400,-2300),lead,out var move))return move;
                 var victim=s.Players[2];
                 if(victim.Z< -3700 && victim.TimesHooked==0 && p.Phase==HookPhase.Ready)
                     return new HookInput(0,0,victim.X,victim.Z,true);

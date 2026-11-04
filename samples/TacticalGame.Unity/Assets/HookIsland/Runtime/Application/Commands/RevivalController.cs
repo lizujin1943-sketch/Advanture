@@ -19,7 +19,7 @@ namespace Advanture.HookIsland
         {
             if(room.TryGetLocalPlayer(out var local) && requests.Observe(local.Revival,out var result))Message=Explain(result);
             if(!room.Playing || room.InputProvider!=null || !Application.isFocused || !Input.GetKey(KeyCode.R) ||
-                room.ShopOpen || room.Equipment?.InventoryOpen==true || room.Construction?.Open==true ||
+                room.ShopOpen || room.Grenades?.BlocksOtherActions==true || room.Equipment?.InventoryOpen==true || room.Construction?.Open==true ||
                 GetComponent<FishingOverlay>().MenuOpen || !room.TryGetLocalPlayer(out local) || local.Vitals.Downed)
             {press.Interrupt(Input.GetKey(KeyCode.R));return;}
             bool valid=heldTarget>=0 && heldTarget<room.State.Players.Count && RevivalSystem.CanHelp(room.Map,room.State.Tiles,local,room.State.Players[heldTarget]);
@@ -52,7 +52,7 @@ namespace Advanture.HookIsland
         {
             if(requests.Pending)return new HookInput(0,0,revival:requests.Command,roomRules:input.RoomRules,
                 aimVertical:input.AimVertical);
-            if(!input.Treasure.IsEmpty || !input.Revival.IsEmpty || heldTarget<0 || input.Inventory.Action!=InventoryAction.None ||
+            if(!input.Grenade.IsEmpty || !input.Treasure.IsEmpty || !input.Revival.IsEmpty || heldTarget<0 || input.Inventory.Action!=InventoryAction.None ||
                 input.RodAction!=RodAction.None || input.Build!=TileKind.None || input.Upgrade!=HookUpgrade.None)return input;
             return new HookInput(input.MoveX,input.MoveZ,input.AimX,input.AimZ,false,input.Cancel,shopping:input.Shopping,
                 revival:new RevivalCommand(rescueSlot:heldTarget),roomRules:input.RoomRules,

@@ -107,7 +107,10 @@ internal static partial class Program
             var m=Model(1,BossConfig.Disabled);Require(m.Capture().Tiles.Count==9 && m.Capture().Boss.Limbs.Count==0,"Disabled generated ring");Step(m,new HookInput(0,0,bossRequest:1));Require(m.Capture().Boss.Receipts[0].Result==BossRequestResult.Disabled,"Disabled request receipt");RoundTrip(m.Capture());
             var map=Map();Require(map.Encode().SequenceEqual(IslandMap.Decode(map.Encode()).Encode()),"Map differs");Reject(()=>new BossConfig(bodyHealth:0));
             var old=map.Encode();old[3]=0x4b;Reject(()=>IslandMap.Decode(old));
-            Require(new HookGame().Encode(m.Capture())[3]==0x4c,"State version not advanced");
+            // 手雷动作及投掷物进入快照后使用新格式，并明确拒绝旧 BOSS 版本的状态头。
+            var stateBytes=new HookGame().Encode(m.Capture());
+            Require(stateBytes[3]==0x4f,"State version not advanced");
+            stateBytes[3]=0x4c;Reject(()=>new HookGame().Decode(stateBytes));
         });
         foreach(var test in StateCases())yield return test;
         foreach(var test in TerrainValidationCases())yield return test;

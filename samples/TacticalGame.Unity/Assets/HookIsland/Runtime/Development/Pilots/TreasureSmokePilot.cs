@@ -41,13 +41,17 @@ namespace Advanture.HookIsland
         {
             Observe(s);if(Stage==3)return default;
             var c=s.Treasure.Chests[Stage];var p=s.Players[slot];
-            if(p.Phase!=HookPhase.Ready || p.Cooldown>0 || c.Phase==TreasurePhase.Waiting || Stage<2 && slot>0)return default;
+            if(p.Phase!=HookPhase.Ready || p.Cooldown>0 || c.Phase==TreasurePhase.Waiting)return default;
             if(c.Phase==TreasurePhase.Landed && slot!=c.Owner)return default;
             int delay=(int)Math.Min(30UL,requested>s.Steps?requested-s.Steps-1:0);
+            if(Stage<2 && slot>0)
+            {
+                // 等待者站到另一侧，避免堵住单人宝箱的正常走位路线；只发送普通移动输入。
+                var waiting=new Point(-1800+(slot-1)*1800,Math.Abs(c.DirectionX)>0 || c.DirectionZ>0?-2200:2200);
+                SmokeNavigation.Toward(map,s,slot,waiting,delay,out var wait);return wait;
+            }
             Point stand=c.Phase==TreasurePhase.Landed?new Point(Math.Max(-2600,Math.Min(2600,c.X)),Math.Max(-2600,Math.Min(2600,c.Z))):Stand(c,slot,Stage<2?1:s.Players.Count);
-            int dx=stand.X-p.X,dz=stand.Z-p.Z;
-            if(Math.Abs(dx)>60)return new HookInput(Approach(dx,delay),0);
-            if(Math.Abs(dz)>60)return new HookInput(0,Approach(dz,delay));
+            if(SmokeNavigation.Toward(map,s,slot,stand,delay,out var move))return move;
             if(c.Phase==TreasurePhase.Landed)
                 return new HookInput(0,0,treasure:new TreasureCommand(c.Id+1,c.Generation,p.LastTreasureRequest+1));
             if(Stage==2 && c.Phase==TreasurePhase.Floating)
@@ -57,12 +61,11 @@ namespace Advanture.HookIsland
                 {
                     var at=Stand(c,q.Slot,s.Players.Count);
                     if(q.WaitingToJoin || q.Unavailable || q.Phase!=HookPhase.Ready || q.Cooldown>0 ||
-                        Math.Abs(q.X-at.X)>60 || Math.Abs(q.Z-at.Z)>60)return default;
+                        Math.Abs(q.X-at.X)>70 || Math.Abs(q.Z-at.Z)>70)return default;
                 }
             }
             return new HookInput(0,0,c.X,c.Z,true);
         }
-        private static short Approach(int delta,int delay)=>(short)Math.Max(-1000,Math.Min(1000,delta*10/(2*(delay+1))));
     }
 }
 #endif

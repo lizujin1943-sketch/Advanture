@@ -58,11 +58,17 @@ public sealed class CrabNavigation
     public bool CanStand(int x,int z)
     {
         if(Math.Abs((long)x)>49000 || Math.Abs((long)z)>49000)return false;
-        for(int cz=PlatformRules.CellAt(z-CrabConfig.BodyRadius);cz<=PlatformRules.CellAt(z+CrabConfig.BodyRadius);cz++)
-            for(int cx=PlatformRules.CellAt(x-CrabConfig.BodyRadius);cx<=PlatformRules.CellAt(x+CrabConfig.BodyRadius);cx++)
-                if(!cells.Contains((cx,cz)))return false;
+        if(!CoversFootprint(x,z,CrabConfig.BodyRadius))return false;
         if(map.Fishing!=null)foreach(var merchant in map.Fishing.Merchants.Definitions)
             if(Math.Abs((long)x-merchant.X)<MerchantRules.BodyHalfSize+CrabConfig.BodyRadius && Math.Abs((long)z-merchant.Z)<MerchantRules.BodyHalfSize+CrabConfig.BodyRadius)return false;
+        return true;
+    }
+    /// <summary>共享已确认地格的哈希，不为每次单位分离重新线性扫描整座平台。</summary>
+    internal bool CoversFootprint(int x,int z,int radius)
+    {
+        for(int cz=PlatformRules.CellAt(z-radius);cz<=PlatformRules.CellAt(z+radius);cz++)
+            for(int cx=PlatformRules.CellAt(x-radius);cx<=PlatformRules.CellAt(x+radius);cx++)
+                if(!cells.Contains((cx,cz)))return false;
         return true;
     }
     public bool Segment(int x,int z,int toX,int toZ)

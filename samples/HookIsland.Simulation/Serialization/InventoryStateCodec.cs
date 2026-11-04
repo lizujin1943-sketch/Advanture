@@ -23,7 +23,7 @@ public static class InventoryStateCodec
     }
     internal static void Write(BinaryWriter w, InventoryState state)
     {
-        w.Write(0x35474142); w.Write(state.PlayerCount); w.Write(state.NextId);
+        w.Write(0x36474142); w.Write(state.PlayerCount); w.Write(state.NextId);
         foreach (int spent in state.SpentCoins) w.Write(spent);
         foreach(int consumed in state.ConsumedFoods)w.Write(consumed);
         foreach(int count in state.PurchasedAmmunition)w.Write(count);
@@ -41,7 +41,7 @@ public static class InventoryStateCodec
     internal static InventoryState Read(BinaryReader r)
     {
         int version=r.ReadInt32();
-        if (version!=0x35474142) throw new InvalidDataException("Inventory version mismatch.");
+        if (version!=0x36474142) throw new InvalidDataException("Inventory version mismatch.");
         int players = r.ReadInt32(), nextId = r.ReadInt32();
         if (players < 1 || players > 4) throw new InvalidDataException("Invalid inventory participants.");
         var spent = new int[players]; for (int i = 0; i < players; i++) spent[i] = r.ReadInt32();
