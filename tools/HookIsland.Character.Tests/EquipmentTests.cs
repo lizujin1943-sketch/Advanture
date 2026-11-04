@@ -31,7 +31,7 @@ internal static partial class Program
             Require(result == InventoryResult.Success && stats.StaminaMax == 160 * StaminaSystem.UnitsPerPoint, "Preview did not show proposed bonus.");
             Require(before.SequenceEqual(InventoryStateCodec.Encode(inventory.Capture())), "Preview wrote authority.");
             Require(CharacterEquipment.CanEquipTo(rod, EquipmentSlot.RightHand) && !CharacterEquipment.CanEquipTo(rod, EquipmentSlot.LeftHand), "Rod accepted incompatible slot.");
-            Require(CharacterEquipment.Slots.Count == 8 && CharacterEquipment.Slots.Distinct().Count() == 8, "Eight independent slots required.");
+            Require(CharacterEquipment.Slots.Count == 11 && CharacterEquipment.Slots.Distinct().Count() == 11, "Equipment categories must have independent slots.");
         });
         yield return ("character_full_bag_and_busy_rod_previews_fail_atomically", () => {
             var inventory = new InventorySystem(1); inventory.CreditMaterial(0, ItemKind.Wood, InventoryCatalog.Backpack(1).Size.Width * InventoryCatalog.Backpack(1).Size.Height * InventoryCatalog.MaterialStackLimit, new Point(0, 0));

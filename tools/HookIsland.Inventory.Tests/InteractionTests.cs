@@ -31,7 +31,7 @@ internal static partial class Program
             var inventory = new InventorySystem(1); int coins = 100000;
             inventory.Purchase(0, ItemKind.Backpack, 10, true, true, Ground, ref coins);
             var targetSize = InventoryCatalog.Backpack(8).Size;
-            int bags = targetSize.Width * targetSize.Height / 4 + 1;
+            int bags = targetSize.Width * targetSize.Height + 1;
             for (int i = 0; i < bags; i++) Require(inventory.Purchase(0, ItemKind.Backpack, 1, false, false, Ground, ref coins) == InventoryResult.Success, "Cannot fill preview fixture.");
             var cache = new InventoryEquipmentPreview(); var before = InventoryStateCodec.Encode(inventory.Capture());
             var clock = System.Diagnostics.Stopwatch.StartNew();

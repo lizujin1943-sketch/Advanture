@@ -16,11 +16,11 @@ internal sealed class EquipmentSystem
     internal InventorySystem Inventory { get; }
     internal EquipmentSystem(FishingConfig config,Fisher[] players)
     {
-        this.config=config;Inventory=new InventorySystem(players.Length,config.Melee.StarterPan,config.Firearms.Enabled);attributes=new CharacterStats[players.Length];
+        this.config=config;Inventory=new InventorySystem(players.Length,config.Melee.StarterPan,config.Firearms.Enabled,config.FishingRodsEnabled);attributes=new CharacterStats[players.Length];
         merchants=new MerchantSystem(config);
         for(int i=0;i<players.Length;i++)
         {
-            Recalculate(i);Refresh(ref players[i]);
+            players[i].SelectedQuickSlot=-1;Recalculate(i);Refresh(ref players[i]);
             players[i].Vitals=CharacterSystem.Spawn(attributes[i]);players[i].Stamina=attributes[i].StaminaMax;
             HealingSystem.Refill(ref players[i],config.Healing);
         }
@@ -32,17 +32,16 @@ internal sealed class EquipmentSystem
     }
     internal TackleState Capture()=>new TackleState(config,Inventory.Capture(),merchants.Capture());
     internal RodDefinition? Equipped(Fisher player)
-    {var item=Inventory.Equipped(player.Slot,EquipmentSlot.RightHand);return item?.Kind==ItemKind.Rod?RodCatalog.Get(item.Value.Type):null;}
+    {var item=Inventory.ActiveItem(player.Slot);return item?.Kind==ItemKind.Rod?RodCatalog.Get(item.Value.Type):null;}
     internal WeaponDefinition? Weapon(Fisher player)
-    {var item=Inventory.Equipped(player.Slot,EquipmentSlot.RightHand);return config.Melee.Enabled && item?.Kind==ItemKind.Weapon?WeaponCatalog.Get(item.Value.Type):null;}
+    {var item=Inventory.ActiveItem(player.Slot);return config.Melee.Enabled && item?.Kind==ItemKind.Weapon?WeaponCatalog.Get(item.Value.Type):null;}
     internal CharacterStats Attributes(Fisher player)=>attributes[player.Slot];
     internal int Maximum(Fisher player)=>Attributes(player).StaminaMax;
     internal SwimRingDefinition? Ring(Fisher player)
     {var item=Inventory.Equipped(player.Slot,EquipmentSlot.SwimRing);return item.HasValue?SwimRingCatalog.Get(item.Value.Type):null;}
     private void Recalculate(int owner)
     {
-        var modifiers=CharacterEquipment.Slots.Select(slot=>Inventory.Equipped(owner,slot)).Where(item=>item.HasValue).Select(item=>item!.Value.Definition.Modifiers);
-        attributes[owner]=CharacterStats.Calculate(config.Character,config.StaminaBase,modifiers);
+        attributes[owner]=CharacterEquipment.Calculate(config.Character,config.StaminaBase,Inventory.Capture(),owner);
     }
     internal void Advance(IslandMap map,IReadOnlyList<PlatformTile> tiles,IReadOnlyList<Fisher> players,ulong step)
         =>merchants.Advance(map,tiles,players,step);
@@ -64,7 +63,7 @@ internal sealed class EquipmentSystem
             var stock=merchants.Get(0)!.Stock;
             bool wrongKind=(action==InventoryAction.Buy || action==InventoryAction.BuyAndEquip) && target<stock.Count && stock[target].Kind!=ItemKind.Rod;
             wrongKind|=action==InventoryAction.Equip && Inventory.Find(target)?.Kind!=ItemKind.Rod;
-            var result=wrongKind?InventoryResult.InvalidItem:Transact(map,tiles,ref player,
+            var result=!config.FishingRodsEnabled?InventoryResult.Disabled:wrongKind?InventoryResult.InvalidItem:Transact(map,tiles,ref player,
                 new InventoryCommand(action,target,batch:command.RodBatch,requestId:command.RodRequestId),ref coins);
             player.LastRodResult=LegacyResult(result);
             if(result==InventoryResult.Success)Recalculate(player.Slot);
@@ -73,7 +72,7 @@ internal sealed class EquipmentSystem
     }
     private void Refresh(ref Fisher player)
     {
-        var right=Inventory.Equipped(player.Slot,EquipmentSlot.RightHand);
+        var right=Inventory.ActiveItem(player.Slot);
         player.EquippedRod=right?.Kind==ItemKind.Rod?right.Value.Id:0;
         PersonalMaterialInventory.Refresh(ref player,Inventory);
         // 换装只裁切上限，不补满。自然休息仍由每帧的 StaminaSystem 负责。
@@ -83,7 +82,7 @@ internal sealed class EquipmentSystem
     {
         if(player.Unavailable || player.Vitals.Downed)return InventoryResult.Disabled;
         if(player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0)return InventoryResult.HookBusy;
-        if(player.Firearm.Reloading && !ReloadSwitch(player,command))return InventoryResult.HookBusy;
+        if(player.Firearm.Reloading && !WeaponLoadout.CanCancelReload(Inventory.Capture(),player.Slot,command))return InventoryResult.HookBusy;
         if(player.PulledBy>=0)return InventoryResult.HookBusy;
         bool grounded=SwimmingTerrain.Ground(map,tiles,player.X,player.Z);
         if(!grounded && (command.DropOld || command.Action==InventoryAction.Drop || command.Action==InventoryAction.Pickup ||
@@ -120,11 +119,19 @@ internal sealed class EquipmentSystem
             var stock=merchant.Stock;
             if(command.Target<0 || command.Target>=stock.Count || stock[command.Target].Sold)return InventoryResult.SoldOut;
             var offer=stock[command.Target];bool equip=command.Action==InventoryAction.BuyAndEquip;
-            if(equip && InventoryCatalog.Get(offer.Kind,offer.Type).Slot==EquipmentSlot.RightHand && (player.Phase!=HookPhase.Ready || player.Melee.Active))return InventoryResult.HookBusy;
+            if(offer.Kind==ItemKind.Rod && !config.FishingRodsEnabled)return InventoryResult.Disabled;
+            if(equip && WeaponLoadout.IsHandSlot(InventoryCatalog.Get(offer.Kind,offer.Type).Slot) && (player.Phase!=HookPhase.Ready || player.Melee.Active))return InventoryResult.HookBusy;
             int previousCoins=player.Coins;
             var result=Inventory.Purchase(owner,offer.Kind,offer.Type,equip,command.DropOld,point,ref player.Coins);
             if(result==InventoryResult.Success)
-            {coins-=previousCoins-player.Coins;merchants.Sell(command.MerchantId,command.Target);if(equip && InventoryCatalog.Get(offer.Kind,offer.Type).Slot==EquipmentSlot.RightHand)player.SelectedQuickSlot=-1;}
+            {coins-=previousCoins-player.Coins;merchants.Sell(command.MerchantId,command.Target);if(equip && WeaponLoadout.IsHandSlot(InventoryCatalog.Get(offer.Kind,offer.Type).Slot))player.SelectedQuickSlot=-1;}
+            return result;
+        }
+        if(command.Action==InventoryAction.SelectWeapon)
+        {
+            if(player.Phase!=HookPhase.Ready || player.Melee.Active)return InventoryResult.HookBusy;
+            var result=Inventory.SelectWeapon(owner,(EquipmentSlot)command.Target);
+            if(result==InventoryResult.Success)player.SelectedQuickSlot=-1;
             return result;
         }
         if(command.Action==InventoryAction.Heal)
@@ -147,8 +154,8 @@ internal sealed class EquipmentSystem
             player.SelectedQuickSlot=slot;return InventoryResult.Success;
         }
         var item=Inventory.Find(command.Target)??default;
-        bool changesRod=(command.Action==InventoryAction.Unequip && command.Target==(int)EquipmentSlot.RightHand) ||
-            ((command.Action==InventoryAction.Equip || command.Action==InventoryAction.PickupAndEquip) && item.Id!=0 && item.Definition.Slot==EquipmentSlot.RightHand);
+        bool changesRod=(command.Action==InventoryAction.Unequip && WeaponLoadout.IsHandSlot((EquipmentSlot)command.Target)) ||
+            ((command.Action==InventoryAction.Equip || command.Action==InventoryAction.PickupAndEquip) && item.Id!=0 && WeaponLoadout.IsHandSlot(item.Definition.Slot));
         if(changesRod && (player.Phase!=HookPhase.Ready || player.Melee.Active))return InventoryResult.HookBusy;
         var outcome=command.Action switch {
             InventoryAction.Move=>Inventory.Move(owner,command.Target,command.X,command.Y,command.Rotated),
@@ -163,35 +170,20 @@ internal sealed class EquipmentSystem
         if(outcome==InventoryResult.Success && changesRod)
         {
             player.SelectedQuickSlot=-1;
-            var equipped=Inventory.Equipped(owner,EquipmentSlot.RightHand);
+            var equipped=Inventory.ActiveItem(owner);
             if(equipped.HasValue)for(int n=0;n<QuickbarRules.SlotCount;n++)
                 if(Inventory.QuickSlot(owner,n).ItemId==equipped.Value.Id){player.SelectedQuickSlot=n;break;}
         }
         return outcome;
     }
-    // Reload cancellation belongs to the simulation after a successful right-hand/active-tool change.
-    // A failed layout/ownership check must leave the current reload untouched.
-    private bool ReloadSwitch(Fisher player,InventoryCommand command)
-    {
-        if(command.DropOld)return false;
-        if(command.Action==InventoryAction.Unequip)return command.Target==(int)EquipmentSlot.RightHand;
-        InventoryItem? incoming=command.Action==InventoryAction.Equip?Inventory.Find(command.Target):null;
-        if(command.Action==InventoryAction.SelectQuickSlot)
-        {
-            int slot=command.Target-1;
-            if(slot<0 || slot>=QuickbarRules.SlotCount)return false;
-            incoming=Inventory.QuickItem(player.Slot,slot);
-        }
-        return incoming.HasValue && incoming.Value.Definition.Slot==EquipmentSlot.RightHand &&
-            incoming.Value.Id!=Inventory.Equipped(player.Slot,EquipmentSlot.RightHand)?.Id;
-    }
     internal bool ActiveTool(Fisher player)
     {
         if(player.SelectedQuickSlot<0)return true;
         var item=Inventory.QuickItem(player.Slot,player.SelectedQuickSlot);
-        return item.HasValue && item.Value.Location==ItemLocation.Equipped && item.Value.Definition.Slot==EquipmentSlot.RightHand;
+        return item.HasValue && item.Value.Location==ItemLocation.Equipped && item.Value.Id==Inventory.ActiveItem(player.Slot)?.Id;
     }
     private static RodResult LegacyResult(InventoryResult result)=>result switch {
+        InventoryResult.Disabled=>RodResult.Disabled,
         InventoryResult.Success=>RodResult.Success,InventoryResult.TooFar=>RodResult.TooFar,
         InventoryResult.HookBusy=>RodResult.HookBusy,InventoryResult.StaleStock=>RodResult.StaleStock,
         InventoryResult.SoldOut=>RodResult.SoldOut,InventoryResult.InsufficientCoins=>RodResult.InsufficientCoins,

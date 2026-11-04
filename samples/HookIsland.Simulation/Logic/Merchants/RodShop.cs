@@ -16,14 +16,14 @@ internal static class RodShop
         var stock=new List<RodStock>();var occupied=new List<GridRect>();
         int level=MerchantRules.Level(config,merchantId);
         uint random=FishCatalog.Mix(unchecked(((uint)config.Seed+batch*2654435761u)^((uint)merchantId*2246822519u)));
-        // 初期先放四支 T1 竿，再保底 Lv2 背包；最宽的四支 2x4 竿仍为 2x2 包留有空间。
-        for(int n=0;n<(level==1?4:1);n++)
+        // 启用钓竿的配置初期先放四支 T1 竿，再保底 Lv2 背包。
+        for(int n=0;config.FishingRodsEnabled && n<(level==1?4:1);n++)
             Add(ItemKind.Rod,ChooseRod(Tier(),ref random));
         int bagTier=level==1?1:Tier();
         Add(ItemKind.Backpack,level==1?2:bagTier*2-(int)(Next()%2));
         Add(ItemKind.SwimRing,level==1?1:Tier()*2-(int)(Next()%2));
         if(config.Melee.Enabled)Add(ItemKind.Weapon,0);
-        // 保留四人初期钓具供应后轮换衣装；优先款放不下时尝试其他尺寸。
+        // 保留初期装备供应后轮换衣装。
         int firstApparel=(int)((batch+1UL)%(ulong)ApparelCatalog.All.Count);
         for(int n=0;n<ApparelCatalog.All.Count;n++)
             if(Add(ItemKind.Apparel,(firstApparel+n)%ApparelCatalog.All.Count))break;
@@ -31,7 +31,7 @@ internal static class RodShop
         {
             // 剩余货位按竿／包／圈／衣装 40:20:20:20 混排。
             int roll=(int)(Next()%5),tier=Tier();
-            var kind=roll<2?ItemKind.Rod:roll==2?ItemKind.Backpack:roll==3?ItemKind.SwimRing:ItemKind.Apparel;
+            var kind=roll<2 && config.FishingRodsEnabled?ItemKind.Rod:roll==2?ItemKind.Backpack:roll==3?ItemKind.SwimRing:ItemKind.Apparel;
             Add(kind,kind==ItemKind.Rod?ChooseRod(tier,ref random):kind==ItemKind.Apparel?
                 (int)(Next()%(uint)ApparelCatalog.All.Count):tier*2-(int)(Next()%2));
         }

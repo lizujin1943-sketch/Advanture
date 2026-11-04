@@ -19,14 +19,14 @@ public sealed partial class InventorySystem
     /// <summary>Caller owns action timing and deduplication. A failed shot never consumes ammunition.</summary>
     public bool TryFireRound(int owner,int weaponId)
     {
-        if(!TryOwned(owner,weaponId,out var gun) || gun.Kind!=ItemKind.Firearm || gun.Location!=ItemLocation.Equipped || gun.LoadedAmmo==0)return false;
+        if(!TryOwned(owner,weaponId,out var gun) || activeItems[owner]!=weaponId || gun.Kind!=ItemKind.Firearm || gun.Location!=ItemLocation.Equipped || gun.LoadedAmmo==0)return false;
         int type=FirearmCatalog.Get(gun.Type).AmmoType;if(consumedAmmunition[type]==int.MaxValue)return false;
         var draft=Draft();gun.LoadedAmmo--;ReplaceOrRemove(draft.Items,gun);Commit(draft);consumedAmmunition[type]++;return true;
     }
     /// <summary>Refill from unlimited supply at the confirmed completion tick; legacy physical ammo remains untouched.</summary>
     public int ReloadFirearm(int owner,int weaponId)
     {
-        if(!TryOwned(owner,weaponId,out var gun) || gun.Kind!=ItemKind.Firearm || gun.Location!=ItemLocation.Equipped)return 0;
+        if(!TryOwned(owner,weaponId,out var gun) || activeItems[owner]!=weaponId || gun.Kind!=ItemKind.Firearm || gun.Location!=ItemLocation.Equipped)return 0;
         var definition=FirearmCatalog.Get(gun.Type);int amount=definition.Capacity-gun.LoadedAmmo;
         if(amount==0 || replenishedAmmunition[definition.AmmoType]>int.MaxValue-amount)return 0;
         var draft=Draft();gun.LoadedAmmo+=amount;ReplaceOrRemove(draft.Items,gun);Commit(draft);

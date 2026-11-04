@@ -5,7 +5,7 @@ namespace Advanture.HookIsland.Simulation;
 public static class FirearmRules
 {
     public static FirearmDefinition? Equipped(HookState s,Fisher p)
-    {var item=s.Tackle?.Inventory.Equipped(p.Slot,EquipmentSlot.RightHand);return s.Tackle?.Config.Firearms.Enabled==true && item?.Kind==ItemKind.Firearm?FirearmCatalog.Get(item.Value.Type):null;}
+    {var item=s.Tackle?.Inventory.ActiveItem(p.Slot);return s.Tackle?.Config.Firearms.Enabled==true && item?.Kind==ItemKind.Firearm?FirearmCatalog.Get(item.Value.Type):null;}
     public static bool CanMaintain(Fisher p,bool hasRing)=>!p.Unavailable && !p.Vitals.Downed && !p.Revival.Dead && !p.Knockback.Active && p.PulledBy<0 && p.HookedPlayer<0 && p.Phase==HookPhase.Ready && !p.Melee.Active && (!p.Swimming.InWater || hasRing);
     public static bool CanAct(Fisher p,bool hasRing)=>CanMaintain(p,hasRing) && !p.Shopping;
     public static int FriendlyDamage(int damage,int armor,int percent=50)

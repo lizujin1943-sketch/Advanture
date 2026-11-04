@@ -89,7 +89,7 @@ namespace Advanture.HookIsland.Tests
             var inventory=new InventorySystem(state.Tackle.Inventory);var players=state.Players.ToArray();int coins=5000;
             Assert.That(inventory.Purchase(0,ItemKind.Firearm,2,true,false,new Point(players[0].X,players[0].Z),ref coins),Is.EqualTo(InventoryResult.Success));
             players[0].Coins=coins;players[0].CoinsEarned=5000;players[0].SelectedQuickSlot=-1;
-            players[0].Firearm.WeaponId=inventory.Equipped(0,EquipmentSlot.RightHand).Value.Id;
+            players[0].Firearm.WeaponId=inventory.ActiveItem(0).Value.Id;
             var switched=new HookState(state.Steps,players,state.Fish,coins,state.Tiles,state.Driftwood,
                 new TackleState(state.Tackle.Config,inventory.Capture(),state.Tackle.Merchants),state.Enemies,state.RoomRules,
                 state.Treasure,state.Commissions,state.Ocean,state.Finale,state.Crabs);

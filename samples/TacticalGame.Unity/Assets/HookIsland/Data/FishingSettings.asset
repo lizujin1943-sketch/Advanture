@@ -26,6 +26,7 @@ MonoBehaviour:
   boss: {fileID: 11400000, guid: b4d59e92a9dbd430eb0d54bde01b8612, type: 2}
   enableMelee: 1
   enableFirearms: 1
+  enableFishingRods: 0
   startWithFryingPan: 1
   startingCoins: 3000
   piranhaHealth: 50

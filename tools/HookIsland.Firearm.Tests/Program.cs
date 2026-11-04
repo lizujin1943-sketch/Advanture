@@ -152,5 +152,5 @@ internal static partial class Program
         });
     }
     private static int Main(string[] args)
-    {int count=0;try{foreach(var (name,test) in LongGunCases().Concat(LongGunNetworkCases()).Concat(UnlimitedAmmoCases()).Concat(StarterCases()).Concat(Cases()).Concat(BoundaryCases()).Concat(KillRewardCases()).Concat(NetworkCases()).Where(c=>args.Length==0||args.Any(a=>c.Item1.Contains(a,StringComparison.OrdinalIgnoreCase)))){test();Console.WriteLine("PASS "+name);count++;}Require(count>0,"No matching firearm checks");Console.WriteLine($"Passed {count} firearm checks");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
+    {int count=0;try{foreach(var (name,test) in WeaponCases().Concat(WeaponNetworkCases()).Concat(LongGunCases()).Concat(LongGunNetworkCases()).Concat(UnlimitedAmmoCases()).Concat(StarterCases()).Concat(Cases()).Concat(BoundaryCases()).Concat(KillRewardCases()).Concat(NetworkCases()).Where(c=>args.Length==0||args.Any(a=>c.Item1.Contains(a,StringComparison.OrdinalIgnoreCase)))){test();Console.WriteLine("PASS "+name);count++;}Require(count>0,"No matching firearm checks");Console.WriteLine($"Passed {count} firearm checks");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
 }

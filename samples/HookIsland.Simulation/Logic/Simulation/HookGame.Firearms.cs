@@ -11,7 +11,7 @@ public sealed partial class HookGame
         private InventoryItem? ActiveFirearm(Fisher p)
         {
             if(!FirearmsEnabled || equipment?.ActiveTool(p)!=true)return null;
-            var item=equipment.Inventory.Equipped(p.Slot,EquipmentSlot.RightHand);
+            var item=equipment.Inventory.ActiveItem(p.Slot);
             return item?.Kind==ItemKind.Firearm?item:null;
         }
         private bool Rescuing(Fisher p,HookInput command)

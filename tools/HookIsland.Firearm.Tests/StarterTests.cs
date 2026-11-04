@@ -39,7 +39,7 @@ internal static partial class Program
             Require(restored.Capture().Players[0].Coins==2100 && restored.Capture().Tackle!.Inventory.SpentCoins[0]==900,"Restoring replayed grant or purchase");
             var fresh=FreshGame(1,map).Capture();Require(fresh.Coins==3000 && fresh.Tackle!.Inventory.SpentCoins[0]==0,"Fresh round retained old spending");
         });
-        yield return ("starter_pistol_each_player_has_one_loaded_gun_and_can_use_slot_six",()=>{
+        yield return ("starter_pistol_fishing_configuration_keeps_rod_selected_and_sidearm_equipped",()=>{
             foreach(int count in new[]{1,4})
             {
                 var model=FreshGame(count);var state=model.Capture();var inventory=state.Tackle!.Inventory;
@@ -47,11 +47,11 @@ internal static partial class Program
                 foreach(var player in state.Players)
                 {
                     var gun=inventory.Items.Single(i=>i.Owner==player.Slot && i.Kind==ItemKind.Firearm);
-                    Require(gun.Type==0 && gun.Location==ItemLocation.Backpack && gun.LoadedAmmo==7,"Starter pistol must be stored with a full magazine");
+                    Require(gun.Type==0 && gun.Location==ItemLocation.Equipped && gun.LoadedAmmo==7,"Starter pistol must occupy the sidearm slot with a full magazine");
                     Require(QuickbarRules.Resolve(inventory,player.Slot,5)?.Id==gun.Id,"Slot six is not bound to the owner's pistol");
-                    Require(inventory.Equipped(player.Slot,EquipmentSlot.RightHand)?.Kind==ItemKind.Rod && player.SelectedQuickSlot==0,"New game must still start holding the rod");
+                    Require(inventory.Equipped(player.Slot,EquipmentSlot.RightHand)?.Kind==ItemKind.Rod && player.SelectedQuickSlot==-1,"New game must still start holding the rod");
                     Require(QuickbarRules.Resolve(inventory,player.Slot,0)?.Kind==ItemKind.Rod && QuickbarRules.Resolve(inventory,player.Slot,1)?.Kind==ItemKind.Weapon,"Starter gun replaced an existing tool binding");
-                    for(int type=0;type<3;type++)Require(inventory.Quickbar[player.Slot*9+2+type].Kind==ItemKind.Food && inventory.Quickbar[player.Slot*9+2+type].Type==type,"Starter gun replaced a food binding");
+                    for(int type=0;type<3;type++)Require(inventory.Quickbar[player.Slot*9+2+type].Empty,"Retired food binding returned");
                 }
                 Require(state.Coins==0 && state.Players.All(p=>p.Coins==0) && inventory.SpentCoins.All(n=>n==0) && !inventory.Items.Any(i=>i.Kind==ItemKind.Ammunition),"Starter kit charged money or granted spare ammunition");
                 var codec=new HookGame();codec.Decode(codec.Encode(state)); // Includes backpack overlap and ammunition conservation validation.
@@ -66,7 +66,7 @@ internal static partial class Program
             var model=FreshGame(1);Step(model,SelectSlot(6,1));Wait(model,9);
             var player=model.Capture().Players[0];Step(model,new HookInput(0,0,player.X,player.Z-14000,fire:true));Wait(model,6);
             int id=model.Capture().Tackle!.Inventory.Items.Single(i=>i.Kind==ItemKind.Firearm).Id;
-            Step(model,SelectSlot(1,2));Step(model,new HookInput(0,0,inventory:new InventoryCommand(InventoryAction.Drop,id,amount:1,requestId:3)));
+            Step(model,new HookInput(0,0,inventory:new InventoryCommand(InventoryAction.Unequip,(int)EquipmentSlot.Sidearm,requestId:2)));Step(model,new HookInput(0,0,inventory:new InventoryCommand(InventoryAction.Drop,id,amount:1,requestId:3)));
             var saved=model.Capture();var dropped=saved.Tackle!.Inventory.Items.Single(i=>i.Id==id);
             Require(dropped.Location==ItemLocation.Ground && dropped.LoadedAmmo==6 && saved.Tackle.Inventory.Quickbar[5].Empty,"Dropping starter pistol did not preserve ammo or clear its binding");
             var codec=new HookGame();var bytes=codec.Encode(saved);var restored=FreshGame(1);

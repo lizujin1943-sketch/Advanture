@@ -22,7 +22,7 @@ namespace Advanture.HookIsland
         public void Present(InventoryState inventory, int owner)
         {
             foreach (var visual in slotVisuals) visual.Root.gameObject.SetActive(inventory.Equipped(owner, visual.Slot).HasValue);
-            var equippedRod = inventory.Equipped(owner, EquipmentSlot.RightHand);
+            var equippedRod = inventory.ActiveItem(owner);
             int rodType = equippedRod?.Kind==ItemKind.Rod ? equippedRod.Value.Type : -1;
             if (rodType != shownRod)
             {

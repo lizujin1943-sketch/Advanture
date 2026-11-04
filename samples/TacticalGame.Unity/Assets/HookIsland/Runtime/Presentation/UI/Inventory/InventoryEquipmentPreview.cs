@@ -21,7 +21,7 @@ namespace Advanture.HookIsland
         {
             var nextKey = (owner, coins, position.X, position.Z, kind, type, id, buying, dropOld);
             if (cached != null && previous != null && key.Equals(nextKey) && previous.PlayerCount == state.PlayerCount &&
-                previous.NextId == state.NextId && previous.SpentCoins.SequenceEqual(state.SpentCoins) && previous.Items.SequenceEqual(state.Items)) return cached;
+                previous.NextId == state.NextId && previous.SpentCoins.SequenceEqual(state.SpentCoins) && previous.ActiveItems.SequenceEqual(state.ActiveItems) && previous.Items.SequenceEqual(state.Items)) return cached;
             previous = state; key = nextKey;
             var copy = new InventorySystem(state);
             var result = buying ? copy.Purchase(owner, kind, type, true, dropOld, position, ref coins) : copy.Equip(owner, id, dropOld, position);

@@ -45,7 +45,7 @@ public struct MeleeState
 public static class MeleeRules
 {
     public static WeaponDefinition? Equipped(HookState s,Fisher p)
-    {var item=s.Tackle?.Inventory.Equipped(p.Slot,EquipmentSlot.RightHand);return s.Tackle?.Config.Melee.Enabled==true && item?.Kind==ItemKind.Weapon?WeaponCatalog.Get(item.Value.Type):null;}
+    {var item=s.Tackle?.Inventory.ActiveItem(p.Slot);return s.Tackle?.Config.Melee.Enabled==true && item?.Kind==ItemKind.Weapon?WeaponCatalog.Get(item.Value.Type):null;}
     public static bool CanAct(Fisher p,bool hasRing)=>!p.Unavailable && !p.Vitals.Downed && !p.Revival.Dead && !p.Knockback.Active && p.PulledBy<0 && p.HookedPlayer<0 && !p.Shopping && p.Phase==HookPhase.Ready && (!p.Swimming.InWater || hasRing);
     public static bool Begin(ref Fisher p,WeaponDefinition weapon,int aimX,int aimZ,bool hasRing)
     {

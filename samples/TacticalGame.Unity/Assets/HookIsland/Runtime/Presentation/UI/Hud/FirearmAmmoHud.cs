@@ -14,7 +14,7 @@ namespace Advanture.HookIsland
             if(room.State.Tackle==null || room.Construction?.Open==true)return;
             var firearm=ActiveToolView.Firearm(room.State,player);
             if(firearm==null)return;
-            var loaded=room.State.Tackle.Inventory.Equipped(player.Slot,EquipmentSlot.RightHand);
+            var loaded=room.State.Tackle.Inventory.ActiveItem(player.Slot);
             int ammo=loaded?.LoadedAmmo??0;
             // 把常驻读数贴近底部，临时换弹文字放在上方，避免为了预留提示而把整组数字抬高。
             float y=rect.y+26;

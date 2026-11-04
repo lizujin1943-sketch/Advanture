@@ -102,7 +102,7 @@ namespace Advanture.HookIsland
         {
             spread.enabled=false;if(!show || local>=state.Players.Count)return;
             var player=state.Players[local];var gun=ActiveToolView.Firearm(state,player);if(gun==null || player.Vitals.Downed || player.Unavailable)return;
-            var item=state.Tackle.Inventory.Equipped(local,EquipmentSlot.RightHand);if(!item.HasValue)return;
+            var item=state.Tackle.Inventory.ActiveItem(local);if(!item.HasValue)return;
             var motion=local<predicted.Players.Count?predicted.Players[local]:player;
             var direction=aim-new Vector3(motion.X/1000f,0,motion.Z/1000f);direction.y=0;if(direction.sqrMagnitude<.001f)return;direction.Normalize();
             int dx=Mathf.RoundToInt(direction.x*EnemyGeometry.DirectionScale),dz=Mathf.RoundToInt(direction.z*EnemyGeometry.DirectionScale);

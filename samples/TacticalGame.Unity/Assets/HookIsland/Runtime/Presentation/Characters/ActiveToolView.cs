@@ -9,7 +9,7 @@ namespace Advanture.HookIsland
         {
             if(state.Tackle==null || player.SelectedQuickSlot<0)return true;
             var item=QuickbarRules.Resolve(state.Tackle.Inventory,player.Slot,player.SelectedQuickSlot);
-            return item.HasValue && item.Value.Location==ItemLocation.Equipped && item.Value.Definition.Slot==EquipmentSlot.RightHand;
+            return item.HasValue && item.Value.Location==ItemLocation.Equipped && item.Value.Id==state.Tackle.Inventory.ActiveItem(player.Slot)?.Id;
         }
         public static FirearmDefinition Firearm(HookState state,Fisher player)=>RightHand(state,player)?FirearmRules.Equipped(state,player):null;
     }

@@ -9,13 +9,15 @@ public static class CharacterEquipment
 {
     public static IReadOnlyList<EquipmentSlot> Slots { get; } = Array.AsReadOnly(new[] {
         EquipmentSlot.Hat, EquipmentSlot.LeftHand, EquipmentSlot.RightHand, EquipmentSlot.Clothes,
-        EquipmentSlot.Shoes, EquipmentSlot.Backpack, EquipmentSlot.Accessory, EquipmentSlot.SwimRing });
+        EquipmentSlot.Shoes, EquipmentSlot.Backpack, EquipmentSlot.Accessory, EquipmentSlot.SwimRing,
+        EquipmentSlot.PrimaryWeapon,EquipmentSlot.Sidearm,EquipmentSlot.MeleeWeapon });
 
     public static CharacterStats Calculate(CharacterConfig config, int staminaBase, InventoryState inventory, int owner)
     {
         if (owner < 0 || owner >= inventory.PlayerCount) throw new ArgumentOutOfRangeException(nameof(owner));
         return CharacterStats.Calculate(config, staminaBase, inventory.Items
-            .Where(i => i.Owner == owner && i.Location == ItemLocation.Equipped).Select(i => i.Definition.Modifiers));
+            .Where(i => i.Owner == owner && i.Location == ItemLocation.Equipped &&
+                (!WeaponLoadout.IsHandSlot(i.Definition.Slot) || i.Id==inventory.ActiveItems[owner])).Select(i => i.Definition.Modifiers));
     }
     public static bool CanEquipTo(InventoryItem item, EquipmentSlot slot) =>
         slot != EquipmentSlot.None && item.Definition.Slot == slot;
@@ -31,7 +33,7 @@ public static class CharacterEquipment
             inventory.Items.Where(i => i.Id == intent.Target && i.Owner == owner && i.Location != ItemLocation.Ground)
                 .Select(i => (InventoryItem?)i).FirstOrDefault();
         if (!item.HasValue) return InventoryResult.NotOwned;
-        if (beingPulled || (hookBusy && item.Value.Definition.Slot == EquipmentSlot.RightHand)) return InventoryResult.HookBusy;
+        if (beingPulled || (hookBusy && WeaponLoadout.IsHandSlot(item.Value.Definition.Slot))) return InventoryResult.HookBusy;
         var draft = new InventorySystem(inventory);
         var result = unequip ? draft.Unequip(owner, (EquipmentSlot)intent.Target, new Point(0, 0)) :
             draft.Equip(owner, intent.Target, intent.DropOld, new Point(0, 0));

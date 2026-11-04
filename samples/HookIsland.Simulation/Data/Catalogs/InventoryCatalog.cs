@@ -9,8 +9,8 @@ namespace Advanture.HookIsland.Simulation;
 /// <summary>已实现且能进入库存的物品类别；未实现的装备不生成占位商品。</summary>
 public enum ItemKind : byte { Wood = 1, Fishbone, Rod, Backpack, SwimRing, Apparel, Weapon, Food, Firearm = 9, Ammunition = 10 }
 
-/// <summary>角色的八个独立装备槽。只有明确实现的物品类型能占用对应槽。</summary>
-public enum EquipmentSlot : byte { None, Hat, LeftHand, RightHand, Clothes, Shoes, Backpack, Accessory, SwimRing }
+/// <summary>独立装备位。RightHand 保留为钓竿工具位，战斗武器各占一位。</summary>
+public enum EquipmentSlot : byte { None, Hat, LeftHand, RightHand, Clothes, Shoes, Backpack, Accessory, SwimRing, PrimaryWeapon, Sidearm, MeleeWeapon }
 
 /// <summary>网格列数与行数；未穿戴背包时两者都为零。</summary>
 public readonly struct InventorySize
@@ -20,7 +20,7 @@ public readonly struct InventorySize
     public int Height { get; }
 }
 
-/// <summary>空背包自身占 2×2；此配置的 Size 是穿戴后才提供的容量。</summary>
+/// <summary>空背包自身占 1×1；此配置的 Size 是穿戴后才提供的容量。</summary>
 public sealed class BackpackDefinition
 {
     internal BackpackDefinition(string[] cells)
@@ -85,11 +85,11 @@ public static class InventoryCatalog
         if (!IsValid(kind, type)) throw new ArgumentOutOfRangeException(nameof(type));
         if (IsMaterial(kind)) return new InventoryDefinition(kind == ItemKind.Wood ? "木材" : "鱼骨", 1, 1, MaterialStackLimit, EquipmentSlot.None, 0);
         if (kind == ItemKind.Food) {var food=FoodCatalog.Get(type);return new InventoryDefinition(food.Name,1,1,food.StackLimit,EquipmentSlot.None,food.Price);}
-        if (kind == ItemKind.Backpack) return new InventoryDefinition(Backpack(type).Name, 2, 2, 1, EquipmentSlot.Backpack, Backpack(type).Price);
-        if (kind == ItemKind.SwimRing) return new InventoryDefinition(SwimRingCatalog.Get(type).Name, 2, 2, 1, EquipmentSlot.SwimRing, SwimRingCatalog.Get(type).Price);
+        if (kind == ItemKind.Backpack) return new InventoryDefinition(Backpack(type).Name, 1, 1, 1, EquipmentSlot.Backpack, Backpack(type).Price);
+        if (kind == ItemKind.SwimRing) return new InventoryDefinition(SwimRingCatalog.Get(type).Name, 1, 1, 1, EquipmentSlot.SwimRing, SwimRingCatalog.Get(type).Price);
         if (kind == ItemKind.Apparel) return ApparelCatalog.Get(type).Item;
-        if (kind == ItemKind.Weapon) {var weapon=WeaponCatalog.Get(type);return new InventoryDefinition(weapon.Name,weapon.Width,weapon.Height,1,EquipmentSlot.RightHand,weapon.Price);}
-        if (kind == ItemKind.Firearm) {var gun=FirearmCatalog.Get(type);return new InventoryDefinition(gun.Name,gun.Width,gun.Height,1,EquipmentSlot.RightHand,gun.Price);}
+        if (kind == ItemKind.Weapon) {var weapon=WeaponCatalog.Get(type);return new InventoryDefinition(weapon.Name,weapon.Width,weapon.Height,1,EquipmentSlot.MeleeWeapon,weapon.Price);}
+        if (kind == ItemKind.Firearm) {var gun=FirearmCatalog.Get(type);return new InventoryDefinition(gun.Name,gun.Width,gun.Height,1,gun.Category==FirearmCategory.Pistol?EquipmentSlot.Sidearm:EquipmentSlot.PrimaryWeapon,gun.Price);}
         if (kind == ItemKind.Ammunition) {var ammo=AmmunitionCatalog.Get(type);return new InventoryDefinition(ammo.Name,1,1,ammo.StackLimit,EquipmentSlot.None,ammo.Price);}
         var rod = RodCatalog.Get(type);
         return new InventoryDefinition(rod.Name, rod.Width, rod.Height, 1, EquipmentSlot.RightHand, rod.Price, new CharacterModifier(stamina: rod.StaminaBonus));

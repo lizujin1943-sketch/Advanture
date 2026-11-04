@@ -23,12 +23,13 @@ public static class InventoryStateCodec
     }
     internal static void Write(BinaryWriter w, InventoryState state)
     {
-        w.Write(0x34474142); w.Write(state.PlayerCount); w.Write(state.NextId);
+        w.Write(0x35474142); w.Write(state.PlayerCount); w.Write(state.NextId);
         foreach (int spent in state.SpentCoins) w.Write(spent);
         foreach(int consumed in state.ConsumedFoods)w.Write(consumed);
         foreach(int count in state.PurchasedAmmunition)w.Write(count);
         foreach(int count in state.ConsumedAmmunition)w.Write(count);
         foreach(int count in state.ReplenishedAmmunition)w.Write(count);
+        foreach(int id in state.ActiveItems)w.Write(id);
         foreach(var binding in state.Quickbar){w.Write((byte)binding.Kind);w.Write(binding.Type);w.Write(binding.ItemId);}
         w.Write(state.Items.Count);
         foreach (var item in state.Items.OrderBy(i => i.Id))
@@ -40,14 +41,15 @@ public static class InventoryStateCodec
     internal static InventoryState Read(BinaryReader r)
     {
         int version=r.ReadInt32();
-        if (version!=0x33474142 && version!=0x34474142) throw new InvalidDataException("Inventory version mismatch.");
+        if (version!=0x35474142) throw new InvalidDataException("Inventory version mismatch.");
         int players = r.ReadInt32(), nextId = r.ReadInt32();
         if (players < 1 || players > 4) throw new InvalidDataException("Invalid inventory participants.");
         var spent = new int[players]; for (int i = 0; i < players; i++) spent[i] = r.ReadInt32();
         var consumed=new int[FoodCatalog.All.Count];for(int n=0;n<consumed.Length;n++)consumed[n]=r.ReadInt32();
         var purchasedAmmo=new int[AmmunitionCatalog.All.Count];for(int n=0;n<purchasedAmmo.Length;n++)purchasedAmmo[n]=r.ReadInt32();
         var consumedAmmo=new int[AmmunitionCatalog.All.Count];for(int n=0;n<consumedAmmo.Length;n++)consumedAmmo[n]=r.ReadInt32();
-        var replenishedAmmo=new int[AmmunitionCatalog.All.Count];if(version==0x34474142)for(int n=0;n<replenishedAmmo.Length;n++)replenishedAmmo[n]=r.ReadInt32();
+        var replenishedAmmo=new int[AmmunitionCatalog.All.Count];for(int n=0;n<replenishedAmmo.Length;n++)replenishedAmmo[n]=r.ReadInt32();
+        var activeItems=new int[players];for(int n=0;n<players;n++)activeItems[n]=r.ReadInt32();
         var quickbar=new QuickbarBinding[players*QuickbarRules.SlotCount];
         for(int n=0;n<quickbar.Length;n++)quickbar[n]=new QuickbarBinding((ItemKind)r.ReadByte(),r.ReadInt32(),r.ReadInt32());
         int count = r.ReadInt32(); if (count < 0 || count > InventoryCatalog.MaxItems) throw new InvalidDataException("Invalid inventory count.");
@@ -59,7 +61,7 @@ public static class InventoryStateCodec
             byte rotated = r.ReadByte(); if (rotated > 1 || item.Id <= previousId) throw new InvalidDataException("Noncanonical inventory item.");
             item.Rotated = rotated != 0; item.WorldX = r.ReadInt32(); item.WorldZ = r.ReadInt32(); item.LoadedAmmo = r.ReadInt32(); items[i] = item; previousId = item.Id;
         }
-        var state = new InventoryState(players, items, nextId, spent, consumed, quickbar, purchasedAmmo, consumedAmmo, replenishedAmmo); Validate(state); return state;
+        var state = new InventoryState(players, items, nextId, spent, consumed, quickbar, purchasedAmmo, consumedAmmo, replenishedAmmo,activeItems); Validate(state); return state;
     }
     public static void Validate(InventoryState state)
     {
@@ -109,6 +111,14 @@ public static class InventoryStateCodec
             if(loose+guns.Sum(i=>(long)i.LoadedAmmo)+state.ConsumedAmmunition[type]!=awarded)throw new InvalidDataException("Ammunition conservation mismatch.");
         }
         if (gearCount > InventoryCatalog.MaxEquipmentItems) throw new InvalidDataException("Too much equipment.");
+        if(state.ActiveItems.Count!=state.PlayerCount)throw new InvalidDataException("Invalid active weapon count.");
+        for(int owner=0;owner<state.PlayerCount;owner++)
+        {
+            int id=state.ActiveItems[owner];
+            if(id<0 || id==0 && state.Items.Any(i=>i.Owner==owner && i.Location==ItemLocation.Equipped && WeaponLoadout.IsHandSlot(i.Definition.Slot)) ||
+                id>0 && !state.Items.Any(i=>i.Id==id && i.Owner==owner && i.Location==ItemLocation.Equipped && WeaponLoadout.IsHandSlot(i.Definition.Slot)))
+                throw new InvalidDataException("Active weapon is not equipped by its owner.");
+        }
         foreach (var item in state.Items.Where(i => i.Location == ItemLocation.Backpack))
             if (!InventoryLayout.Fits(state.Size(item.Owner), item, item.X, item.Y, item.Rotated) || !InventoryLayout.Free(state.Items, item.Owner, item, item.X, item.Y, item.Rotated))
                 throw new InvalidDataException("Invalid backpack layout.");

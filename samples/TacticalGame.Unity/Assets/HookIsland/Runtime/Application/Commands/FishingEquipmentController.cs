@@ -31,9 +31,14 @@ namespace Advanture.HookIsland
             {
                 if(Input.GetKeyDown(KeyCode.F))PickupNearest(p);
                 if(room.InputProvider==null && Input.GetKeyDown(KeyCode.V))Heal();
-                for(int slot=0;slot<QuickbarRules.SlotCount;slot++)
-                    if(Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+slot)))SelectQuickSlot(slot);
+                if(room.InputProvider==null)for(int slot=0;slot<WeaponLoadout.Slots.Count;slot++)
+                    if(Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+slot)))SelectWeapon(slot);
             }
+        }
+        public void SelectWeapon(int slot)
+        {
+            if(slot<0 || slot>=WeaponLoadout.Slots.Count)return;
+            RequestInventory(new InventoryCommand(InventoryAction.SelectWeapon,(int)WeaponLoadout.Slots[slot]));
         }
         public void SelectQuickSlot(int slot)
         {
@@ -47,7 +52,7 @@ namespace Advanture.HookIsland
             if(room.State?.Tackle==null || !room.TryGetLocalPlayer(out var p) || p.SelectedQuickSlot<0)return false;
             var inventory=room.State.Tackle.Inventory;var binding=inventory.Quickbar[p.Slot*QuickbarRules.SlotCount+p.SelectedQuickSlot];
             if(binding.Empty)return true;
-            if(binding.Kind!=ItemKind.Food)return InventoryCatalog.Get(binding.Kind,binding.Type).Slot!=EquipmentSlot.RightHand;
+            if(binding.Kind!=ItemKind.Food)return binding.ItemId!=inventory.ActiveItem(p.Slot)?.Id;
             Notify("按 V 使用回血机会");
             return true;
         }
@@ -68,19 +73,14 @@ namespace Advanture.HookIsland
         {
             if(room.State?.Tackle==null || !room.Playing || !room.TryGetLocalPlayer(out var player) || Pending || room.Construction?.Pending==true || room.PurchasePending || room.Treasures?.Pending==true)return false;
             if(!CanRequestDuringFirearmAction(room.State,player,intent))
-            {Notify(player.Firearm.Reloading?"换弹中 · 可切换右手工具取消":"请等待举枪或射击收势结束");return false;}
+            {Notify(player.Firearm.Reloading?"换弹中 · 可切换武器取消":"请等待举枪或射击收势结束");return false;}
             return inventoryRequests.TryQueue(player.LastInventoryRequest,intent);
         }
         public static bool CanRequestDuringFirearmAction(HookState state,Fisher player,InventoryCommand command)
         {
             if(player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0)return false;
             if(!player.Firearm.Reloading)return true;
-            var current=state.Tackle.Inventory.Equipped(player.Slot,EquipmentSlot.RightHand);
-            if(command.Action==InventoryAction.Unequip)return command.Target==(int)EquipmentSlot.RightHand;
-            InventoryItem? next=null;
-            if(command.Action==InventoryAction.SelectQuickSlot)next=QuickbarRules.Resolve(state.Tackle.Inventory,player.Slot,command.Target-1);
-            else if(command.Action==InventoryAction.Equip)foreach(var item in state.Tackle.Inventory.Items)if(item.Id==command.Target && item.Owner==player.Slot){next=item;break;}
-            return next.HasValue && next.Value.Definition.Slot==EquipmentSlot.RightHand && next.Value.Id!=current?.Id;
+            return state.Tackle!=null && WeaponLoadout.CanCancelReload(state.Tackle.Inventory,player.Slot,command);
         }
         private void PickupNearest(Fisher player)
         {

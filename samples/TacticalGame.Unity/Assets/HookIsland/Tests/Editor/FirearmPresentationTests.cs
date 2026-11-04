@@ -84,7 +84,7 @@ namespace Advanture.HookIsland.Tests
             bool Allowed(InventoryCommand command)=>FishingEquipmentController.CanRequestDuringFirearmAction(state,player,command);
             Assert.That(Allowed(new InventoryCommand(InventoryAction.SelectQuickSlot,2)),Is.True);
             Assert.That(Allowed(new InventoryCommand(InventoryAction.Equip,2)),Is.True);
-            Assert.That(Allowed(new InventoryCommand(InventoryAction.Unequip,(int)EquipmentSlot.RightHand)),Is.True);
+            Assert.That(Allowed(new InventoryCommand(InventoryAction.Unequip,(int)EquipmentSlot.Sidearm)),Is.True);
             Assert.That(Allowed(new InventoryCommand(InventoryAction.SelectQuickSlot,1)),Is.False);
             Assert.That(Allowed(new InventoryCommand(InventoryAction.SelectQuickSlot,3)),Is.False);
             Assert.That(Allowed(new InventoryCommand(InventoryAction.Buy,FirearmCatalog.OfferOffset)),Is.False);

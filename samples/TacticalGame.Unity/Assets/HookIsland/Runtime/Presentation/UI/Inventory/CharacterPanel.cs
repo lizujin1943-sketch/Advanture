@@ -9,7 +9,7 @@ namespace Advanture.HookIsland
     public sealed class CharacterPanel
     {
         private readonly Font font;
-        private GUIStyle title, body, small, button, centered, slotText;
+        private GUIStyle title, body, small, button, slotText;
         private readonly ItemIconPainter icons = new ItemIconPainter();
         private int selectedId, dragId;
         private Vector2 scroll, dragStart;
@@ -18,7 +18,12 @@ namespace Advanture.HookIsland
         private bool previewValid;
         private CharacterStats preview;
         private InventoryResult previewResult;
-        private readonly Rect[] slotRects = new Rect[8];
+        // Keep weapon categories first in both equipment views; the rod slot only appears in fishing-enabled loadouts.
+        internal static readonly EquipmentSlot[] DisplaySlots = {
+            EquipmentSlot.PrimaryWeapon, EquipmentSlot.Sidearm, EquipmentSlot.MeleeWeapon,
+            EquipmentSlot.Hat, EquipmentSlot.Clothes, EquipmentSlot.Shoes,
+            EquipmentSlot.Backpack, EquipmentSlot.Accessory, EquipmentSlot.SwimRing, EquipmentSlot.RightHand };
+        private readonly Rect[] slotRects = new Rect[DisplaySlots.Length];
         private static readonly Color Mint = new Color(.36f, .88f, .73f);
         private static readonly Color Muted = new Color(.66f, .79f, .82f);
         public CharacterPanel(Font font) { this.font = font; }
@@ -39,7 +44,6 @@ namespace Advanture.HookIsland
             {
                 title = Text(22, Mint); body = Text(17, Color.white); small = Text(14, Muted);
                 button = new GUIStyle(GUI.skin.button) { font = font, fontSize = 16, wordWrap = true };
-                centered = new GUIStyle(small) { alignment = TextAnchor.MiddleCenter };
                 slotText = Text(12, Color.white);
             }
             var current = CharacterEquipment.Calculate(config, staminaBase, inventory, player.Slot);
@@ -55,23 +59,29 @@ namespace Advanture.HookIsland
             GUI.Label(new Rect(0, 0, 340, 32), $"P{player.Slot + 1}  ·  {(vitals.Downed ? "倒地" : player.Swimming.InWater ? "水中" : "岛上渔人")}", title);
             GUI.Label(new Rect(400, 0, 260, 32), "角色属性", title);
             GUI.Label(new Rect(695, 0, 340, 32), "背包中的装备", title);
-            DrawPortrait(new Vector2(194, 177), player.Slot, equipped.Any(i => i.Definition.Slot == EquipmentSlot.Backpack), vitals.Downed);
-            for (int n = 0; n < CharacterEquipment.Slots.Count; n++)
+            bool hasRod = inventory.Items.Any(i => i.Owner == player.Slot && i.Kind == ItemKind.Rod);
+            int activeId = inventory.ActiveItems[player.Slot];
+            for (int n = 0; n < DisplaySlots.Length; n++)
             {
-                var slot = CharacterEquipment.Slots[n]; float x = n % 2 == 0 ? 0 : 252, y = 46 + n / 2 * 77;
-                var rect = new Rect(x, y, 132, 65); slotRects[n] = rect;
+                var slot = DisplaySlots[n];
+                if (slot == EquipmentSlot.RightHand && !hasRod) { slotRects[n] = default; continue; }
+                var rect = n < 3 ? new Rect(0, 46 + n * 64, 384, 56) : n < 9 ?
+                    new Rect((n - 3) % 3 * 130, 250 + (n - 3) / 3 * 68, 124, 60) : new Rect(0, 392, 384, 46);
+                slotRects[n] = rect;
                 var item = equipped.FirstOrDefault(i => i.Definition.Slot == slot);
+                bool active = item.Id != 0 && item.Id == activeId;
                 bool compatible = dragging && selection.Id != 0 && CharacterEquipment.CanEquipTo(selection, slot);
-                if (compatible) Fill(new Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4), previewResult == InventoryResult.Success ? Mint : new Color(1, .55f, .26f));
-                else if (dragging) Fill(rect, new Color(.35f, .13f, .12f));
+                if (compatible || active) Fill(new Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4),
+                    compatible && previewResult != InventoryResult.Success ? new Color(1, .55f, .26f) : Mint);
                 if (item.Id != 0) BeginDrag(rect, item.Id);
                 if (GUI.Button(rect, new GUIContent("", item.Id == 0 ? SlotName(slot) : item.Definition.Name), button))
                 { selectedId = item.Id; previewValid = false; }
-                if (item.Id != 0) icons.Draw(new Rect(rect.x + 5, rect.y + 10, 35, 45), item.Kind, item.Type);
-                GUI.Label(new Rect(rect.x + 46, rect.y + 5, 82, 20), SlotName(slot), small);
-                GUI.Label(new Rect(rect.x + 46, rect.y + 27, 82, 36), item.Id == 0 ? "空槽" : item.Definition.Name, slotText);
+                if (item.Id != 0) icons.Draw(new Rect(rect.x + 5, rect.y + 7, 32, rect.height - 12), item.Kind, item.Type);
+                GUI.Label(new Rect(rect.x + 42, rect.y + 3, rect.width - 46, 22), SlotName(slot), small);
+                GUI.Label(new Rect(rect.x + 42, rect.y + 25, rect.width - 46, rect.height - 26), item.Id == 0 ? "未装备" : item.Definition.Name, slotText);
+                if (active) GUI.Label(new Rect(rect.xMax - 72, rect.y + 17, 68, 24), "手持中", small);
             }
-            GUI.Label(new Rect(0, 365, 384, 56), "点击装备查看详情；把备用装备拖到对应槽位。\n默认服饰是外观，空槽不会提供属性。", small);
+            if (!hasRod) GUI.Label(new Rect(0, 394, 384, 46), "1 / 2 / 3 切换已装备武器，不占背包。\n备用装备可拖到对应槽位替换。", small);
             DrawResource(400, 48, "生命", vitals.Health, current.HealthMax, HudPainter.Health);
             int normalSpeed=player.Swimming.InWater ? SwimmingSystem.Speed(swimming??new SwimmingConfig(),SwimRingCatalog.Equipped(inventory,player.Slot)) : current.MoveSpeed;
             int moveSpeed=vitals.Downed ? 0 : normalSpeed*CharacterMovement.HookSpeedPermille(player)/1000*FirearmRules.MovementPermille(player)/1000;
@@ -98,11 +108,11 @@ namespace Advanture.HookIsland
                 GUI.Label(new Rect(row.x + 46, row.y + 7, row.width - 50, 28), item.Definition.Name + "  ·  " + SlotName(item.Definition.Slot), small);
             }
             GUI.EndScrollView();
-            DrawSelection(selection, current, intent, pending || vitals.Downed, request);
+            DrawSelection(selection, current, intent, pending || vitals.Downed, hookBusy || beingPulled, activeId, request);
             EndDrag(inputType, selection, bagArea, pending || vitals.Downed || previewResult != InventoryResult.Success, request);
             GUI.EndGroup();
         }
-        private void DrawSelection(InventoryItem item, CharacterStats current, InventoryCommand intent, bool blocked, Action<InventoryCommand> request)
+        private void DrawSelection(InventoryItem item, CharacterStats current, InventoryCommand intent, bool blocked, bool busy, int activeId, Action<InventoryCommand> request)
         {
             if (item.Id == 0) { GUI.Label(new Rect(695, 210, 340, 80), "选择身上或背包中的装备，\n查看装卸后的属性变化。", body); return; }
             icons.Draw(new Rect(695, 205, 42, 42), item.Kind, item.Type);
@@ -141,7 +151,15 @@ namespace Advanture.HookIsland
             string action = equipped ? item.Definition.Slot == EquipmentSlot.Backpack ? "卸下空背包 · 明确放到平台" : "卸下装备 · 放入背包" : "装备到" + SlotName(item.Definition.Slot);
             if (GUI.Button(new Rect(695, 353, 340, 38), action, button)) request(intent);
             GUI.enabled = previous;
-            GUI.Label(new Rect(695, 398, 340, 50), previewResult == InventoryResult.Success ?
+            if (equipped && WeaponLoadout.IsHandSlot(item.Definition.Slot))
+            {
+                GUI.enabled = previous && !blocked && !busy && item.Id != activeId;
+                var select = WeaponLoadout.IsWeaponSlot(item.Definition.Slot) ?
+                    new InventoryCommand(InventoryAction.SelectWeapon, (int)item.Definition.Slot) : new InventoryCommand(InventoryAction.Equip, item.Id);
+                if (GUI.Button(new Rect(695, 400, 340, 36), item.Id == activeId ? "当前手持" : "切换手持 · 其他武器保留装备", button)) request(select);
+                GUI.enabled = previous;
+            }
+            else GUI.Label(new Rect(695, 398, 340, 50), previewResult == InventoryResult.Success ?
                 "操作由房间确认；查看角色不会暂停世界。" : Explain(previewResult), small);
         }
         private void UpdatePreview(CharacterConfig config, int staminaBase, InventoryState inventory, int owner, InventoryCommand intent, bool hookBusy, bool beingPulled, bool inWater)
@@ -151,6 +169,7 @@ namespace Advanture.HookIsland
             {
                 foreach (var item in inventory.Items.Where(i => i.Owner == owner))
                 { key = (key ^ (uint)item.Id) * 1099511628211UL; key = (key ^ (uint)(item.X + 16 * item.Y + 256 * (int)item.Location + 2048 * item.Type + (item.Rotated ? 1048576 : 0) + item.Count * 2097152)) * 1099511628211UL; }
+                key = (key ^ (uint)inventory.ActiveItems[owner]) * 1099511628211UL;
                 key = (key ^ (uint)intent.Target) * 1099511628211UL; key = (key ^ (uint)intent.Action) * 1099511628211UL;
                 key = (key ^ (uint)((hookBusy ? 1 : 0) + (beingPulled ? 2 : 0) + (inWater ? 4 : 0))) * 1099511628211UL;
             }
@@ -179,7 +198,7 @@ namespace Advanture.HookIsland
                     if (!blocked)
                     {
                         for (int i = 0; i < slotRects.Length; i++)
-                            if (slotRects[i].Contains(e.mousePosition) && CharacterEquipment.CanEquipTo(selection, CharacterEquipment.Slots[i]) && selection.Location == ItemLocation.Backpack)
+                            if (slotRects[i].Contains(e.mousePosition) && CharacterEquipment.CanEquipTo(selection, DisplaySlots[i]) && selection.Location == ItemLocation.Backpack)
                                 request(new InventoryCommand(InventoryAction.Equip, selection.Id));
                         if (bagArea.Contains(e.mousePosition) && selection.Location == ItemLocation.Equipped && selection.Definition.Slot != EquipmentSlot.Backpack)
                             request(new InventoryCommand(InventoryAction.Unequip, (int)selection.Definition.Slot));
@@ -197,19 +216,6 @@ namespace Advanture.HookIsland
             Fill(new Rect(x, y + 32, 268, 7), new Color(.1f, .24f, .27f));
             if (max > 0) Fill(new Rect(x, y + 32, 268 * Mathf.Clamp01(value / max), 7), color);
         }
-        private void DrawPortrait(Vector2 center, int slot, bool backpack, bool downed)
-        {
-            var coat = FishingPresentation.PlayerColors[slot]; float x = center.x, y = center.y;
-            Fill(new Rect(x - 38, y + 64, 76, 7), new Color(.04f, .12f, .14f));
-            if (backpack) Fill(new Rect(x - 32, y - 23, 64, 59), new Color(.5f, .3f, .14f));
-            Fill(new Rect(x - 24, y - 22, 48, 61), coat);
-            Fill(new Rect(x - 25, y - 62, 50, 39), new Color(1, .74f, .5f));
-            Fill(new Rect(x - 35, y - 66, 70, 9), coat);
-            Fill(new Rect(x - 23, y - 83, 46, 20), coat);
-            Fill(new Rect(x - 18, y - 48, 6, 7), Color.black); Fill(new Rect(x + 12, y - 48, 6, 7), Color.black);
-            Fill(new Rect(x - 22, y + 37, 18, 28), new Color(.15f, .22f, .26f)); Fill(new Rect(x + 4, y + 37, 18, 28), new Color(.15f, .22f, .26f));
-            GUI.Label(new Rect(x - 52, y + 78, 104, 33), downed ? "倒地" : "P" + (slot + 1), centered);
-        }
         private static string Changes(CharacterStats a, CharacterStats b)
         {
             string result = "";
@@ -225,9 +231,12 @@ namespace Advanture.HookIsland
             switch (slot)
             {
                 case EquipmentSlot.Hat: return "帽子"; case EquipmentSlot.LeftHand: return "左手";
-                case EquipmentSlot.RightHand: return "右手"; case EquipmentSlot.Clothes: return "衣服";
+                case EquipmentSlot.RightHand: return "钓竿"; case EquipmentSlot.Clothes: return "衣服";
                 case EquipmentSlot.Shoes: return "鞋子"; case EquipmentSlot.Backpack: return "背包";
                 case EquipmentSlot.Accessory: return "饰品"; case EquipmentSlot.SwimRing: return "游泳圈";
+                case EquipmentSlot.PrimaryWeapon: return "1 主武器";
+                case EquipmentSlot.Sidearm: return "2 手枪";
+                case EquipmentSlot.MeleeWeapon: return "3 近战";
                 default: return "未指定";
             }
         }
@@ -237,7 +246,7 @@ namespace Advanture.HookIsland
             {
                 case InventoryResult.NoSpace: return "背包没有足够空间，原装备保持不变。";
                 case InventoryResult.InventoryNotEmpty: return "先清空背包内容，才能卸下背包。";
-                case InventoryResult.HookBusy: return "被拖拽时不能装卸；更换右手装备还需先收回钓竿。";
+                case InventoryResult.HookBusy: return "请先结束拉拽、挥击、举枪或收钩再换装。";
                 case InventoryResult.InvalidPlacement: return "先上岸，再将物品放到平台。";
                 case InventoryResult.NotOwned: return "只能操作自己的装备。";
                 default: return "当前无法完成装卸，请在背包页检查物品。";

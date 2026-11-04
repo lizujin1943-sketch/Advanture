@@ -53,7 +53,8 @@ internal static class FishingStateCodec
             throw new InvalidDataException("Invalid inventory participants/restock clock.");
         // 出生装备可以转交，ID 和类型必须保留；转交不改变原购买者的支出账本。
         int players=state.Players.Count;
-        int toolCount=(t.Config.Melee.StarterPan?3:2)*players;
+        int rodEnd=t.Config.FishingRodsEnabled?players:0,bagEnd=rodEnd+players;
+        int toolCount=bagEnd+(t.Config.Melee.StarterPan?players:0);
         long equipmentValue=inventory.Items.Where(i=>!InventoryCatalog.IsMaterial(i.Kind) && i.Kind!=ItemKind.Ammunition && i.Id>toolCount).Sum(i=>(long)i.Definition.Price*i.Count)
             +inventory.ConsumedFoods.Select((count,type)=>(long)count*FoodCatalog.Get(type).Price).Sum()
             +inventory.PurchasedAmmunition.Select((count,type)=>(long)count*AmmunitionCatalog.Get(type).Price).Sum();
@@ -66,10 +67,10 @@ internal static class FishingStateCodec
         for(int id=1;id<=starterCount;id++)
         {
             var item=inventory.Items.SingleOrDefault(i=>i.Id==id);
-            if(item.Id==0 || (id<=players?(item.Kind!=ItemKind.Rod || item.Type!=0):id<=2*players?(item.Kind!=ItemKind.Backpack || item.Type!=1):id<=toolCount?(item.Kind!=ItemKind.Weapon || item.Type!=0):(item.Kind!=ItemKind.Firearm || item.Type!=0)))
+            if(item.Id==0 || (id<=rodEnd?(item.Kind!=ItemKind.Rod || item.Type!=0):id<=bagEnd?(item.Kind!=ItemKind.Backpack || item.Type!=1):id<=toolCount?(item.Kind!=ItemKind.Weapon || item.Type!=0):(item.Kind!=ItemKind.Firearm || item.Type!=0)))
                 throw new InvalidDataException("Missing or altered starter equipment.");
         }
-        if(inventory.Items.Any(i=>i.Kind==ItemKind.Rod && i.Type==0 && i.Id>players))
+        if(inventory.Items.Any(i=>i.Kind==ItemKind.Rod && (!t.Config.FishingRodsEnabled || i.Type==0 && i.Id>rodEnd)))
             throw new InvalidDataException("Equipment purchase ledger differs from surviving items.");
         if(!t.Config.Firearms.Enabled && (inventory.Items.Any(i=>i.Kind==ItemKind.Firearm || i.Kind==ItemKind.Ammunition) || inventory.PurchasedAmmunition.Any(c=>c!=0) || inventory.ConsumedAmmunition.Any(c=>c!=0) || inventory.ReplenishedAmmunition.Any(c=>c!=0)))throw new InvalidDataException("Firearm inventory is disabled.");
         foreach(var i in inventory.Items.Where(i=>i.Location==ItemLocation.Ground))
@@ -80,7 +81,7 @@ internal static class FishingStateCodec
             if(state.Tiles.Count>0 && p.Swimming.InWater==PlatformRules.CanStand(state.Tiles,p.X,p.Z))throw new InvalidDataException("Water state differs from terrain.");
             if((p.Swimming.InWater && p.Shopping) || (p.Swimming.Active && (p.Vitals.Downed || p.PulledBy>=0)))throw new InvalidDataException("Invalid water activity.");
             CharacterStateCodec.Validate(p.Vitals,p.MoveRemainderX,p.MoveRemainderZ,FishingRules.Attributes(state,p));
-            var right=inventory.Equipped(p.Slot,EquipmentSlot.RightHand);
+            var right=inventory.ActiveItem(p.Slot);
             if(p.EquippedRod!=(right?.Kind==ItemKind.Rod?right.Value.Id:0) ||
                 p.Stamina<0 || p.Stamina>FishingRules.MaxStamina(state,p) || p.RegenDelay<0 || p.RegenDelay>t.Config.RegenDelayTicks ||
                 p.HookTravelRemainder<0 || p.HookTravelRemainder>=HookGame.Rate || p.ReelRemainder<0 || p.ReelRemainder>=HookGame.Rate ||

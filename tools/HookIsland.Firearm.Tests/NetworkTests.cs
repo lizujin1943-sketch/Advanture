@@ -103,7 +103,7 @@ internal static partial class Program
         var move=Walk(p,new Point(slot==0?-1400:1400,-1400),lead);if(move.MoveX!=0 || move.MoveZ!=0)return move;
         if(p.LastInventoryRequest==0)return Buy(FirearmCatalog.OfferOffset,1,true);
         if(s.Players.Take(2).Any(v=>v.LastInventoryRequest<1) || p.Firearm.Busy || p.Firearm.ShotSequence>=8)return default;
-        var gun=s.Tackle!.Inventory.Equipped(slot,EquipmentSlot.RightHand);if(gun?.Kind!=ItemKind.Firearm)return default;
+        var gun=s.Tackle!.Inventory.ActiveItem(slot);if(gun?.Kind!=ItemKind.Firearm)return default;
         if(gun.Value.LoadedAmmo==0)return new HookInput(0,0,reload:true);
         var target=s.Players[slot^1];return new HookInput(0,0,p.Firearm.ShotSequence==0?target.X:p.X,p.Firearm.ShotSequence==0?target.Z:-14000,fire:p.Firearm.CooldownTicks==0);
     }

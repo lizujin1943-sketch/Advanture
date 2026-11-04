@@ -49,7 +49,7 @@ internal static partial class Program
                                 var s=client.Session.InspectState();var p=s.Players[client.Slot];var gun=FirearmCatalog.Get(p.Slot);
                                 if(p.LastInventoryRequest==0)return Buy(FirearmCatalog.OfferOffset+p.Slot,1,true);
                                 if(p.Firearm.Busy || p.Firearm.ShotSequence>=gun.Capacity+1)return default;
-                                var held=s.Tackle!.Inventory.Equipped(p.Slot,EquipmentSlot.RightHand);
+                                var held=s.Tackle!.Inventory.ActiveItem(p.Slot);
                                 if(held?.Kind!=ItemKind.Firearm || held.Value.Type!=p.Slot)return default;
                                 return new HookInput(0,0,p.X,-80000,fire:true,reload:held.Value.LoadedAmmo==0);
                             });

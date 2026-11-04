@@ -10,9 +10,32 @@ namespace Advanture.HookIsland.Tests
 {
     public sealed class CharacterPanelTests
     {
+        [UnityTest] public IEnumerator FullBackpackStillAllowsSelectingAnEquippedWeaponWithoutMutatingAuthority()
+        {
+            var window=ScriptableObject.CreateInstance<CharacterPanelTestWindow>();
+            try
+            {
+                window.Inventory=new InventorySystem(1,true,true,false);int coins=3000;
+                Assert.That(window.Inventory.Purchase(0,ItemKind.Firearm,1,true,false,new Point(0,0),ref coins),Is.EqualTo(InventoryResult.Success));
+                var size=window.Inventory.Capture().Size(0);
+                window.Inventory.CreditMaterial(0,ItemKind.Wood,size.Width*size.Height*InventoryCatalog.MaterialStackLimit,new Point(0,0));
+                window.position=new Rect(40,80,1080,490);window.ShowUtility();window.Focus();
+                yield return null;yield return null;
+                var melee=new Vector2(200,210);var select=new Vector2(875,428);
+                window.SendEvent(new Event{type=EventType.MouseDown,button=0,mousePosition=melee});yield return null;
+                window.SendEvent(new Event{type=EventType.MouseUp,button=0,mousePosition=melee});yield return null;
+                window.SendEvent(new Event{type=EventType.MouseDown,button=0,mousePosition=select});yield return null;
+                window.SendEvent(new Event{type=EventType.MouseUp,button=0,mousePosition=select});yield return null;
+                Assert.That(window.Commands.Count,Is.EqualTo(1));
+                Assert.That(window.Commands[0].Action,Is.EqualTo(InventoryAction.SelectWeapon));
+                Assert.That(window.Commands[0].Target,Is.EqualTo((int)EquipmentSlot.MeleeWeapon));
+                Assert.That(window.Inventory.ActiveItem(0).Value.Definition.Slot,Is.EqualTo(EquipmentSlot.PrimaryWeapon),"UI changed authority before confirmation.");
+            }
+            finally{window.Close();}
+        }
         [UnityTest] public IEnumerator ApparelDragsToItsSlotAndBackWithoutMutatingAuthority()
         {
-            var targets = new[] { new Vector2(76, 88), new Vector2(328, 165), new Vector2(76, 242) };
+            var targets = new[] { new Vector2(72, 288), new Vector2(202, 288), new Vector2(332, 288) };
             for (int type = 0; type < targets.Length; type++)
             {
                 var window = ScriptableObject.CreateInstance<CharacterPanelTestWindow>();
@@ -51,7 +74,7 @@ namespace Advanture.HookIsland.Tests
                 window.Focus();
                 yield return null;
                 yield return null;
-                var slot = new Vector2(76, 165);
+                var slot = new Vector2(76, 424);
                 var storage = new Vector2(860, 75);
                 window.SendEvent(new Event { type = EventType.MouseDown, button = 0, mousePosition = slot });
                 yield return null;
@@ -83,7 +106,7 @@ namespace Advanture.HookIsland.Tests
     // Editor-only harness: exercises real IMGUI controls without adding a scene component.
     internal sealed class CharacterPanelTestWindow : EditorWindow
     {
-        public readonly InventorySystem Inventory = new InventorySystem(1);
+        public InventorySystem Inventory = new InventorySystem(1);
         public readonly List<InventoryCommand> Commands = new List<InventoryCommand>();
         public readonly List<string> Trace = new List<string>();
         private CharacterPanel panel;

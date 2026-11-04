@@ -36,7 +36,7 @@ namespace Advanture.HookIsland
             var weapon=ActiveToolView.Firearm(room.State,player);
             if(room.Scoped)
             {ui.Scope(new Rect(viewport.x/scale,(Screen.height-viewport.yMax)/scale,viewport.width/scale,viewport.height/scale),weapon.ScopeMagnification);return;}
-            var equipped=room.State.Tackle.Inventory.Equipped(player.Slot,EquipmentSlot.RightHand).Value;
+            var equipped=room.State.Tackle.Inventory.ActiveItem(player.Slot).Value;
             var motion=room.Client?.Session?.InspectPredictedState();
             int spread=motion!=null && player.Slot<motion.Players.Count?
                 motion.Players[player.Slot].Firearm.Spread(equipped.Type):player.Firearm.Spread(equipped.Type);

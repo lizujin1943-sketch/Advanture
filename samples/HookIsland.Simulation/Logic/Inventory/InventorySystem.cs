@@ -29,25 +29,25 @@ public sealed partial class InventorySystem
     private int[] consumedFoods;
     private int[] purchasedAmmunition,consumedAmmunition,replenishedAmmunition;
     private QuickbarBinding[] quickbar;
+    private int[] activeItems;
 
-    public InventorySystem(int players,bool starterPan=false,bool starterFirearm=false)
+    public InventorySystem(int players,bool starterPan=false,bool starterFirearm=false,bool starterRod=true)
     {
         if (players < 1 || players > 4) throw new ArgumentOutOfRangeException(nameof(players));
         playerCount = players; items = new List<InventoryItem>(); nextId = 1; spent = new int[players];
         // 先给所有角色发初始竿，便于保持原有竿 ID，再免费装备每人的 Lv1 背包。
-        for (int owner = 0; owner < players; owner++) items.Add(EquippedItem(nextId++, owner, ItemKind.Rod, 0));
+        if(starterRod)for (int owner = 0; owner < players; owner++) items.Add(EquippedItem(nextId++, owner, ItemKind.Rod, 0));
         for (int owner = 0; owner < players; owner++) items.Add(EquippedItem(nextId++, owner, ItemKind.Backpack, 1));
-        if(starterPan)for(int owner=0;owner<players;owner++)items.Add(new InventoryItem{Id=nextId++,Owner=owner,Kind=ItemKind.Weapon,Type=0,Count=1,Location=ItemLocation.Backpack});
+        if(starterPan)for(int owner=0;owner<players;owner++)items.Add(EquippedItem(nextId++,owner,ItemKind.Weapon,0));
         if(starterFirearm)for(int owner=0;owner<players;owner++)
         {
-            var gun=new InventoryItem{Id=nextId++,Owner=owner,Kind=ItemKind.Firearm,Type=0,Count=1,LoadedAmmo=FirearmCatalog.Get(0).Capacity};
-            if(!InventoryLayout.Place(items,owner,Size(items,owner),ref gun))
-                throw new InvalidOperationException("Starter firearm does not fit in the initial backpack.");
+            var gun=EquippedItem(nextId++,owner,ItemKind.Firearm,0);gun.LoadedAmmo=FirearmCatalog.Get(0).Capacity;
             items.Add(gun);
         }
         purchasedAmmunition=new int[AmmunitionCatalog.All.Count];consumedAmmunition=new int[AmmunitionCatalog.All.Count];
         replenishedAmmunition=new int[AmmunitionCatalog.All.Count];
         consumedFoods=new int[FoodCatalog.All.Count];quickbar=QuickbarRules.Defaults(players,items);
+        activeItems=Enumerable.Range(0,players).Select(owner=>starterRod?Equipped(owner,EquipmentSlot.RightHand)!.Value.Id:WeaponLoadout.Fallback(items,owner)).ToArray();
     }
     public InventorySystem(InventoryState state)
     {
@@ -56,8 +56,17 @@ public sealed partial class InventorySystem
         purchasedAmmunition=state.PurchasedAmmunition.ToArray();consumedAmmunition=state.ConsumedAmmunition.ToArray();
         replenishedAmmunition=state.ReplenishedAmmunition.ToArray();
         consumedFoods=state.ConsumedFoods.ToArray();quickbar=state.Quickbar.ToArray();
+        activeItems=state.ActiveItems.ToArray();
     }
-    public InventoryState Capture() => new InventoryState(playerCount, items.OrderBy(i => i.Id), nextId, spent, consumedFoods, quickbar, purchasedAmmunition, consumedAmmunition, replenishedAmmunition);
+    public InventoryState Capture() => new InventoryState(playerCount, items.OrderBy(i => i.Id), nextId, spent, consumedFoods, quickbar, purchasedAmmunition, consumedAmmunition, replenishedAmmunition,activeItems);
+    public InventoryItem? ActiveItem(int owner)=>OwnerExists(owner)?Find(activeItems[owner]):null;
+    public InventoryResult SelectWeapon(int owner,EquipmentSlot slot)
+    {
+        if(!OwnerExists(owner))return InventoryResult.NotOwned;
+        if(!WeaponLoadout.IsWeaponSlot(slot))return InventoryResult.InvalidItem;
+        var item=Equipped(owner,slot);if(!item.HasValue)return InventoryResult.InvalidItem;
+        activeItems[owner]=item.Value.Id;return InventoryResult.Success;
+    }
     /// <summary>按槽位读取当前穿戴项；避免玩法每帧为查询单件装备创建完整快照。</summary>
     public InventoryItem? Equipped(int owner, EquipmentSlot slot)
     {
@@ -194,7 +203,8 @@ public sealed partial class InventorySystem
     {
         if (!TryOwned(owner, id, out var item)) return InventoryResult.NotOwned;
         if (item.Definition.Slot==EquipmentSlot.None) return InventoryResult.InvalidItem;
-        if (item.Location == ItemLocation.Equipped) return InventoryResult.Success;
+        if (item.Location == ItemLocation.Equipped)
+        {if(WeaponLoadout.IsHandSlot(item.Definition.Slot))activeItems[owner]=item.Id;return InventoryResult.Success;}
         var draft = Draft(); var result = Equip(draft, owner, item, dropOld, ground);
         if (result == InventoryResult.Success) Commit(draft); return result;
     }
@@ -262,6 +272,7 @@ public sealed partial class InventorySystem
         }
         incoming.Location = ItemLocation.Equipped; incoming.Owner = owner; incoming.X = incoming.Y = -1;
         incoming.WorldX = incoming.WorldZ = 0; incoming.Rotated = false; draft.Items.Add(incoming);
+        if(WeaponLoadout.IsHandSlot(slot))draft.ActiveItems[owner]=incoming.Id;
         if (slot == EquipmentSlot.Backpack) return InventoryLayout.Repack(draft.Items, owner, InventoryCatalog.Backpack(incoming.Type).Size);
         if (old.HasValue && !dropOld)
         {
@@ -349,19 +360,23 @@ public sealed partial class InventorySystem
         id = 0; if (!CanAllocate(draft)) return false;
         id = draft.NextId++; return true;
     }
-    private Candidate Draft() => new Candidate(items.ToList(), nextId, (int[])spent.Clone());
+    private Candidate Draft() => new Candidate(items.ToList(), nextId, (int[])spent.Clone(),(int[])activeItems.Clone());
     private void Commit(Candidate draft)
     {
         if (draft.Items.Count > InventoryCatalog.MaxItems) throw new InvalidOperationException("Inventory item limit exceeded.");
-        items = draft.Items; nextId = draft.NextId; spent = draft.Spent;
+        items = draft.Items; nextId = draft.NextId; spent = draft.Spent;activeItems=draft.ActiveItems;
+        for(int owner=0;owner<playerCount;owner++)
+            if(!items.Any(i=>i.Id==activeItems[owner] && i.Owner==owner && i.Location==ItemLocation.Equipped && WeaponLoadout.IsHandSlot(i.Definition.Slot)))
+                activeItems[owner]=WeaponLoadout.Fallback(items,owner);
         for(int n=0;n<quickbar.Length;n++)
             if(quickbar[n].ItemId!=0 && !items.Any(i=>i.Id==quickbar[n].ItemId && i.Owner==n/QuickbarRules.SlotCount && i.Location!=ItemLocation.Ground))quickbar[n]=default;
     }
     private sealed class Candidate
     {
-        internal Candidate(List<InventoryItem> items, int nextId, int[] spent) { Items = items; NextId = nextId; Spent = spent; }
+        internal Candidate(List<InventoryItem> items, int nextId, int[] spent,int[] activeItems) { Items = items; NextId = nextId; Spent = spent;ActiveItems=activeItems; }
         internal readonly List<InventoryItem> Items;
         internal int NextId;
         internal readonly int[] Spent;
+        internal readonly int[] ActiveItems;
     }
 }

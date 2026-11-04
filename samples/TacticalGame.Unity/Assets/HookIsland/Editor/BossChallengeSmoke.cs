@@ -68,7 +68,7 @@ namespace Advanture.HookIsland.Editor
             int x = eye.X - p.X, y = eye.Y - BossGeometry.MuzzleHeight(p), z = eye.Z - p.Z;
             int length = HookGame.Sqrt((long)x * x + (long)y * y + (long)z * z);
             return new HookInput(0, 0, eye.X, eye.Z, fire: true,
-                reload: s.Tackle.Inventory.Equipped(p.Slot, EquipmentSlot.RightHand).Value.LoadedAmmo == 0,
+                reload: s.Tackle.Inventory.ActiveItem(p.Slot).Value.LoadedAmmo == 0,
                 aimVertical: (short)Mathf.Clamp((int)(y * 1000L / Math.Max(1, length)), -995, 995));
         }
 

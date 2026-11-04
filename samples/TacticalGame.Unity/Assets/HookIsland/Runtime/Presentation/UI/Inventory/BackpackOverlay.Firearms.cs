@@ -13,7 +13,7 @@ namespace Advanture.HookIsland
             amount=Mathf.Clamp(amount,1,item.Count);GUI.enabled=enabled && !pending;
             GUI.Label(new Rect(x,y+151,400,25),$"数量 {amount} / {item.Count}",small);
             amount=Mathf.RoundToInt(GUI.HorizontalSlider(new Rect(x,y+184,398,20),amount,1,item.Count));
-            if(GUI.Button(new Rect(x,y+222,128,33),"移动整堆",button)){placing=1;rotated=false;}
+            if(GUI.Button(new Rect(x,y+222,128,33),"移动整堆",button))placing=1;
             GUI.enabled=enabled && !pending && amount<item.Count;
             if(GUI.Button(new Rect(x+139,y+222,128,33),"拆分",button))placing=2;
             GUI.enabled=enabled && !pending && !player.Swimming.InWater;

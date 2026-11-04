@@ -33,7 +33,7 @@ internal static class FirearmStateCodec
                 spreads[j]=new FirearmSpreadState(type,angle,remainder);previous=type;
             }
             if(count>0)f.SetSpreads(spreads);
-            var p=players[i];p.Firearm=f;var right=s.Tackle?.Inventory.Equipped(p.Slot,EquipmentSlot.RightHand);
+            var p=players[i];p.Firearm=f;var right=s.Tackle?.Inventory.ActiveItem(p.Slot);
             if(f.WeaponId<0 || f.ReloadWeaponId<0 || f.MoveSpeed<0 || f.MoveSpeed>1000000 ||
                 f.DrawTicks<0 || f.DrawTicks>FirearmCatalog.All.Max(g=>g.DrawTicks) || f.RecoveryTicks<0 || f.RecoveryTicks>FirearmCatalog.All.Max(g=>g.RecoveryTicks) ||
                 f.CooldownTicks<0 || f.CooldownTicks>FirearmCatalog.All.Max(g=>g.CooldownTicks) || f.ReloadTicks<0 || f.ReloadTicks>FirearmCatalog.All.Max(g=>g.ReloadTicks) ||

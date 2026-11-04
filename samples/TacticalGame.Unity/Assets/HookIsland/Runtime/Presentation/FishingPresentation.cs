@@ -453,7 +453,7 @@ namespace Advanture.HookIsland
         {
             if(firearms==null || slot>=state.Players.Count)return;
             var p=state.Players[slot];if(ActiveToolView.Firearm(state,p)==null || p.Firearm.Busy || p.Firearm.CooldownTicks>0 || !FirearmRules.CanAct(p,SwimRingCatalog.Equipped(state.Tackle.Inventory,slot)!=null))return;
-            var item=state.Tackle.Inventory.Equipped(slot,EquipmentSlot.RightHand);
+            var item=state.Tackle.Inventory.ActiveItem(slot);
             if(item.HasValue && item.Value.LoadedAmmo==0)firearms.Empty();
         }
         public void ClearPlayers()

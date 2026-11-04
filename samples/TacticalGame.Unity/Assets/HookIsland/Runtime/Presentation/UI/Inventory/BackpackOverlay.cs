@@ -14,7 +14,7 @@ namespace Advanture.HookIsland
         private readonly MerchantOfferSelection selection=new MerchantOfferSelection();
         private MerchantState shelf=>selection.Shelf;
         private int offer {get=>selection.Offer;set=>selection.Select(value);}
-        private bool rotated, dropOld, firearmShelf;
+        private bool dropOld, firearmShelf;
         private int groundPage;
         private Vector2 backpackScroll;
         private readonly InventoryEquipmentPreview equipmentPreview = new InventoryEquipmentPreview();
@@ -37,8 +37,6 @@ namespace Advanture.HookIsland
         {
             var inventory = state.Tackle.Inventory;
             selection.Bind(shop?state.Tackle.Merchants.FirstOrDefault(m=>m.Id==merchantId):null);
-            if (placing != 0 && Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.R)
-            { if (placing == 1) rotated = !rotated; Event.current.Use(); }
             float x = (width - 1100) / 2, y = Mathf.Max(120, (height - 560) / 2);
             Fill(new Rect(x, y, 1100, 560), new Color(.026f, .082f, .11f, .99f)); Fill(new Rect(x, y, 1100, 3), accent);
             GUI.Label(new Rect(x + 24, y + 16, 760, 38), shop ? MerchantHud.Name(state.Tackle.Config,merchantId) : "我的背包", title);
@@ -66,8 +64,8 @@ namespace Advanture.HookIsland
             backpackScroll = GUI.BeginScrollView(viewport, backpackScroll, area, scrolling, scrolling);
             DrawGrid(inventory, player.Slot, area, cell, pending, pointerInside, request);
             GUI.EndScrollView();
-            if (size.Width == 0) GUI.Label(new Rect(x + 330, y + 150, 285, 90), "先从地面拾取并穿戴背包，或在商店购买并装备。身上的钓竿仍然保留。", text);
-            GUI.Label(new Rect(x + 330, y + 463, 294, 48), placing == 0 ? (scrolling ? "滚轮 / 滚动条查看全部格子\n选择物品查看操作 · R 旋转" : "选择物品查看操作\n移动：选择目标格，R 旋转") : placing == 1 ? "点击目标格完成移动 · R 旋转" : $"点击空格拆出 {amount} 个材料", small);
+            if (size.Width == 0) GUI.Label(new Rect(x + 330, y + 150, 285, 90), "先从地面拾取并穿戴背包，或在商店购买并装备。已装备的武器仍然保留。", text);
+            GUI.Label(new Rect(x + 330, y + 463, 294, 48), placing == 0 ? (scrolling ? "滚轮 / 滚动条查看全部格子\n每件物品占 1 格 · 选择物品查看操作" : "选择物品查看操作\n每件物品占 1 格") : placing == 1 ? "点击目标格完成移动" : $"点击空格拆出 {amount} 个材料", small);
             if (placing != 0 && GUI.Button(new Rect(x + 330, y + 495, 294, 24), "取消摆放", button)) placing = 0;
             DrawDetails(state, player, x + 658, y + 104, shop, pending, request);
             GUI.Label(new Rect(x + 24, y + 521, 1050, 28), message ?? "物品只在确认后转移 · Tab / I 关闭背包 · 金币各自所有", small);
@@ -86,12 +84,11 @@ namespace Advanture.HookIsland
                 }
                 GUI.Label(new Rect(x,y+190,280,75),"AK47：按住左键连射\n狙击枪：按住右键开镜\n无限备用弹药 · R 换弹",small);return;
             }
-            for (int row = 0; row < 8; row++) for (int col = 0; col < 8; col++) Fill(new Rect(x + col * 34 + 1, y + row * 34 + 1, 32, 32), new Color(.08f, .17f, .2f));
             if(shelf==null)return;
             for (int n = 0; n < shelf.Stock.Count; n++)
             {
                 var stock = shelf.Stock[n]; var def = InventoryCatalog.Get(stock.Kind, stock.Type);
-                var rect = new Rect(x + stock.X * 34 + 2, y + stock.Y * 34 + 2, def.Width * 34 - 4, def.Height * 34 - 4);
+                var rect = new Rect(x + n % 4 * 70, y + n / 4 * 90, 64, 82);
                 if (DrawItem(rect, stock.Kind, stock.Type, def.Name, stock.Sold ? 0 : 1, itemId == 0 && offer == n, stock.Sold, price: def.Price, coins: coins))
                 { offer = n; itemId = 0; placing = 0; dropOld = false; }
             }
@@ -104,16 +101,22 @@ namespace Advanture.HookIsland
         }
         private void DrawSlots(InventoryState state, Fisher player, float x, float y)
         {
-            GUI.Label(new Rect(x, y, 280, 28), "穿戴装备", text); y += 38;
-            var slots = new[] { EquipmentSlot.Hat, EquipmentSlot.RightHand, EquipmentSlot.Clothes, EquipmentSlot.LeftHand, EquipmentSlot.Shoes, EquipmentSlot.Backpack, EquipmentSlot.Accessory, EquipmentSlot.SwimRing };
-            var names = new[] { "帽子", "右手", "衣服", "左手", "鞋子", "背包", "饰品", "游泳圈" };
-            for (int n = 0; n < slots.Length; n++)
+            GUI.Label(new Rect(x, y, 280, 25), "已装备 · 切换不占背包", text); y += 30;
+            for (int n = 0; n < CharacterPanel.DisplaySlots.Length; n++)
             {
-                var equipped = state.Equipped(player.Slot, slots[n]); bool before = GUI.enabled; GUI.enabled = equipped.HasValue;
-                var rect = new Rect(x + n % 2 * 140, y + n / 2 * 50, 133, 44);
-                if (GUI.Button(rect, new GUIContent("", equipped.HasValue ? equipped.Value.Definition.Name : names[n]), button)) Select(equipped.Value);
-                if (equipped.HasValue) icons.Draw(new Rect(rect.x + 5, rect.y + 4, 35, 36), equipped.Value.Kind, equipped.Value.Type);
-                GUI.Label(new Rect(rect.x + 46, rect.y + 10, rect.width - 49, 25), names[n], small);
+                var slot = CharacterPanel.DisplaySlots[n];
+                var equipped = state.Equipped(player.Slot, slot);
+                if (slot == EquipmentSlot.RightHand && !equipped.HasValue) continue;
+                bool before = GUI.enabled; GUI.enabled = equipped.HasValue;
+                var rect = n < 3 ? new Rect(x, y + n * 39, 280, 35) : n < 9 ?
+                    new Rect(x + (n - 3) % 3 * 94, y + 121 + (n - 3) / 3 * 39, 90, 35) : new Rect(x, y + 201, 280, 24);
+                bool active = equipped.HasValue && equipped.Value.Id == state.ActiveItems[player.Slot];
+                if (active) Fill(new Rect(rect.x - 1, rect.y - 1, rect.width + 2, rect.height + 2), accent);
+                var name = CharacterPanel.SlotName(slot);
+                if (GUI.Button(rect, new GUIContent("", equipped.HasValue ? equipped.Value.Definition.Name : name), button)) Select(equipped.Value);
+                if (equipped.HasValue) icons.Draw(new Rect(rect.x + 4, rect.y + 3, 26, rect.height - 6), equipped.Value.Kind, equipped.Value.Type);
+                GUI.Label(new Rect(rect.x + 34, rect.y + 6, rect.width - 37, 25), name +
+                    (n < 3 ? " · " + (equipped.HasValue ? equipped.Value.Definition.Name : "未装备") + (active ? " · 手持" : "") : ""), small);
                 GUI.enabled = before;
             }
         }
@@ -151,14 +154,12 @@ namespace Advanture.HookIsland
             {
                 int x = (int)((Event.current.mousePosition.x - area.x) / cell), y = (int)((Event.current.mousePosition.y - area.y) / cell);
                 var preview = new InventorySystem(state);
-                var result = placing == 1 ? preview.Move(owner, itemId, x, y, rotated) : preview.Split(owner, itemId, amount, x, y);
-                int w = placing == 2 ? 1 : rotated ? selected.Definition.Height : selected.Definition.Width;
-                int h = placing == 2 ? 1 : rotated ? selected.Definition.Width : selected.Definition.Height;
-                Fill(new Rect(area.x + x * cell, area.y + y * cell, w * cell, h * cell), result == InventoryResult.Success ? new Color(.22f, .7f, .48f, .6f) : new Color(.8f, .25f, .2f, .6f));
+                var result = placing == 1 ? preview.Move(owner, itemId, x, y, false) : preview.Split(owner, itemId, amount, x, y);
+                Fill(new Rect(area.x + x * cell, area.y + y * cell, cell, cell), result == InventoryResult.Success ? new Color(.22f, .7f, .48f, .6f) : new Color(.8f, .25f, .2f, .6f));
                 if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
                 {
                     if (!pending && result == InventoryResult.Success && request(new InventoryCommand(placing == 1 ? InventoryAction.Move : InventoryAction.Split, itemId,
-                        amount: placing == 2 ? amount : 0, x: x, y: y, rotated: placing == 1 && rotated))) placing = 0;
+                        amount: placing == 2 ? amount : 0, x: x, y: y))) placing = 0;
                     Event.current.Use();
                 }
             }
@@ -168,7 +169,7 @@ namespace Advanture.HookIsland
                 if (DrawItem(rect, item.Kind, item.Type, item.Definition.Name, item.Count, item.Id == itemId, false, item.Rotated) && placing == 0) Select(item);
             }
         }
-        private void Select(InventoryItem item) { itemId = item.Id; offer = -1; placing = 0; amount = 1; rotated = item.Rotated; dropOld = false; }
+        private void Select(InventoryItem item) { itemId = item.Id; offer = -1; placing = 0; amount = 1; dropOld = false; }
         private void DrawDetails(HookState state, Fisher player, float x, float y, bool shop, bool pending, Func<InventoryCommand, bool> request)
         {
             var inventory = state.Tackle.Inventory;
@@ -219,7 +220,7 @@ namespace Advanture.HookIsland
                 amount = Mathf.Clamp(amount, 1, item.Count);
                 GUI.Label(new Rect(x, y + 96, 410, 28), $"数量：{amount} / {item.Count}", text);
                 amount = Mathf.RoundToInt(GUI.HorizontalSlider(new Rect(x, y + 133, 395, 20), amount, 1, item.Count));
-                if (GUI.Button(new Rect(x, y + 175, 198, 36), "移动整堆", button)) { placing = 1; rotated = false; }
+                if (GUI.Button(new Rect(x, y + 175, 198, 36), "移动整堆", button)) placing = 1;
                 GUI.enabled = !pending && amount < item.Count;
                 if (GUI.Button(new Rect(x + 210, y + 175, 198, 36), "拆分到空格", button)) placing = 2;
                 GUI.enabled = !pending && !player.Swimming.InWater;
@@ -236,7 +237,7 @@ namespace Advanture.HookIsland
                 var preview = equipmentPreview.Evaluate(inventory, player.Slot, player.Coins, new Point(player.X, player.Z), kind, type, itemId, buying, dropOld);
                 previewResult = preview.Result; previewState = preview.State;
             }
-            bool busyRod = definition.Slot==EquipmentSlot.RightHand && (player.Phase != HookPhase.Ready || player.Melee.Active || player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0 || player.PulledBy >= 0);
+            bool busyRod = WeaponLoadout.IsHandSlot(definition.Slot) && (player.Phase != HookPhase.Ready || player.Melee.Active || player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0 || player.PulledBy >= 0);
             GUI.enabled = !pending && !busyRod && (!buying || offerStock>0);
             if (buying)
             {
@@ -249,12 +250,19 @@ namespace Advanture.HookIsland
                 string label = kind == ItemKind.Backpack ? "清空后卸下 · 放到平台上" : "卸下装备 · 放回背包";
                 GUI.enabled &= !(player.Swimming.InWater && kind == ItemKind.Backpack);
                 if (GUI.Button(new Rect(x, y + 190, 408, 37), label, button)) request(new InventoryCommand(InventoryAction.Unequip, (int)definition.Slot));
+                if (WeaponLoadout.IsHandSlot(definition.Slot))
+                {
+                    bool active = item.Id == inventory.ActiveItems[player.Slot];
+                    GUI.enabled &= !active;
+                    if (GUI.Button(new Rect(x, y + 237, 408, 33), active ? "当前手持" : "切换手持 · 其他武器保留装备", button))
+                        request(WeaponLoadout.IsWeaponSlot(definition.Slot) ? new InventoryCommand(InventoryAction.SelectWeapon, (int)definition.Slot) : new InventoryCommand(InventoryAction.Equip, item.Id));
+                }
             }
             else
             {
                 if (GUI.Button(new Rect(x, y + 190, 408, 37), "穿戴这件装备", button)) request(new InventoryCommand(InventoryAction.Equip, itemId, dropOld: dropOld));
                 GUI.enabled = !pending;
-                if (GUI.Button(new Rect(x, y + 237, 198, 33), "移动 / R 旋转", button)) { placing = 1; rotated = item.Rotated; }
+                if (GUI.Button(new Rect(x, y + 237, 198, 33), "移动物品", button)) placing = 1;
                 GUI.enabled = !pending && !player.Swimming.InWater;
                 if (GUI.Button(new Rect(x + 210, y + 237, 198, 33), "放到平台上", button)) request(new InventoryCommand(InventoryAction.Drop, itemId, amount: 1));
             }
@@ -262,7 +270,7 @@ namespace Advanture.HookIsland
             if (busyRod) GUI.Label(new Rect(x, y + 281, 408, 30), "请先结束挥击或收回钓竿再换装", small);
             else if (!equipped) GUI.Label(new Rect(x, y + 281, 408, 46), previewResult == InventoryResult.Success ? "换装预览：原有物品均可保留" : "换装预览：" + FishingEquipmentController.Explain(previewResult), small);
             if (kind == ItemKind.Backpack && previewState != null) DrawPreview(previewState, player.Slot, x, y + 316);
-            if(!buying)DrawQuickBindings(inventory,player.Slot,item,x,y+372,pending,request);
+            if(WeaponLoadout.IsWeaponSlot(definition.Slot)) GUI.Label(new Rect(x,y+372,408,48), "1 主武器 · 2 手枪 · 3 近战\n每类装备一件；切换保留弹匣，不占背包。", small);
         }
         private static void DrawPreview(InventoryState state, int owner, float x, float y)
         {

@@ -42,7 +42,7 @@ public struct InventoryItem
 /// </summary>
 public sealed class InventoryState
 {
-    public InventoryState(int players, IEnumerable<InventoryItem> items, int nextId, IEnumerable<int> spentCoins, IEnumerable<int>? consumedFoods=null, IEnumerable<QuickbarBinding>? quickbar=null, IEnumerable<int>? purchasedAmmunition=null, IEnumerable<int>? consumedAmmunition=null, IEnumerable<int>? replenishedAmmunition=null)
+    public InventoryState(int players, IEnumerable<InventoryItem> items, int nextId, IEnumerable<int> spentCoins, IEnumerable<int>? consumedFoods=null, IEnumerable<QuickbarBinding>? quickbar=null, IEnumerable<int>? purchasedAmmunition=null, IEnumerable<int>? consumedAmmunition=null, IEnumerable<int>? replenishedAmmunition=null, IEnumerable<int>? activeItems=null)
     {
         PlayerCount = players; Items = Array.AsReadOnly(items.ToArray()); NextId = nextId;
         SpentCoins = Array.AsReadOnly(spentCoins.ToArray());
@@ -51,12 +51,21 @@ public sealed class InventoryState
         ConsumedAmmunition=Array.AsReadOnly(consumedAmmunition?.ToArray()??new int[AmmunitionCatalog.All.Count]);
         ReplenishedAmmunition=Array.AsReadOnly(replenishedAmmunition?.ToArray()??new int[AmmunitionCatalog.All.Count]);
         Quickbar=Array.AsReadOnly(quickbar?.ToArray()??QuickbarRules.Defaults(players,Items));
+        ActiveItems=Array.AsReadOnly(activeItems?.ToArray()??Enumerable.Range(0,players).Select(owner=>
+            Equipped(owner,EquipmentSlot.RightHand)?.Id??WeaponLoadout.Fallback(Items,owner)).ToArray());
     }
     public IReadOnlyList<int> PurchasedAmmunition {get;} // Packs purchased globally; physical rounds may transfer between owners.
     public IReadOnlyList<int> ConsumedAmmunition {get;} // Successful shots, indexed by ammunition type.
     public IReadOnlyList<int> ReplenishedAmmunition {get;} // Unlimited supply committed only by completed reloads.
     public IReadOnlyList<int> ConsumedFoods {get;} // Global consumed quantities retain purchase-ledger conservation across trades.
     public IReadOnlyList<QuickbarBinding> Quickbar {get;}
+    public IReadOnlyList<int> ActiveItems {get;} // One held item per owner; other equipped categories stay equipped.
+    public InventoryItem? ActiveItem(int owner)
+    {
+        if(owner<0 || owner>=ActiveItems.Count)return null;
+        foreach(var item in Items)if(item.Id==ActiveItems[owner] && item.Owner==owner && item.Location==ItemLocation.Equipped)return item;
+        return null;
+    }
     public int PlayerCount { get; }
     public IReadOnlyList<InventoryItem> Items { get; }
     public int NextId { get; } // 下次分配的实例 ID，已消耗的编号不复用。
