@@ -10,6 +10,22 @@ namespace Advanture.HookIsland
         private readonly IslandFishingController room;
         private readonly HudPainter ui;
         public CommissionHud(IslandFishingController room,HudPainter painter){this.room=room;ui=painter;}
+        /// <summary>常驻两行摘要；详细诱饵、海域和进度条留在 J 抽屉中，不改变任一条件完成的委托规则。</summary>
+        public void DrawSummary(Rect rect)
+        {
+            var state=room.State;var config=state?.Tackle?.Config.Commissions;
+            if(config==null || !config.Enabled)return;
+            var progress=state.Commissions;bool complete=progress.Completed>=config.Definitions.Count;
+            ui.Slanted(new Rect(rect.x,rect.y+8,12,27),HudPainter.Gold);
+            ui.FloatingText(new Rect(rect.x+18,rect.y,222,40),complete?"委托全部完成":$"渔业委托 {progress.Completed+1}/{config.Definitions.Count}",24,Color.white);
+            string detail="诱饵已备齐";
+            if(!complete)
+            {
+                var goal=config.Definitions[progress.Completed];var current=progress.Entries[progress.Completed];
+                detail=$"鱼获 {current.Fish}/{goal.Fish}  或  稀有 {current.Rare}/{goal.Rare}";
+            }
+            ui.FloatingText(new Rect(rect.x+18,rect.y+38,rect.width-18,26),detail,17,Color.white,bold:false);
+        }
         public void Draw(Rect rect)
         {
             var state=room.State;var config=state?.Tackle?.Config.Commissions;

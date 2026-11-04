@@ -9,6 +9,17 @@ namespace Advanture.HookIsland
         private readonly IslandFishingController room;
         private readonly HudPainter ui;
         public FinaleHud(IslandFishingController room,HudPainter painter){this.room=room;ui=painter;}
+        /// <summary>终局进行中仍常驻显示必要目标，完整方向、诱饵与连续挂钩要求由 J 展开。</summary>
+        public void DrawSummary(Rect rect)
+        {
+            var state=room.State;var s=state.Finale;var config=state.Tackle.Config.Finale;
+            ui.Slanted(new Rect(rect.x,rect.y+8,12,27),HudPainter.Gold);
+            ui.FloatingText(new Rect(rect.x+18,rect.y,222,40),$"灯笼巨鱼 {Mathf.Min(3,s.Completed+1)}/3",24,Color.white);
+            string status=s.Phase==FinalePhase.Summoning?"诱饵已投放 · 等待巨鱼浮出":
+                s.Phase==FinalePhase.Submerged?"巨鱼已潜入 · 等待换岸":
+                $"挂钩 {FinaleRules.Count(state.Players)}/{FinaleRules.RequiredHooks(config,state.Players)} · 进度 {Mathf.RoundToInt(HudPainter.Fraction(s.Progress,config.HoldTicks)*100)}%";
+            ui.FloatingText(new Rect(rect.x+18,rect.y+38,rect.width-18,26),status,17,Color.white,bold:false);
+        }
         public static string Guidance(Camera view,FinaleConfig config,FinaleState state,Fisher local)
         {
             if(state.Phase!=FinalePhase.Surfaced)

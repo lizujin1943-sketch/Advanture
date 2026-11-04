@@ -28,7 +28,7 @@ namespace Advanture.HookIsland
                 if(room.Incapacitated || MenuOpen || room.Equipment?.InventoryOpen==true || room.ShopOpen)return true;
                 if(!room.Playing)return room.InRoom;
                 var layout=new HudLayout(Screen.width/Scale,Screen.height/Scale);
-                return (room.State?.Tackle!=null && room.Construction?.Open!=true && layout.Quickbar.Contains(p)) || layout.Contains(p,room.State?.Players.Count??1,room.Construction?.Open==true,room.State?.Tackle?.Config.Commissions.Enabled==true,room.State?.Tackle?.Config.Ocean.Enabled==true,room.State!=null && room.State.Finale.Phase!=FinalePhase.Dormant,hud?.ObjectiveReveal??1);
+                return layout.Contains(p,GameplayHud.TeammateCount(room.State,room.LocalSlot),room.Construction?.Open==true,room.State?.Tackle?.Config.Commissions.Enabled==true,room.State?.Tackle?.Config.Ocean.Enabled==true,room.State!=null && room.State.Finale.Phase!=FinalePhase.Dormant,hud?.ObjectiveReveal??0);
             }
         }
         private void Awake()

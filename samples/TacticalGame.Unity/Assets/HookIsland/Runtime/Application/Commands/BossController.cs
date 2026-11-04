@@ -78,8 +78,8 @@ namespace Advanture.HookIsland
             if (Time.unscaledTime < messageUntil) prompt = message;
             else if (Pending) prompt = "正在唤醒…";
             else if (s.Phase == BossPhase.Defeated && NearBeacon) prompt = "深渊凝视者已击败 · 可以继续捕鱼";
-            else if (s.Phase == BossPhase.Dormant) prompt = NearBeacon ? "[E] 唤醒深渊凝视者 · 可选挑战" :
-                p.Z < BossConfig.BeaconZ ? "可选挑战：沿北侧栈道前往唤醒标记" : null;
+            // 尚未靠近入口时不常驻显示挑战长提示；接近后的交互提示和开战反馈继续保留。
+            else if (s.Phase == BossPhase.Dormant && NearBeacon) prompt = "[E] 唤醒深渊凝视者 · 可选挑战";
             if (prompt != null)
             {
                 var r = new Rect(width / 2 - 235, height - 202, 470, 32);

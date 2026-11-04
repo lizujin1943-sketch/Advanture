@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Advanture.HookIsland
 {
-    /// <summary>Compact presentation of confirmed state. Buttons use existing local intent adapters.</summary>
+    /// <summary>确认态的悬浮 HUD。常驻信息保持精简，完整任务与功能入口仍由既有按键打开。</summary>
     public sealed class GameplayHud
     {
         private readonly IslandFishingController room;
@@ -12,16 +12,16 @@ namespace Advanture.HookIsland
         private readonly CommissionHud commissions;
         private readonly FinaleHud finale;
         private readonly ComboHud combo;
-        private readonly QuickbarHud quickbar;
+        private readonly FirearmAmmoHud ammo;
         private readonly FirearmReticleHud reticle;
         private readonly LocalHealthHud localHealth;
-        private readonly ObjectivePanelMotion objectives = new ObjectivePanelMotion();
+        private readonly ObjectivePanelMotion objectives = new ObjectivePanelMotion(true);
         private readonly HealthBarFeedback squadHealth = new HealthBarFeedback();
         public float ObjectiveReveal => objectives.Reveal(Time.unscaledTime);
         public void ToggleObjectives() => objectives.Toggle(Time.unscaledTime);
         public void Hide() => squadHealth.Reset();
         public GameplayHud(IslandFishingController room,FishingOverlay overlay,HudPainter painter)
-        {this.room=room;this.overlay=overlay;ui=painter;commissions=new CommissionHud(room,painter);finale=new FinaleHud(room,painter);combo=new ComboHud();quickbar=new QuickbarHud(room,painter);reticle=new FirearmReticleHud(room,painter);localHealth=new LocalHealthHud(painter);}
+        {this.room=room;this.overlay=overlay;ui=painter;commissions=new CommissionHud(room,painter);finale=new FinaleHud(room,painter);combo=new ComboHud();ammo=new FirearmAmmoHud(room,painter);reticle=new FirearmReticleHud(room,painter);localHealth=new LocalHealthHud(painter);}
 
         public void Draw(HudLayout layout,float scale)
         {
@@ -37,16 +37,10 @@ namespace Advanture.HookIsland
                 localHealth.Draw(layout.LocalHealth,local,maximum,
                     squadHealth.Observe(local.Slot,local.Vitals.Health,maximum),Time.unscaledTime);
             }
-            quickbar.Draw(layout,local);
+            ammo.Draw(layout.FirearmAmmo,local);
             DrawObjectives(layout);
             combo.DrawFrame(layout.Combo,room.Feedback.Combo.Sample(Time.unscaledTime));
-            if(ui.IconButton(layout.Menu,HudIcon.Menu,"菜单 · Esc"))overlay.OpenMenu();
-            bool enabled=GUI.enabled;GUI.enabled=!room.Incapacitated;
-            if(ui.IconButton(layout.Tool(0),HudIcon.Backpack,"角色与背包 · Tab","TAB"))room.Equipment?.ToggleInventory();
-            GUI.enabled=!room.Incapacitated && !room.FirearmBusy && room.Construction!=null && room.Map.Platform!=null;
-            if(ui.IconButton(layout.Tool(1),HudIcon.Build,"扩建平台 · B","B",room.Construction?.Open==true))room.Construction.Toggle();
-            GUI.enabled=enabled;
-            if(ui.IconButton(layout.Tool(2),HudIcon.Help,"操作指南 · F1","F1"))overlay.OpenHelp();
+            // Esc / Tab / B / F1 仍由各自输入模块处理；不再为这些功能常驻绘制大块按钮。
             DrawWorld(scale,layout.Height);
             if(room.Construction?.Open==true)DrawConstruction(layout.Construction);
             DrawFeedback(layout);
@@ -56,14 +50,16 @@ namespace Advanture.HookIsland
         {
             bool active=room.State.Finale.Phase!=FinalePhase.Dormant;
             if(!active && room.State.Tackle?.Config.Commissions.Enabled!=true)return;
+            if(active)finale.DrawSummary(layout.ObjectiveSummary);
+            else commissions.DrawSummary(layout.ObjectiveSummary);
             float reveal=ObjectiveReveal;
             if(reveal>0)
             {
                 if(active)finale.DrawObjective(layout.CommissionPanel(true,reveal));
                 else commissions.Draw(layout.CommissionPanel(room.State.Tackle.Config.Ocean.Enabled,reveal));
             }
-            var tab=layout.ObjectiveTab(reveal);ui.Surface(tab);
-            ui.Text(tab,objectives.Collapsed?"›":"‹",24,HudPainter.Muted,TextAnchor.MiddleCenter,true);
+            var tab=layout.ObjectiveTab();
+            ui.FloatingText(tab,objectives.Collapsed?"J 详情":"J 收起",15,Color.white,TextAnchor.MiddleRight);
             ui.Hint(tab,objectives.Collapsed?"展开任务 · J":"收起任务 · J");
             if(GUI.Button(tab,GUIContent.none,GUIStyle.none))ToggleObjectives();
         }
@@ -71,35 +67,40 @@ namespace Advanture.HookIsland
         private void DrawSquad(HudLayout layout)
         {
             squadHealth.BeginFrame(room.Client,room.Client?.RoundEpoch??0,room.State.Steps,Time.unscaledTime,true);
-            int count=0;foreach(var player in room.State.Players)if(!player.WaitingToJoin)count++;
-            var panel=layout.Squad(count);ui.Surface(panel);
+            int count=TeammateCount(room.State,room.LocalSlot);
+            bool objectivesVisible=room.State.Finale.Phase!=FinalePhase.Dormant || room.State.Tackle?.Config.Commissions.Enabled==true;
+            var panel=layout.Squad(count,objectivesVisible?ObjectiveReveal:0,room.State.Tackle?.Config.Ocean.Enabled==true || room.State.Finale.Phase!=FinalePhase.Dormant);
             int index=0;
             foreach(var player in room.State.Players)
             {
                 if(player.WaitingToJoin){squadHealth.Observe(player.Slot,0,0,true);continue;}
-                float x=panel.x+8+index++*52;var tint=FishingPresentation.PlayerColors[player.Slot];
-                ui.Surface(new Rect(x+5,panel.y+7,34,25),new Color(tint.r,tint.g,tint.b,.18f));
-                ui.Text(new Rect(x+5,panel.y+7,34,25),(player.Slot+1).ToString(),14,tint,TextAnchor.MiddleCenter,true);
-                if(player.Slot==room.LocalSlot)ui.Surface(new Rect(x+37,panel.y+7,4,4),HudPainter.White);
+                if(player.Slot==room.LocalSlot)continue;
+                float x=panel.x+index++*80;var tint=FishingPresentation.PlayerColors[player.Slot];
+                ui.FloatingText(new Rect(x,panel.y,68,25),"P"+(player.Slot+1),16,Color.white);
+                HudPainter.Fill(new Rect(x,panel.y+29,64,2),tint);
                 int maximum=room.State.Tackle==null?100:FishingRules.Attributes(room.State,player).HealthMax;
                 var health=squadHealth.Observe(player.Slot,room.State.Tackle==null?100:player.Vitals.Health,maximum);
-                ui.HealthBar(new Rect(x+6,panel.y+39,32,3),health);
+                ui.HealthBar(new Rect(x,panel.y+34,64,4),health);
                 if(player.Revival.Dead || player.Vitals.Downed || player.Swimming.InWater)
-                    ui.Icon(new Rect(x+30,panel.y+22,16,16),player.Revival.Dead?HudIcon.Skull:player.Vitals.Downed?HudIcon.Rescue:HudIcon.SwimRing,player.Vitals.Downed?HudPainter.Health:HudPainter.White);
-                if(player.Unavailable)ui.Text(new Rect(x,panel.y+44,46,15),"断线",10,HudPainter.Gold,TextAnchor.MiddleCenter);
-                ui.Hint(new Rect(x,panel.y,52,52),$"P{player.Slot+1}"+(player.Slot==room.LocalSlot?" · 你":"")+(player.Unavailable?" · 断线":"")+(player.Revival.Dead?" · 死亡":player.Vitals.Downed?" · 等待救援":player.Swimming.InWater?" · 落水":""));
+                    ui.Icon(new Rect(x+48,panel.y+3,16,16),player.Revival.Dead?HudIcon.Skull:player.Vitals.Downed?HudIcon.Rescue:HudIcon.SwimRing,player.Vitals.Downed?HudPainter.Health:HudPainter.White);
+                if(player.Unavailable)ui.FloatingText(new Rect(x,panel.y+38,68,14),"断线",10,HudPainter.Gold,italic:false);
+                ui.Hint(new Rect(x,panel.y,72,52),$"P{player.Slot+1}"+(player.Unavailable?" · 断线":"")+(player.Revival.Dead?" · 死亡":player.Vitals.Downed?" · 等待救援":player.Swimming.InWater?" · 落水":""));
             }
         }
 
+        /// <summary>渲染和鼠标遮挡共用实际队友数，避免单人或等待加入的席位留下空面板。</summary>
+        public static int TeammateCount(HookState state,int localSlot)
+        {int count=0;if(state!=null)foreach(var player in state.Players)if(!player.WaitingToJoin && player.Slot!=localSlot)count++;return count;}
+
         private void DrawWallet(HudLayout layout,Fisher player)
         {
-            var rect=layout.Wallet;ui.Surface(rect);
+            var rect=layout.Wallet;
             Resource(rect.x+12,rect.y,HudIcon.Coin,room.State.Tackle==null?room.State.Coins:player.Coins,HudPainter.Gold,"金币");
         }
         private void Resource(float x,float y,HudIcon icon,int value,Color color,string label)
         {
-            ui.Icon(new Rect(x,y+13,22,22),icon,color);
-            ui.Text(new Rect(x+28,y+6,80,36),Compact(value),16,HudPainter.White,TextAnchor.MiddleLeft,true);
+            ui.Icon(new Rect(x,y+9,30,30),icon,color);
+            ui.FloatingText(new Rect(x+38,y,112,48),Compact(value),28,Color.white,TextAnchor.MiddleRight);
             ui.Hint(new Rect(x,y,104,48),$"{label} · {value:N0}");
         }
         private static string Compact(int value)=>value<10000?value.ToString("N0"):value<1000000?(value/1000f).ToString("0.#")+"k":(value/1000000f).ToString("0.#")+"m";

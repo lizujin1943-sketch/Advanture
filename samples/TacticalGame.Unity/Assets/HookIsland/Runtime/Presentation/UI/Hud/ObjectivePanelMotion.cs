@@ -7,6 +7,7 @@ namespace Advanture.HookIsland
     {
         private float from = 1, changedAt;
         public bool Collapsed { get; private set; }
+        public ObjectivePanelMotion(bool collapsed=false){Collapsed=collapsed;from=collapsed?0:1;}
         public float Reveal(float now) => Mathf.Lerp(from, Collapsed ? 0 : 1, Mathf.SmoothStep(0, 1, (now - changedAt) / .22f));
         public void Toggle(float now) { from = Reveal(now); changedAt = now; Collapsed = !Collapsed; }
     }

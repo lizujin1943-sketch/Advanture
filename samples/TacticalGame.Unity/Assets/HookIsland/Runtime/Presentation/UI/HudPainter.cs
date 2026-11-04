@@ -17,7 +17,7 @@ namespace Advanture.HookIsland
         public static Color DisplayColor(Color srgb) => QualitySettings.activeColorSpace==ColorSpace.Linear?srgb.linear:srgb;
         private readonly Font font;
         private readonly Texture2D atlas, coin;
-        private Texture2D scopeMask;
+        private Texture2D scopeMask, slantMask;
         private readonly Dictionary<int,GUIStyle> styles=new Dictionary<int,GUIStyle>();
         private string tooltip;
         private Rect tooltipAnchor;
@@ -77,15 +77,50 @@ namespace Advanture.HookIsland
             else GUI.DrawTextureWithTexCoords(rect,atlas,new Rect(index%8/8f,1-(index/8+1)/3f,1/8f,1/3f));
             GUI.color=old;
         }
-        private GUIStyle Style(int size,TextAnchor alignment,bool bold)
+        private GUIStyle Style(int size,TextAnchor alignment,bool bold,bool italic=false)
         {
-            int key=size*100+(int)alignment*2+(bold?1:0);
+            int key=size*100+(int)alignment*4+(bold?1:0)+(italic?2:0);
             if(!styles.TryGetValue(key,out var style))
-            {style=new GUIStyle(GUI.skin.label){font=font,fontSize=size,alignment=alignment,fontStyle=bold?FontStyle.Bold:FontStyle.Normal,padding=new RectOffset(),clipping=TextClipping.Clip};styles.Add(key,style);}
+            {style=new GUIStyle(GUI.skin.label){font=font,fontSize=size,alignment=alignment,fontStyle=bold?(italic?FontStyle.BoldAndItalic:FontStyle.Bold):(italic?FontStyle.Italic:FontStyle.Normal),padding=new RectOffset(),clipping=TextClipping.Clip};styles.Add(key,style);}
             return style;
         }
         public void Text(Rect rect,string text,int size=15,Color? color=null,TextAnchor alignment=TextAnchor.MiddleLeft,bool bold=false)
         {var style=Style(size,alignment,bold);style.normal.textColor=color??White;GUI.Label(rect,text,style);}
+        /// <summary>无底板文字用贴近字形的细阴影保证可读性；斜体样式缓存，避免每帧分配 GUIStyle。</summary>
+        public void FloatingText(Rect rect,string text,int size=15,Color? color=null,TextAnchor alignment=TextAnchor.MiddleLeft,bool bold=true,bool italic=true)
+        {
+            var style=Style(size,alignment,bold,italic);style.wordWrap=false;
+            var tint=color??Color.white;
+            style.normal.textColor=DisplayColor(new Color(.025f,.05f,.065f,.6f*tint.a));
+            GUI.Label(new Rect(rect.x+1,rect.y+1.5f,rect.width,rect.height),text,style);
+            style.normal.textColor=tint;GUI.Label(rect,text,style);
+        }
+        public float TextWidth(string text,int size,bool bold=true,bool italic=true)=>Style(size,TextAnchor.MiddleLeft,bold,italic).CalcSize(new GUIContent(text)).x;
+
+        /// <summary>
+        /// 可重复使用的斜切遮罩。from/to 裁切原图的 UV，受伤残影与部分生命仍沿同一个斜切轮廓显示。
+        /// 只在首次绘制创建贴图；不像逐帧生成网格或贴图，不随人数和帧数累积资源。
+        /// </summary>
+        public void Slanted(Rect rect,Color tint,float from=0,float to=1)
+        {
+            from=Mathf.Clamp01(from);to=Mathf.Clamp01(to);
+            if(rect.width<=0 || rect.height<=0 || to<=from || Event.current.type!=EventType.Repaint)return;
+            if(slantMask==null)
+            {
+                const int width=128,height=64;var pixels=new Color32[width*height];
+                for(int y=0;y<height;y++)for(int x=0;x<width;x++)
+                {
+                    float left=.28f*(y+.5f)/height*width;
+                    float coverage=Mathf.Clamp01(Mathf.Min(x+.5f-left,left+width*.72f-x-.5f)+.5f);
+                    pixels[y*width+x]=new Color32(255,255,255,(byte)Mathf.RoundToInt(coverage*255));
+                }
+                slantMask=new Texture2D(width,height,TextureFormat.RGBA32,false){name="HUD slanted segment",wrapMode=TextureWrapMode.Clamp,filterMode=FilterMode.Bilinear};
+                slantMask.SetPixels32(pixels);slantMask.Apply(false,true);
+            }
+            var previous=GUI.color;GUI.color=tint;
+            GUI.DrawTextureWithTexCoords(new Rect(rect.x+rect.width*from,rect.y,rect.width*(to-from),rect.height),slantMask,new Rect(from,0,to-from,1));
+            GUI.color=previous;
+        }
         public static float Fraction(int value,int maximum) => maximum<=0?0:Mathf.Clamp01((float)value/maximum);
         public void Bar(Rect rect,float progress,Color color,bool ticks=false)
         {
@@ -138,6 +173,10 @@ namespace Advanture.HookIsland
             Surface(rect);Text(rect,tooltip,12,White,TextAnchor.MiddleCenter);
         }
         public void Dispose()
-        {styles.Clear();if(scopeMask!=null){if(Application.isPlaying)UnityEngine.Object.Destroy(scopeMask);else UnityEngine.Object.DestroyImmediate(scopeMask);scopeMask=null;}}
+        {
+            styles.Clear();Release(scopeMask);Release(slantMask);scopeMask=slantMask=null;
+        }
+        private static void Release(Texture2D texture)
+        {if(texture==null)return;if(Application.isPlaying)UnityEngine.Object.Destroy(texture);else UnityEngine.Object.DestroyImmediate(texture);}
     }
 }

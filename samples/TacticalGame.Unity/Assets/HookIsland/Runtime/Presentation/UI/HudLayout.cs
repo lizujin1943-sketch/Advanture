@@ -8,30 +8,30 @@ namespace Advanture.HookIsland
         public readonly float Width, Height;
         public HudLayout(float width, float height) { Width=width; Height=height; }
         public static float Scale(float width, float height) => Mathf.Clamp(Mathf.Min(width/1280f,height/720f),.45f,2f);
-        public Rect Squad(int players) => new Rect(24,24,16+Mathf.Clamp(players,1,4)*52,52);
-        public Rect Wallet => new Rect(Width-196,24,128,48);
-        public Rect Menu => new Rect(Width-60,24,36,48);
+        /// <summary>只为实际队友保留空间；单人游戏的队伍区域宽度为零。</summary>
+        public Rect Squad(int teammates,float reveal=0,bool ocean=false) => new Rect(32,Mathf.Lerp(112,CommissionPanel(ocean).yMax+12,Mathf.Clamp01(reveal)),Mathf.Clamp(teammates,0,3)*80,52);
+        public Rect Wallet => new Rect(Width-196,26,164,48);
         public Rect Combo => new Rect(Width/2+240,Height-220,210,118);
-        public Rect Quickbar => new Rect(Width/2-267,Height-82,534,58);
-        public Rect QuickSlot(int index)=>new Rect(Quickbar.x+index*60,Quickbar.y,54,58);
+        public Rect FirearmAmmo => new Rect(Width-182,Height-118,150,86);
         /// <summary>本地生命面板始终锚定左下角，坐标与其他 HUD 一样随窗口统一缩放。</summary>
-        public Rect LocalHealth => new Rect(24,Height-120,320,96);
-        public Rect Tools => new Rect(Width-172,Height-70,148,46);
-        public Rect Tool(int index) => new Rect(Tools.x+index*52,Tools.y,44,46);
+        public Rect LocalHealth => new Rect(32,Height-136,260,104);
         // 扩建菜单展开在生命面板上方，建造时仍能看到自己的实时血量。
-        public Rect Construction => new Rect(24,LocalHealth.y-180,260,166);
+        public Rect Construction => new Rect(32,LocalHealth.y-180,260,166);
         public Rect Help => new Rect(Width/2-210,Height/2-206,420,412);
-        public Rect Commissions => new Rect(24,88,300,108);
+        public Rect ObjectiveSummary => new Rect(32,26,340,66);
+        public Rect Commissions => new Rect(32,104,300,108);
         public Rect Acquisitions => new Rect(Width-144,Height-350,120,188);
         public Rect Finale=>CommissionPanel(true);
         public Rect Victory=>new Rect(Width/2-260,Height/2-192,520,384);
-        public Rect CommissionPanel(bool ocean,float reveal=1)=>new Rect(-Commissions.width+(Commissions.width+24)*Mathf.Clamp01(reveal),Commissions.y,Commissions.width,Commissions.height+(ocean?28:0));
-        public Rect ObjectiveTab(float reveal=1)=>new Rect(CommissionPanel(false,reveal).xMax,Commissions.y+8,24,36);
-        public bool Contains(Vector2 pointer, int players, bool building,bool commissions=false,bool ocean=false,bool finale=false,float objectiveReveal=1)
+        public Rect CommissionPanel(bool ocean,float reveal=1)=>new Rect(-Commissions.width+(Commissions.width+Commissions.x)*Mathf.Clamp01(reveal),Commissions.y,Commissions.width,Commissions.height+(ocean?28:0));
+        public Rect ObjectiveTab(float reveal=0)=>new Rect(ObjectiveSummary.x+242,ObjectiveSummary.y+4,98,36);
+        public bool Contains(Vector2 pointer, int teammates, bool building,bool commissions=false,bool ocean=false,bool finale=false,float objectiveReveal=0)
         {
-            return Squad(players).Contains(pointer) || Wallet.Contains(pointer) || Menu.Contains(pointer) ||
-                Tools.Contains(pointer) || LocalHealth.Contains(pointer) || (building && Construction.Contains(pointer)) ||
-                ((commissions || finale) && (CommissionPanel(ocean || finale,objectiveReveal).Contains(pointer) || ObjectiveTab(objectiveReveal).Contains(pointer)));
+            bool objectives=commissions || finale;
+            // 只阻挡真正可见的区域。旧物品栏、菜单图标和工具按钮移除后不能留下透明的点击拦截区。
+            return (teammates>0 && Squad(teammates,objectives?objectiveReveal:0,ocean || finale).Contains(pointer)) ||
+                Wallet.Contains(pointer) || LocalHealth.Contains(pointer) || (building && Construction.Contains(pointer)) ||
+                (objectives && (ObjectiveTab().Contains(pointer) || (objectiveReveal>0 && CommissionPanel(ocean || finale,objectiveReveal).Contains(pointer))));
         }
     }
 }

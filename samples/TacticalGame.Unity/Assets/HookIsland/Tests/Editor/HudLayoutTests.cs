@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 using UnityEditor;
+using Advanture.HookIsland.Simulation;
 
 namespace Advanture.HookIsland.Tests
 {
@@ -14,33 +15,29 @@ namespace Advanture.HookIsland.Tests
         public void VisibleControlsFitAndDoNotOverlapAtSupportedWindowSizes(int width,int height)
         {
             float scale=HudLayout.Scale(width,height);var layout=new HudLayout(width/scale,height/scale);
-            var rects=new[]{layout.Squad(4),layout.Wallet,layout.Menu,layout.Tools,layout.Construction,layout.Acquisitions,layout.Combo,layout.Quickbar,layout.LocalHealth};
+            var rects=new[]{layout.ObjectiveSummary,layout.CommissionPanel(true),layout.Squad(3,1,true),layout.Wallet,layout.Construction,layout.Acquisitions,layout.Combo,layout.FirearmAmmo,layout.LocalHealth};
             for(int i=0;i<rects.Length;i++)
             {
                 Assert.That(rects[i].xMin,Is.GreaterThanOrEqualTo(0));Assert.That(rects[i].yMin,Is.GreaterThanOrEqualTo(0));
                 Assert.That(rects[i].xMax,Is.LessThanOrEqualTo(layout.Width));Assert.That(rects[i].yMax,Is.LessThanOrEqualTo(layout.Height));
                 for(int j=i+1;j<rects.Length;j++)Assert.That(rects[i].Overlaps(rects[j]),Is.False,$"HUD overlap: {i}, {j}");
             }
-            for(int i=0;i<3;i++)Assert.That(layout.Contains(layout.Tool(i).center,4,false),Is.True,"Visible button must block casting.");
             Assert.That(layout.Contains(layout.LocalHealth.center,4,false),Is.True,"点击固定血条不能穿透成出钩或开火。");
-            Assert.That(layout.LocalHealth.xMin,Is.EqualTo(24));
-            Assert.That(layout.Height-layout.LocalHealth.yMax,Is.EqualTo(24),"血条始终锚定左下角。");
-            for(int i=0;i<9;i++)
-            {
-                Assert.That(layout.Quickbar.Contains(layout.QuickSlot(i).center),Is.True);
-                if(i>0)Assert.That(layout.QuickSlot(i-1).Overlaps(layout.QuickSlot(i)),Is.False);
-            }
+            Assert.That(layout.LocalHealth.xMin,Is.EqualTo(32));
+            Assert.That(layout.Height-layout.LocalHealth.yMax,Is.EqualTo(32),"血条始终锚定左下角。");
         }
         [Test] public void CollapsedTaskDrawerOnlyBlocksItsVisibleHandleAndCanBeReversed()
         {
-            var layout=new HudLayout(1280,720);var motion=new ObjectivePanelMotion();
+            var layout=new HudLayout(1280,720);var motion=new ObjectivePanelMotion(true);
+            Assert.That(motion.Reveal(0),Is.Zero,"常驻摘要不应默认展开详细任务面板。");
+            Assert.That(layout.Contains(layout.Commissions.center,0,false,true,true,false,motion.Reveal(0)),Is.False);
             motion.Toggle(1);float middle=motion.Reveal(1.11f);
             Assert.That(middle,Is.InRange(.45f,.55f));
-            Assert.That(layout.Contains(layout.Commissions.center,1,false,true,true,false,motion.Reveal(2)),Is.False);
+            Assert.That(layout.Contains(layout.Commissions.center,0,false,true,true,false,motion.Reveal(2)),Is.True);
             Assert.That(layout.Contains(layout.ObjectiveTab(0).center,1,false,true,true,false,0),Is.True);
             Assert.That(layout.Contains(layout.Acquisitions.center,1,false,true,true),Is.False,"Passive notices must not swallow casts.");
-            motion.Toggle(2);Assert.That(motion.Reveal(3),Is.EqualTo(1));
-            Assert.That(layout.Contains(layout.Commissions.center,1,false,true,true,false,motion.Reveal(3)),Is.True);
+            motion.Toggle(2);Assert.That(motion.Reveal(3),Is.Zero);
+            Assert.That(layout.Contains(layout.Commissions.center,0,false,true,true,false,motion.Reveal(3)),Is.False);
         }
         [Test] public void HiddenConstructionAndOldInstructionStripDoNotBlockCasting()
         {
@@ -51,6 +48,8 @@ namespace Advanture.HookIsland.Tests
             Assert.That(layout.Contains(new Vector2(360,680),4,false),Is.False,"Old bottom instruction strip must be playable.");
             Assert.That(layout.Contains(new Vector2(220,210),4,false),Is.False,"Old large left panel must be playable.");
             Assert.That(layout.Contains(new Vector2(640,360),4,true),Is.False,"Scene center must stay playable.");
+            Assert.That(layout.Contains(layout.FirearmAmmo.center,0,false),Is.False,"只读弹药和已移除的右下按钮不能拦截开火。");
+            Assert.That(layout.Contains(new Vector2(1200,680),0,false),Is.False,"旧工具按钮区域不再遮挡操作。");
         }
         [TestCase(-10,100,0f)]
         [TestCase(150,100,1f)]
@@ -69,18 +68,17 @@ namespace Advanture.HookIsland.Tests
             Assert.That(texture.wrapMode,Is.EqualTo(TextureWrapMode.Clamp));
         }
 
-        [TestCase(1)]
-        [TestCase(2)]
-        [TestCase(3)]
-        [TestCase(4)]
-        public void LocalHealthPortraitExistsForEachSeatWithoutRuntimeRendering(int seat)
+        [Test] public void SquadExcludesLocalAndPendingSeatsButKeepsDisconnectedTeammates()
         {
-            var texture=Resources.Load<Texture2D>("UI/Portraits/FisherP"+seat);
-            Assert.That(texture,Is.Not.Null,"每个席位都应有从渔夫模型生成的头像。");
-            Assert.That(texture.width,Is.EqualTo(256));Assert.That(texture.height,Is.EqualTo(256));
-            var importer=(TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
-            Assert.That(importer.alphaIsTransparency,Is.True);Assert.That(importer.mipmapEnabled,Is.False);
-            Assert.That(importer.textureCompression,Is.EqualTo(TextureImporterCompression.Uncompressed));
+            var state=new HookState(0,new[]{new Fisher{Slot=0},new Fisher{Slot=1,Unavailable=true},new Fisher{Slot=2,WaitingToJoin=true}},System.Array.Empty<Fish>(),0);
+            Assert.That(GameplayHud.TeammateCount(state,0),Is.EqualTo(1));
+            Assert.That(GameplayHud.TeammateCount(state,1),Is.EqualTo(1));
+            var solo=new HookState(0,new[]{new Fisher{Slot=0}},System.Array.Empty<Fish>(),0);
+            Assert.That(GameplayHud.TeammateCount(solo,0),Is.Zero);
+            var layout=new HudLayout(1280,720);
+            Assert.That(layout.Squad(0).width,Is.Zero);
+            Assert.That(layout.Contains(layout.Squad(1).center,0,false),Is.False,"单人时不能保留隐形的队伍点击区。");
+            Assert.That(layout.Contains(layout.Squad(1).center,1,false),Is.True);
         }
     }
 }
