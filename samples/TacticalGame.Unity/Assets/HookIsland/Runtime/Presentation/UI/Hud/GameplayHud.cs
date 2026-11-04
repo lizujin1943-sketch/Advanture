@@ -14,13 +14,14 @@ namespace Advanture.HookIsland
         private readonly ComboHud combo;
         private readonly QuickbarHud quickbar;
         private readonly FirearmReticleHud reticle;
+        private readonly LocalHealthHud localHealth;
         private readonly ObjectivePanelMotion objectives = new ObjectivePanelMotion();
         private readonly HealthBarFeedback squadHealth = new HealthBarFeedback();
         public float ObjectiveReveal => objectives.Reveal(Time.unscaledTime);
         public void ToggleObjectives() => objectives.Toggle(Time.unscaledTime);
         public void Hide() => squadHealth.Reset();
         public GameplayHud(IslandFishingController room,FishingOverlay overlay,HudPainter painter)
-        {this.room=room;this.overlay=overlay;ui=painter;commissions=new CommissionHud(room,painter);finale=new FinaleHud(room,painter);combo=new ComboHud();quickbar=new QuickbarHud(room,painter);reticle=new FirearmReticleHud(room,painter);}
+        {this.room=room;this.overlay=overlay;ui=painter;commissions=new CommissionHud(room,painter);finale=new FinaleHud(room,painter);combo=new ComboHud();quickbar=new QuickbarHud(room,painter);reticle=new FirearmReticleHud(room,painter);localHealth=new LocalHealthHud(painter);}
 
         public void Draw(HudLayout layout,float scale)
         {
@@ -28,6 +29,14 @@ namespace Advanture.HookIsland
             if(room.State.Won){Hide();finale.DrawVictory(layout);return;}
             reticle.Draw(local,scale);
             DrawSquad(layout);DrawWallet(layout,local);
+            // HP 与装备提供的上限必须读取同一份确认态；预测回滚不能让固定血条反复掉血。
+            // 此处不依赖人物投影或镜头，因此第一人称、人物出画面和倒地时仍能显示。
+            if(room.State.Tackle!=null && !local.WaitingToJoin)
+            {
+                int maximum=FishingRules.Attributes(room.State,local).HealthMax;
+                localHealth.Draw(layout.LocalHealth,local,maximum,
+                    squadHealth.Observe(local.Slot,local.Vitals.Health,maximum),Time.unscaledTime);
+            }
             quickbar.Draw(layout,local);
             DrawObjectives(layout);
             combo.DrawFrame(layout.Combo,room.Feedback.Combo.Sample(Time.unscaledTime));

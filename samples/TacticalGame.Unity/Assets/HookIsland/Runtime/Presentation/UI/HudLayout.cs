@@ -14,9 +14,12 @@ namespace Advanture.HookIsland
         public Rect Combo => new Rect(Width/2+240,Height-220,210,118);
         public Rect Quickbar => new Rect(Width/2-267,Height-82,534,58);
         public Rect QuickSlot(int index)=>new Rect(Quickbar.x+index*60,Quickbar.y,54,58);
+        /// <summary>本地生命面板始终锚定左下角，坐标与其他 HUD 一样随窗口统一缩放。</summary>
+        public Rect LocalHealth => new Rect(24,Height-120,320,96);
         public Rect Tools => new Rect(Width-172,Height-70,148,46);
         public Rect Tool(int index) => new Rect(Tools.x+index*52,Tools.y,44,46);
-        public Rect Construction => new Rect(24,Height-190,260,166);
+        // 扩建菜单展开在生命面板上方，建造时仍能看到自己的实时血量。
+        public Rect Construction => new Rect(24,LocalHealth.y-180,260,166);
         public Rect Help => new Rect(Width/2-210,Height/2-206,420,412);
         public Rect Commissions => new Rect(24,88,300,108);
         public Rect Acquisitions => new Rect(Width-144,Height-350,120,188);
@@ -27,7 +30,7 @@ namespace Advanture.HookIsland
         public bool Contains(Vector2 pointer, int players, bool building,bool commissions=false,bool ocean=false,bool finale=false,float objectiveReveal=1)
         {
             return Squad(players).Contains(pointer) || Wallet.Contains(pointer) || Menu.Contains(pointer) ||
-                Tools.Contains(pointer) || (building && Construction.Contains(pointer)) ||
+                Tools.Contains(pointer) || LocalHealth.Contains(pointer) || (building && Construction.Contains(pointer)) ||
                 ((commissions || finale) && (CommissionPanel(ocean || finale,objectiveReveal).Contains(pointer) || ObjectiveTab(objectiveReveal).Contains(pointer)));
         }
     }

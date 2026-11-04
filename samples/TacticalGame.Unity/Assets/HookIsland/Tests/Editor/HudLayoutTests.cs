@@ -14,7 +14,7 @@ namespace Advanture.HookIsland.Tests
         public void VisibleControlsFitAndDoNotOverlapAtSupportedWindowSizes(int width,int height)
         {
             float scale=HudLayout.Scale(width,height);var layout=new HudLayout(width/scale,height/scale);
-            var rects=new[]{layout.Squad(4),layout.Wallet,layout.Menu,layout.Tools,layout.Construction,layout.Acquisitions,layout.Combo,layout.Quickbar};
+            var rects=new[]{layout.Squad(4),layout.Wallet,layout.Menu,layout.Tools,layout.Construction,layout.Acquisitions,layout.Combo,layout.Quickbar,layout.LocalHealth};
             for(int i=0;i<rects.Length;i++)
             {
                 Assert.That(rects[i].xMin,Is.GreaterThanOrEqualTo(0));Assert.That(rects[i].yMin,Is.GreaterThanOrEqualTo(0));
@@ -22,6 +22,9 @@ namespace Advanture.HookIsland.Tests
                 for(int j=i+1;j<rects.Length;j++)Assert.That(rects[i].Overlaps(rects[j]),Is.False,$"HUD overlap: {i}, {j}");
             }
             for(int i=0;i<3;i++)Assert.That(layout.Contains(layout.Tool(i).center,4,false),Is.True,"Visible button must block casting.");
+            Assert.That(layout.Contains(layout.LocalHealth.center,4,false),Is.True,"点击固定血条不能穿透成出钩或开火。");
+            Assert.That(layout.LocalHealth.xMin,Is.EqualTo(24));
+            Assert.That(layout.Height-layout.LocalHealth.yMax,Is.EqualTo(24),"血条始终锚定左下角。");
             for(int i=0;i<9;i++)
             {
                 Assert.That(layout.Quickbar.Contains(layout.QuickSlot(i).center),Is.True);
@@ -64,6 +67,20 @@ namespace Advanture.HookIsland.Tests
             Assert.That(importer.mipmapEnabled,Is.False);Assert.That(importer.alphaIsTransparency,Is.True);
             Assert.That(importer.textureCompression,Is.EqualTo(TextureImporterCompression.Uncompressed));
             Assert.That(texture.wrapMode,Is.EqualTo(TextureWrapMode.Clamp));
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        [TestCase(4)]
+        public void LocalHealthPortraitExistsForEachSeatWithoutRuntimeRendering(int seat)
+        {
+            var texture=Resources.Load<Texture2D>("UI/Portraits/FisherP"+seat);
+            Assert.That(texture,Is.Not.Null,"每个席位都应有从渔夫模型生成的头像。");
+            Assert.That(texture.width,Is.EqualTo(256));Assert.That(texture.height,Is.EqualTo(256));
+            var importer=(TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
+            Assert.That(importer.alphaIsTransparency,Is.True);Assert.That(importer.mipmapEnabled,Is.False);
+            Assert.That(importer.textureCompression,Is.EqualTo(TextureImporterCompression.Uncompressed));
         }
     }
 }

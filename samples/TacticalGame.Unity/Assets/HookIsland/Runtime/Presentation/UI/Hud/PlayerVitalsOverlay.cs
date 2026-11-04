@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Advanture.HookIsland
 {
-    /// <summary>Read-only, avatar-anchored health, stamina and damage presentation.</summary>
+    /// <summary>只读的人物头顶反馈：队友生命、本地及队友耐力、伤害与治疗飘字。</summary>
     public sealed class PlayerVitalsOverlay : System.IDisposable
     {
         private readonly HudPainter ui;
@@ -42,7 +42,8 @@ namespace Advanture.HookIsland
                 if (point.z <= 0 || point.x < 0 || point.x > Screen.width || point.y < 0 || point.y > Screen.height) continue;
                 bool local = player.Slot == room.LocalSlot;
                 var health = new Rect(point.x / scale - 30, height - point.y / scale - 20, 60, 7);
-                DrawHealth(health, player, stats, healthFrame);
+                // 自己的生命由 GameplayHud 的左下角固定面板显示；头顶仍保留受伤、治疗和钓鱼反馈。
+                if (!local) DrawHealth(health, player, stats, healthFrame);
                 var body = camera.WorldToScreenPoint(chest);
                 var left = camera.WorldToScreenPoint(chest - camera.transform.right * halfWidth);
                 float arcHeight = Mathf.Clamp(Mathf.Abs(point.y - body.y) / scale * 1.6f, local ? 84 : 72, 96);
