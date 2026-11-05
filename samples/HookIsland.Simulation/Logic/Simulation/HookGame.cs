@@ -16,8 +16,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     public static SimulationModule<HookState> CreateModule(bool initialFriendlyPranks=true)
     {
         var game=new HookGame(initialFriendlyPranks);
-        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"41",inputFormatVersion:"17",
-            stateFormatVersion:"36",contentHash:CatalogData.Hash()+"/"+BossPoseData.Hash,determinismHash:"integer-mm-grenades-v41"),game,game,game);
+        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"44",inputFormatVersion:"18",
+            stateFormatVersion:"39",contentHash:CatalogData.Hash()+"/"+BossPoseData.Hash,determinismHash:"integer-mm-town-v44"),game,game,game);
     }
     public IDeterministicSimulation<HookState> Create()=>new Model(initialFriendlyPranks);
     public void ValidateCanonical(ReadOnlySpan<byte> bytes)=>HookInput.Decode(bytes);
@@ -55,6 +55,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         CrabStateCodec.Write(w,s);
         BossStateCodec.Write(w,s);
         GrenadeStateCodec.Write(w,s);
+        EldritchStateCodec.Write(w,s);
+        TownStateCodec.Write(w,s);
         return stream.ToArray();
     }
     public HookState Decode(ReadOnlySpan<byte> bytes)
@@ -84,7 +86,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 p.PullTicks<0 || p.PullTicks>PullLimitTicks || p.ProtectionTicks<0 || p.ProtectionTicks>ProtectionDuration ||
                 (p.HookedPlayer<0 && p.PullTicks!=0) ||
                 (p.PulledBy>=0 && (p.HookedPlayer>=0 || p.Shopping || p.ProtectionTicks>0)) ||
-                Math.Abs((long)p.X)>50000 || Math.Abs((long)p.Z)>50000 ||
+                Math.Abs((long)p.X)>100000 || Math.Abs((long)p.Z)>100000 ||
                 Math.Abs((long)p.HookX)>100000 || Math.Abs((long)p.HookZ)>100000 ||
                 Math.Abs((long)p.DirectionX)>1000 || Math.Abs((long)p.DirectionZ)>1000 || p.Distance<0 ||
                 p.RangeLevel<0 || p.RangeLevel>HookUpgrades.MaxLevel || p.SpeedLevel<0 || p.SpeedLevel>HookUpgrades.MaxLevel ||
@@ -121,6 +123,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         state=CrabStateCodec.Read(r,state);
         state=BossStateCodec.Read(r,state);
         state=GrenadeStateCodec.Read(r,state);
+        state=EldritchStateCodec.Read(r,state);
+        state=TownStateCodec.Read(r,state);
         PlatformStateCodec.Validate(state);
         PlatformStateCodec.ValidateBalances(state);
         if(state.Tackle!=null)foreach(var p in state.Players)RevivalStateCodec.Validate(state,p);
@@ -191,7 +195,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             if(init.Session.TickRate!=Rate)throw new InvalidDataException("Hook Island requires 30 Hz.");
             map=IslandMap.Decode(init.Data.Span);
             tiles=map.Platform==null?new List<PlatformTile>():PlatformRules.InitialTiles(map).ToList();
-            driftwood=map.Platform==null?Array.Empty<Driftwood>():Enumerable.Range(0,DriftwoodMotion.Count).Select(i=>DriftwoodMotion.Create(i)).ToArray();
+            driftwood=map.Platform==null || map.IsTown?Array.Empty<Driftwood>():Enumerable.Range(0,DriftwoodMotion.Count).Select(i=>DriftwoodMotion.Create(i)).ToArray();
             players=init.Session.Participants.Select(p=>{
                 if(p.Slot>=4)throw new InvalidDataException("Invalid slot.");
                 var s=map.Spawns[p.Slot];if(!map.CanStand(s.X,s.Z))throw new InvalidDataException("Spawn outside walkable island.");
@@ -206,7 +210,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             commissions=CommissionSystem.Create(map.Fishing?.Commissions??CommissionConfig.Disabled);
             InitializeOcean();
             InitializeFinale();
-            boss=new BossSystem(map.Fishing?.Boss??BossConfig.Disabled,players.Length);
+            boss=new BossSystem(map.Fishing?.Boss??BossConfig.Disabled,players.Length,town:map.IsTown);
+            eldritch=new EldritchSystem(map);InitializeTown();
             fish=map.FishSpots.Select((p,i)=>CreateFish(i,i*5,0)).ToArray();
             grenades.Clear();
             tick=0;coins=players.Sum(p=>p.Coins);roomRules=new RoomRulesState(initialFriendlyPranks);
@@ -217,7 +222,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         public IReadOnlyList<ByteString> Step(FrameContext context,IReadOnlyList<SimulationInput> inputs)
         {
             events.Clear();
-            bool finished=finale?.Capture().Phase==FinalePhase.Victory || equipment!=null && RevivalSystem.GameOver(players);
+            bool finished=townFinished || finale?.Capture().Phase==FinalePhase.Victory || equipment!=null && !(map.IsTown && boss.Capture().Active) && RevivalSystem.GameOver(players);
             foreach(var change in context.MemberEvents)
                 if(change.Kind==MemberEventKind.Deactivate && change.Slot<players.Length)
                 {
@@ -236,7 +241,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             // body must not enter a finished world and turn defeat back into a playable round.
             if(finished)
             {
-                AdvanceBossWhileFinished();InterruptFinishedGrenades();
+                AdvanceBossWhileFinished();AdvanceTown();InterruptFinishedGrenades();
                 // 已出手的物体有自己的寿命，回合结束也不能把引信永久冻结。
                 if(grenades.Count>0){AdvanceGrenadeProjectiles();tick++;}
                 return events.ToArray();
@@ -256,14 +261,15 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 if(!players[i].WaitingToJoin && players[i].ProtectionTicks>0)players[i].ProtectionTicks--;
             }
             ApplyRoomRules(commands[0].RoomRules);
-            for(int i=0;i<players.Length;i++)if(commands[i].BossRequest!=0)boss.Request(i,commands[i].BossRequest,players);
+            ApplyTownCommands(commands);
+            for(int i=0;i<players.Length;i++)if(!map.IsTown && commands[i].BossRequest!=0)boss.Request(i,commands[i].BossRequest,players);
             // All voluntary actions precede hook collisions; claims remain in stable slot order.
             for(int i=0;i<players.Length;i++)
             {
                 var p=players[i];var c=commands[i];
                 if(p.WaitingToJoin)continue;
                 bool wasDowned=p.Vitals.Downed;
-                if(equipment!=null)RevivalSystem.Respawn(map,tiles,players,ref p,c.Revival,equipment.Attributes(p),ref coins);
+                if(equipment!=null)RevivalSystem.Respawn(map,tiles,players,ref p,c.Revival,equipment.Attributes(p),ref coins,map.IsTown && townPlayers[p.Slot].InnRegistered?(Point?)TownLayout.Buildings[9].Entrance:null);
                 if(wasDowned && !p.Vitals.Downed)
                 {
                     // Early payment can occur during a teammate's tow. Release only after the transaction succeeds.
@@ -282,7 +288,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 bool recoveryMovement=p.Firearm.RecoveryTicks>0;
                 PrepareFirearm(ref p,c);
                 p.Shopping=canAct && !p.Grenade.Active && !p.Melee.Active && !knockedBack && !p.Swimming.InWater && (equipment!=null || map.Platform==null) && c.Shopping && p.PulledBy<0 && p.HookedPlayer<0 && FishingRules.NearShop(map,tiles,p);
-                Purchase(ref p,c);equipment?.Apply(map,tiles,ref p,c,ref coins,c.Revival.RescueTarget!=0 || players.Any(other=>other.Revival.RescueTicks>0 && other.Revival.Rescuer==i+1));
+                Purchase(ref p,c);equipment?.Apply(map,tiles,ref p,c,ref coins,c.Revival.RescueTarget!=0 || players.Any(other=>other.Revival.RescueTicks>0 && other.Revival.Rescuer==i+1),map.IsTown?townPlayers[i].BoundWeaponId:0,map.IsTown?townPlayers[i].BoundLoaded:0);
                 SyncFirearm(ref p);
                 if(c.Cancel || (equipment!=null && p.Swimming.InWater && equipment.Ring(p)==null))RetractHook(ref p);
                 if(c.AimX!=0 || c.AimZ!=0 || c.Fire){p.AimX=c.AimX;p.AimZ=c.AimZ;}
@@ -371,11 +377,14 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             PruneCatches();
             AdvanceCatches();
             AdvanceMelee(commands);
+            ReconcileTownAmmo();
             AdvanceFirearms(commands);
             AdvanceGrenades(commands);
             SettlePiranhaKills();
             AdvanceCrabs();
             AdvanceBoss();
+            AdvanceTown();
+            AdvanceEldritch();
             enemies?.Advance(players,ApplyEnemyHit,IsMonsterWater,ocean?.AllowNewAttacks(tick+1)??true);
             if(equipment!=null)for(int i=0;i<players.Length;i++)
             {
@@ -403,7 +412,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                     StopCharacterHook(ref dead);dead.Knockback=default;dead.Swimming.Active=false;dead.Shopping=false;
                     // One automatic attempt on the death transition; failures must not silently retry.
                     if(solo && !alreadyDead[i] && !dead.Unavailable && dead.Coins>=dead.Revival.DeathCost && dead.Revival.LastRequest<uint.MaxValue)
-                        RevivalSystem.Respawn(map,tiles,players,ref dead,new RevivalCommand(respawnRequest:dead.Revival.LastRequest+1,deathId:dead.Revival.DownedId),equipment.Attributes(dead),ref coins);
+                        RevivalSystem.Respawn(map,tiles,players,ref dead,new RevivalCommand(respawnRequest:dead.Revival.LastRequest+1,deathId:dead.Revival.DownedId),equipment.Attributes(dead),ref coins,map.IsTown && townPlayers[dead.Slot].InnRegistered?(Point?)TownLayout.Buildings[9].Entrance:null);
                     players[i]=dead;
                 }
             }
@@ -534,7 +543,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 p.HookX+=p.DirectionX*travel/1000;p.HookZ+=p.DirectionZ*travel/1000;p.Distance+=travel;
                 int closest=map.Platform==null?Math.Min(HitFraction(oldX,oldZ,p.HookX,p.HookZ,0,1050,2150),
                     HitFraction(oldX,oldZ,p.HookX,p.HookZ,-2150,1550,490)):int.MaxValue;
-                int playerHit=-1,fishHit=-1,woodHit=-1,piranhaHit=-1,chestHit=-1,crabHit=-1;bool monsterHit=false,finaleHit=false;
+                int playerHit=-1,fishHit=-1,woodHit=-1,piranhaHit=-1,chestHit=-1,crabHit=-1,eldritchHit=-1;bool monsterHit=false,finaleHit=false;
                 for(int i=0;i<players.Length;i++)
                 {
                     var target=players[i];
@@ -594,6 +603,12 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                         if(hit<closest){closest=hit;crabHit=i;playerHit=fishHit=woodHit=piranhaHit=chestHit=-1;monsterHit=finaleHit=false;}
                     }
                 }
+                for(int i=0;i<eldritch.Count;i++)
+                {
+                    var c=eldritch.Get(i);if(!c.Damageable || !eldritch.ReachableHit(i,p.X,p.Z))continue;
+                    int hit=HitFraction(oldX,oldZ,p.HookX,p.HookZ,c.X,c.Z,EldritchCatalog.BodyRadius);
+                    if(hit<closest){closest=hit;eldritchHit=i;playerHit=fishHit=woodHit=piranhaHit=chestHit=crabHit=-1;monsterHit=finaleHit=false;}
+                }
                 if(playerHit>=0)
                 {
                     var target=players[playerHit];target.PulledBy=p.Slot;target.TimesHooked++;
@@ -630,6 +645,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
                 else if(closest!=int.MaxValue)
                 {
                     if(monsterHit){ComboRules.FailHarvest(ref p.Combo);enemies!.Interrupt();}
+                    if(eldritchHit>=0){ComboRules.FailHarvest(ref p.Combo);eldritch.Interrupt(eldritchHit);}
                     if(crabHit>=0){ComboRules.FailHarvest(ref p.Combo);crabs[crabHit].Interrupt();}
                     p.HookX=oldX+(int)((long)(p.HookX-oldX)*closest/1000000);
                     p.HookZ=oldZ+(int)((long)(p.HookZ-oldZ)*closest/1000000);
@@ -743,21 +759,22 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             var target=players[owner.HookedPlayer];target.PulledBy=-1;target.ProtectionTicks=ProtectionDuration;
             players[owner.HookedPlayer]=target;owner.HookedPlayer=-1;owner.PullTicks=0;
         }
-        private bool CanStand(int x,int z)=>map.Platform==null?map.CanStand(x,z):PlatformRules.CanStand(tiles,x,z);
-        public HookState Capture()=>new HookState(tick,players,fish,coins,tiles,driftwood,equipment?.Capture(),enemies?.Capture(),roomRules,new TreasureState(chests),commissions,ocean?.Capture(),finale?.Capture(),crabs.Select(c=>c.Capture()),boss.Capture(),grenades);
+        private bool CanStand(int x,int z)=>map.IsTown?TownLayout.CanStand(tiles,x,z):map.Platform==null?map.CanStand(x,z):PlatformRules.CanStand(tiles,x,z);
+        public HookState Capture()=>new HookState(tick,players,fish,coins,tiles,driftwood,equipment?.Capture(),enemies?.Capture(),roomRules,new TreasureState(chests),commissions,ocean?.Capture(),finale?.Capture(),crabs.Select(c=>c.Capture()),boss.Capture(),grenades,eldritch.Capture(),CaptureTown());
         public void Restore(HookState state)
         {
             // Validate ownership as well as positions before using a received checkpoint.
             state=new HookGame().Decode(new HookGame().Encode(state));
-            if((map.Fishing==null)!=(state.Tackle==null) ||
+            if(map.IsTown!=state.Town.Enabled || (map.Fishing==null)!=(state.Tackle==null) ||
                 (map.Fishing!=null && !map.Fishing.Encode().SequenceEqual(state.Tackle!.Config.Encode())) ||
-                state.Players.Count!=players.Length || state.Fish.Count!=fish.Length || (map.Platform==null)!=(state.Tiles.Count==0) ||
+                state.Players.Count!=players.Length || state.Fish.Count!=fish.Length || (!map.IsTown && (map.Platform==null)!=(state.Tiles.Count==0)) ||
                 state.Players.Any(p=>map.Fishing==null?!map.CanStand(state,p.X,p.Z):SwimmingTerrain.Obstacle(map,p.X,p.Z) || p.Swimming.InWater==map.CanStand(state,p.X,p.Z)) ||
                 (map.Platform!=null && state.Tiles.Any(t=>map.Platform.BlockedCells.Any(b=>b.X==t.X && b.Z==t.Z))))
                 throw new InvalidDataException("State does not match island.");
             OceanStateCodec.ValidateMap(map,state);
             FinaleStateCodec.ValidateMap(map,state);
             CrabStateCodec.ValidateMap(map,state);
+            EldritchStateCodec.ValidateMap(map,state);
             grenades=state.Grenades.ToList();
             tick=state.Steps;coins=state.Coins;players=state.Players.ToArray();fish=state.Fish.ToArray();roomRules=state.RoomRules;chests=state.Treasure.Chests.ToArray();
             commissions=state.Commissions;
@@ -766,7 +783,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             tiles=state.Tiles.ToList();driftwood=state.Driftwood.ToArray();equipment=state.Tackle==null?null:new EquipmentSystem(state.Tackle);
             enemies=map.Fishing?.Enemies.Enabled==true?new EnemySystem(map.Fishing.Enemies,state.Enemies):null;
             crabs=state.Crabs.Select((c,i)=>new CrabSystem(map,crabNavigation,c,i)).ToArray();
-            boss=new BossSystem(map.Fishing?.Boss??BossConfig.Disabled,players.Length,state.Boss);
+            boss=new BossSystem(map.Fishing?.Boss??BossConfig.Disabled,players.Length,state.Boss,map.IsTown);
+            eldritch=new EldritchSystem(map,state.Eldritch);InitializeTown(state.Town);
             events.Clear();ObserveInventory();
         }
     }

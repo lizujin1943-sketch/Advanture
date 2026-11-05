@@ -34,10 +34,11 @@ internal static class EnemyStateCodec
             var k=new KnockbackState {Active=active==1,OriginX=r.ReadInt32(),OriginZ=r.ReadInt32(),DirectionX=r.ReadInt32(),DirectionZ=r.ReadInt32(),Distance=r.ReadInt32(),TravelRemainder=r.ReadInt32(),TotalDistance=r.ReadInt32()};
             bool firearmPush=s.Tackle?.Config.Firearms.Enabled==true && k.TotalDistance==s.Tackle.Config.Firearms.FriendlyKnockback && k.TotalDistance>0;
             bool bossPush=s.Tackle?.Config.Boss.Enabled==true && (k.TotalDistance==3000 || k.TotalDistance==5000);
+            bool eldritchPush=s.Tackle?.Config.Eldritch.Enabled==true && k.TotalDistance==EldritchCatalog.PullDistance;
             bool crabPush=s.Tackle?.Config.Crabs.Enabled==true && k.TotalDistance==s.Tackle.Config.Crabs.Knockback && k.TotalDistance>0;
-            if(unavailable>1 || active>1 || !Position(k.OriginX,k.OriginZ,50000) || k.Distance<0 || k.Distance>k.TotalDistance || (k.TotalDistance!=0 && k.TotalDistance!=config.KnockbackDistance && !firearmPush && !crabPush && !bossPush && !(s.Tackle?.Config.Melee.Enabled==true && WeaponCatalog.All.Any(w=>w.FriendlyKnockback==k.TotalDistance))) || !Remainder(k.TravelRemainder) ||
+            if(unavailable>1 || active>1 || !Position(k.OriginX,k.OriginZ,s.Tackle?.Config.TownMode==true?100000:50000) || k.Distance<0 || k.Distance>k.TotalDistance || (k.TotalDistance!=0 && k.TotalDistance!=config.KnockbackDistance && !firearmPush && !crabPush && !bossPush && !eldritchPush && !(s.Tackle?.Config.Melee.Enabled==true && WeaponCatalog.All.Any(w=>w.FriendlyKnockback==k.TotalDistance))) || !Remainder(k.TravelRemainder) ||
                 ((k.Active || k.Distance>0) && !Direction(k.DirectionX,k.DirectionZ)) ||
-                (k.Active && (k.Distance==k.TotalDistance || (!config.MonsterEnabled && s.Tackle?.Config.Melee.Enabled!=true && !firearmPush && !crabPush && !bossPush) || players[i].PulledBy>=0 || players[i].HookedPlayer>=0 || players[i].Shopping)) ||
+                (k.Active && (k.Distance==k.TotalDistance || (!config.MonsterEnabled && s.Tackle?.Config.Melee.Enabled!=true && !firearmPush && !crabPush && !bossPush && !eldritchPush) || players[i].PulledBy>=0 || players[i].HookedPlayer>=0 || players[i].Shopping)) ||
                 (k.Active && (players[i].X!=k.OriginX+(int)((long)k.DirectionX*k.Distance/EnemyGeometry.DirectionScale) ||
                     players[i].Z!=k.OriginZ+(int)((long)k.DirectionZ*k.Distance/EnemyGeometry.DirectionScale))))
                 throw new InvalidDataException("Invalid external movement state.");

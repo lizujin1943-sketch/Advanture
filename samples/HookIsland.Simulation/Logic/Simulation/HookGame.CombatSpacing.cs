@@ -7,7 +7,7 @@ public sealed partial class HookGame
 {
     private sealed partial class Model
     {
-        private const int CrabBodyId=1000,PiranhaBodyId=2000,MonsterBodyId=3000,BossBodyId=4000;
+        private const int CrabBodyId=1000,PiranhaBodyId=2000,MonsterBodyId=3000,BossBodyId=4000,EldritchBodyId=5000;
         private const int GroundBodies=1,WaterBodies=2;
         private readonly CombatSpacing combatSpacing=new CombatSpacing();
         private readonly List<CombatBody> combatBodies=new List<CombatBody>();
@@ -39,6 +39,8 @@ public sealed partial class HookGame
                 var m=enemies.Monster;
                 if(m.Phase==MonsterPhase.Windup)combatBodies.Add(new CombatBody(MonsterBodyId,m.X,m.Z,EnemyGeometry.MonsterRadius,WaterBodies,true));
             }
+            for(int i=0;i<eldritch.Count;i++)
+            {var c=eldritch.Get(i);if(c.Damageable)combatBodies.Add(new CombatBody(EldritchBodyId+i,c.X,c.Z,EldritchCatalog.BodyRadius,EldritchCatalog.Get(c.Kind).Habitat==EldritchHabitat.Water?WaterBodies:GroundBodies));}
             var abyss=boss.Capture();
             if(abyss.Active)
             {
@@ -57,18 +59,19 @@ public sealed partial class HookGame
                     p.X=body.X;p.Z=body.Z;players[body.Id]=p;
                 }
                 else if(body.Id<PiranhaBodyId)crabs[body.Id-CrabBodyId].TryDisplace(tiles,body.X,body.Z);
+                else if(body.Id>=EldritchBodyId)eldritch.Displace(body.Id-EldritchBodyId,body.X,body.Z);
                 else if(body.Id<MonsterBodyId)enemies!.TryDisplacePiranha(body.Id-PiranhaBodyId,body.X,body.Z);
             }
         }
         private bool CombatSpacingCanMove(CombatBody body,Point from,Point to)
         {
             if(body.Id>=CrabBodyId && body.Id<PiranhaBodyId)return crabNavigation.Segment(from.X,from.Z,to.X,to.Z);
+            if(body.Id>=EldritchBodyId)return eldritch.CanDisplace(body.Id-EldritchBodyId,from,to);
             bool player=body.Id<CrabBodyId;
             if(player)
             {
                 var p=players[body.Id];
-                if(p.Knockback.Active && (Math.Abs((long)p.Knockback.OriginX+to.X-p.X)>SwimmingTerrain.WorldLimit ||
-                    Math.Abs((long)p.Knockback.OriginZ+to.Z-p.Z)>SwimmingTerrain.WorldLimit))return false;
+                if(p.Knockback.Active && (!map.InWorldBounds(p.Knockback.OriginX+to.X-p.X,p.Knockback.OriginZ+to.Z-p.Z)))return false;
             }
             int distance=Sqrt(IslandMap.DistanceSquared(from.X,from.Z,to.X,to.Z)),steps=Math.Max(1,(distance+49)/50);
             for(int i=0;i<=steps;i++)

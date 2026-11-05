@@ -61,7 +61,7 @@ public sealed partial class HookGame
                 else if(c.Fire && p.Firearm.CooldownTicks==0 && p.Firearm.ShotSequence<uint.MaxValue &&
                     IslandMap.DistanceSquared(p.X,p.Z,p.AimX,p.AimZ)>10000 && equipment.Inventory.TryFireRound(i,gun.Id))
                 {
-                    p.Firearm.ShotSequence++;p.Firearm.CooldownTicks=definition.CooldownTicks;p.Firearm.RecoveryTicks=definition.RecoveryTicks;
+                    TownFired(i,gun.Id);p.Firearm.ShotSequence++;p.Firearm.CooldownTicks=definition.CooldownTicks;p.Firearm.RecoveryTicks=definition.RecoveryTicks;
                     int angle=FirearmSpread.Sample(map.Fishing!.Seed,p.Slot,p.Firearm.ShotSequence,gun.Id,p.Firearm.Spread(gun.Type),definition.Spread.Sampling);
                     FirearmSpread.Direction(p.AimX-p.X,p.AimZ-p.Z,angle,out int dx,out int dz);
                     // Commit shooter before impacts; subsequent players observe earlier hits in stable slot order.
@@ -82,7 +82,7 @@ public sealed partial class HookGame
                 if(gun?.Id!=p.Firearm.ReloadWeaponId){FirearmRules.CancelReload(ref p);players[i]=p;continue;}
                 if(--p.Firearm.ReloadTicks==0)
                 {
-                    int loaded=equipment.Inventory.ReloadFirearm(i,p.Firearm.ReloadWeaponId);p.Firearm.ReloadWeaponId=0;
+                    int loaded=map.IsTown?ReloadTown(i,p.Firearm.ReloadWeaponId):equipment.Inventory.ReloadFirearm(i,p.Firearm.ReloadWeaponId);p.Firearm.ReloadWeaponId=0;
                     Record(HookGameplayEventKind.FirearmReloaded,p,amount:loaded,itemKind:ItemKind.Firearm,itemType:gun.Value.Type);
                 }
                 players[i]=p;
@@ -108,13 +108,15 @@ public sealed partial class HookGame
                 Candidate(Circle(0,1050,2050,0,7000),1,-4);
                 Candidate(Circle(-2150,1550,390,0,3000),1,-4);
             }
-            if(map.Fishing!=null)for(int id=0;id<=map.Fishing.Merchants.Definitions.Count;id++)
+            if(!map.IsTown && map.Fishing!=null)for(int id=0;id<=map.Fishing.Merchants.Definitions.Count;id++)
             {var center=MerchantRules.Position(map.Fishing,id);Candidate(FirearmRules.RayBox3(shooter.X,muzzleY,shooter.Z,dx,dy,dz,center.X,1000,center.Z,MerchantRules.BodyHalfSize,1000,MerchantRules.BodyHalfSize,weapon.Range),1,-4);}
+            if(map.IsTown)foreach(var obstacle in TownLayout.Obstacles)
+                Candidate(FirearmRules.RayBox3(shooter.X,muzzleY,shooter.Z,dx,dy,dz,obstacle.X,obstacle.Height/2,obstacle.Z,obstacle.Width/2,obstacle.Height/2,obstacle.Depth/2,weapon.Range),1,-4);
             var giant=finale?.Capture();
             if(giant?.Phase==FinalePhase.Surfaced)Candidate(Circle(giant.X,giant.Z,map.Fishing!.Finale.BodyRadius),1,-5);
             if(dy<0 && muzzleY>=450)
             {int floor=(int)((450L-muzzleY)*EnemyGeometry.DirectionScale/dy);int x=shooter.X+(int)((long)dx*floor/EnemyGeometry.DirectionScale),z=shooter.Z+(int)((long)dz*floor/EnemyGeometry.DirectionScale);
-                if(floor<=weapon.Range && PlatformRules.OnPlatform(tiles,x,z))Candidate(floor,1,-4);
+                if(floor<=weapon.Range && (map.IsTown?TownLayout.OnGround(tiles,x,z):PlatformRules.OnPlatform(tiles,x,z)))Candidate(floor,1,-4);
             }
             for(int i=0;i<players.Length;i++)
             {
@@ -133,6 +135,8 @@ public sealed partial class HookGame
                 var crab=crabs[i].Capture();
                 if(crab.Damageable)Candidate(Circle(crab.X,crab.Z,CrabConfig.BodyRadius),5,i);
             }
+            for(int i=0;i<eldritch.Count;i++)
+            {var c=eldritch.Get(i);if(c.Damageable)Candidate(Circle(c.X,c.Z,EldritchCatalog.BodyRadius),7,i);}
             var abyss=boss.Capture();int bossEntry=BossGeometry.RayHit(abyss,shooter.X,muzzleY,shooter.Z,dx,dy,dz,weapon.Range,out int limbId,out bool eye);
             Candidate(bossEntry,6,limbId);
             int hitY=muzzleY+(int)((long)dy*distance/EnemyGeometry.DirectionScale);
@@ -154,9 +158,10 @@ public sealed partial class HookGame
             if(kind==6)
             {
                 entity=target+1;int hp=target<0?abyss.Health:abyss.Limbs[target].Health;
-                if(boss.Strike(shooter.Slot,weapon.Damage,target,eye))damage=Math.Min(hp,eye?(weapon.Damage*3+1)/2:weapon.Damage);
+                if(TownCanHitBoss(shooter.Slot) && boss.Strike(shooter.Slot,weapon.Damage,target,eye))damage=Math.Min(hp,eye?(weapon.Damage*3+1)/2:weapon.Damage);
             }
-            Record(new HookGameplayEvent(HookGameplayEventKind.FirearmShot,shooter.Slot,amount:damage,value:entity,targetId:kind==3?-2:kind==5?-6:kind==6?-7:target,x:hitX,z:hitZ,itemKind:ItemKind.Firearm,itemType:type,originX:shooter.X,originZ:shooter.Z,y:hitY,originY:muzzleY));
+            if(kind==7){entity=target;damage=eldritch.Strike(target,shooter.Slot,weapon.Damage,shooter.X,shooter.Z);}
+            Record(new HookGameplayEvent(HookGameplayEventKind.FirearmShot,shooter.Slot,amount:damage,value:entity,targetId:kind==3?-2:kind==5?-6:kind==6?-7:kind==7?-8:target,x:hitX,z:hitZ,itemKind:ItemKind.Firearm,itemType:type,originX:shooter.X,originZ:shooter.Z,y:hitY,originY:muzzleY));
         }
         private void HitFriend(Fisher shooter,Fisher target,FirearmDefinition weapon,int dx,int dz,HookInput command)
         {

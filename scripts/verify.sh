@@ -83,3 +83,9 @@ done
 
 # 战斗单位：空间网格分离、地形约束、回滚和四客户端拥挤测试。
 ./scripts/verify-hook-combat-spacing.sh
+
+# 十种异怪：能力、出场、武器接线、保存恢复与真实四客户端一致性。
+./scripts/verify-hook-eldritch.sh
+
+# 沉钟镇：水陆路线、金币建筑、分区遭遇、大章鱼、尝试弹药及四客户端存档。
+./scripts/verify-hook-town.sh

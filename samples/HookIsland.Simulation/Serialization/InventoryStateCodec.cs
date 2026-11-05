@@ -23,12 +23,13 @@ public static class InventoryStateCodec
     }
     internal static void Write(BinaryWriter w, InventoryState state)
     {
-        w.Write(0x36474142); w.Write(state.PlayerCount); w.Write(state.NextId);
+        w.Write(0x37474142); w.Write(state.PlayerCount); w.Write(state.NextId);
         foreach (int spent in state.SpentCoins) w.Write(spent);
         foreach(int consumed in state.ConsumedFoods)w.Write(consumed);
         foreach(int count in state.PurchasedAmmunition)w.Write(count);
         foreach(int count in state.ConsumedAmmunition)w.Write(count);
         foreach(int count in state.ReplenishedAmmunition)w.Write(count);
+        foreach(int count in state.RetiredFirearmAmmunition)w.Write(count);
         foreach(int id in state.ActiveItems)w.Write(id);
         foreach(var binding in state.Quickbar){w.Write((byte)binding.Kind);w.Write(binding.Type);w.Write(binding.ItemId);}
         w.Write(state.Items.Count);
@@ -41,7 +42,7 @@ public static class InventoryStateCodec
     internal static InventoryState Read(BinaryReader r)
     {
         int version=r.ReadInt32();
-        if (version!=0x36474142) throw new InvalidDataException("Inventory version mismatch.");
+        if (version!=0x37474142) throw new InvalidDataException("Inventory version mismatch.");
         int players = r.ReadInt32(), nextId = r.ReadInt32();
         if (players < 1 || players > 4) throw new InvalidDataException("Invalid inventory participants.");
         var spent = new int[players]; for (int i = 0; i < players; i++) spent[i] = r.ReadInt32();
@@ -49,6 +50,7 @@ public static class InventoryStateCodec
         var purchasedAmmo=new int[AmmunitionCatalog.All.Count];for(int n=0;n<purchasedAmmo.Length;n++)purchasedAmmo[n]=r.ReadInt32();
         var consumedAmmo=new int[AmmunitionCatalog.All.Count];for(int n=0;n<consumedAmmo.Length;n++)consumedAmmo[n]=r.ReadInt32();
         var replenishedAmmo=new int[AmmunitionCatalog.All.Count];for(int n=0;n<replenishedAmmo.Length;n++)replenishedAmmo[n]=r.ReadInt32();
+        var retiredAmmo=new int[AmmunitionCatalog.All.Count];for(int n=0;n<retiredAmmo.Length;n++)retiredAmmo[n]=r.ReadInt32();
         var activeItems=new int[players];for(int n=0;n<players;n++)activeItems[n]=r.ReadInt32();
         var quickbar=new QuickbarBinding[players*QuickbarRules.SlotCount];
         for(int n=0;n<quickbar.Length;n++)quickbar[n]=new QuickbarBinding((ItemKind)r.ReadByte(),r.ReadInt32(),r.ReadInt32());
@@ -61,7 +63,7 @@ public static class InventoryStateCodec
             byte rotated = r.ReadByte(); if (rotated > 1 || item.Id <= previousId) throw new InvalidDataException("Noncanonical inventory item.");
             item.Rotated = rotated != 0; item.WorldX = r.ReadInt32(); item.WorldZ = r.ReadInt32(); item.LoadedAmmo = r.ReadInt32(); items[i] = item; previousId = item.Id;
         }
-        var state = new InventoryState(players, items, nextId, spent, consumed, quickbar, purchasedAmmo, consumedAmmo, replenishedAmmo,activeItems); Validate(state); return state;
+        var state = new InventoryState(players, items, nextId, spent, consumed, quickbar, purchasedAmmo, consumedAmmo, replenishedAmmo,activeItems,retiredAmmo); Validate(state); return state;
     }
     public static void Validate(InventoryState state)
     {
@@ -69,7 +71,7 @@ public static class InventoryStateCodec
             state.NextId < 1 || state.Items.Count > InventoryCatalog.MaxItems) throw new InvalidDataException("Invalid inventory header.");
         if(state.ConsumedFoods.Count!=FoodCatalog.All.Count || state.ConsumedFoods.Any(c=>c<0) || state.Quickbar.Count!=state.PlayerCount*QuickbarRules.SlotCount)
             throw new InvalidDataException("Invalid consumption ledger or quickbar size.");
-        if(state.PurchasedAmmunition.Count!=AmmunitionCatalog.All.Count || state.ConsumedAmmunition.Count!=AmmunitionCatalog.All.Count || state.ReplenishedAmmunition.Count!=AmmunitionCatalog.All.Count || state.PurchasedAmmunition.Any(c=>c<0) || state.ConsumedAmmunition.Any(c=>c<0) || state.ReplenishedAmmunition.Any(c=>c<0))
+        if(state.PurchasedAmmunition.Count!=AmmunitionCatalog.All.Count || state.ConsumedAmmunition.Count!=AmmunitionCatalog.All.Count || state.RetiredFirearmAmmunition.Count!=AmmunitionCatalog.All.Count || state.RetiredFirearmAmmunition.Any(c=>c<0) || state.ReplenishedAmmunition.Count!=AmmunitionCatalog.All.Count || state.PurchasedAmmunition.Any(c=>c<0) || state.ConsumedAmmunition.Any(c=>c<0) || state.ReplenishedAmmunition.Any(c=>c<0))
             throw new InvalidDataException("Invalid ammunition ledger.");
         for(int n=0;n<state.Quickbar.Count;n++)
         {
@@ -92,7 +94,7 @@ public static class InventoryStateCodec
             if((item.Kind==ItemKind.Food || item.Kind==ItemKind.Ammunition) && item.Count>item.Definition.StackLimit)throw new InvalidDataException("Food stack overflow.");
             if (item.Location == ItemLocation.Ground)
             {
-                if (item.Owner != -1 || item.X != -1 || item.Y != -1 || item.Rotated || Math.Abs((long)item.WorldX) > 50000 || Math.Abs((long)item.WorldZ) > 50000)
+                if (item.Owner != -1 || item.X != -1 || item.Y != -1 || item.Rotated || Math.Abs((long)item.WorldX) > 100000 || Math.Abs((long)item.WorldZ) > 100000)
                     throw new InvalidDataException("Invalid ground item.");
                 if (InventoryCatalog.IsMaterial(item.Kind) && !groundMaterials.Add((item.Kind, PlatformRules.CellAt(item.WorldX), PlatformRules.CellAt(item.WorldZ))))
                     throw new InvalidDataException("Multiple material packages in the same platform cell.");
@@ -107,7 +109,7 @@ public static class InventoryStateCodec
         {
             long loose=state.Items.Where(i=>i.Kind==ItemKind.Ammunition && i.Type==type).Sum(i=>(long)i.Count);
             var guns=state.Items.Where(i=>i.Kind==ItemKind.Firearm && FirearmCatalog.Get(i.Type).AmmoType==type).ToArray();
-            long awarded=guns.Sum(i=>(long)FirearmCatalog.Get(i.Type).Capacity)+(long)state.PurchasedAmmunition[type]*AmmunitionCatalog.Get(type).Quantity+state.ReplenishedAmmunition[type];
+            long awarded=guns.Sum(i=>(long)FirearmCatalog.Get(i.Type).Capacity)+(long)state.PurchasedAmmunition[type]*AmmunitionCatalog.Get(type).Quantity+state.ReplenishedAmmunition[type]+state.RetiredFirearmAmmunition[type];
             if(loose+guns.Sum(i=>(long)i.LoadedAmmo)+state.ConsumedAmmunition[type]!=awarded)throw new InvalidDataException("Ammunition conservation mismatch.");
         }
         if (gearCount > InventoryCatalog.MaxEquipmentItems) throw new InvalidDataException("Too much equipment.");

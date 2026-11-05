@@ -8,13 +8,13 @@ public static class GrenadeRules
 {
     public const int MaxActive=128,BodyRadius=70;
     public static int SurfaceHeight(IslandMap map,IReadOnlyList<PlatformTile> tiles,int x,int z)=>
-        map.Platform!=null?(PlatformRules.OnPlatform(tiles,x,z)?450:0):(map.OnLand(x,z)?450:0);
+        map.IsTown?(TownLayout.OnGround(tiles,x,z)?450:0):map.Platform!=null?(PlatformRules.OnPlatform(tiles,x,z)?450:0):(map.OnLand(x,z)?450:0);
 
     /// <summary>固定力度高抛。每逻辑帧细分采样，连同手雷半径检查共享实体障碍。</summary>
     public static GrenadeResult TryPlan(IslandMap map,IReadOnlyList<PlatformTile> tiles,int startX,int startZ,int targetX,int targetZ,out GrenadeState plan)
     {
         plan=default;var c=GrenadeConfig.Default;
-        if(Math.Abs((long)targetX)>50000 || Math.Abs((long)targetZ)>50000)return GrenadeResult.OutOfRange;
+        if(!map.InWorldBounds(targetX,targetZ))return GrenadeResult.OutOfRange;
         long distanceSquared=IslandMap.DistanceSquared(startX,startZ,targetX,targetZ);
         if(distanceSquared<(long)c.MinRange*c.MinRange || distanceSquared>(long)c.MaxRange*c.MaxRange)return GrenadeResult.OutOfRange;
         int distance=HookGame.Sqrt(distanceSquared),fraction=(distance-c.MinRange)*1000/(c.MaxRange-c.MinRange);
@@ -42,6 +42,7 @@ public static class GrenadeRules
     /// <summary>地图现有实体的共享高度：商人台 2 米，初始岛的大岩体 7 米、小岩体 3 米。</summary>
     public static bool Solid(IslandMap map,int x,int y,int z,int margin=0)
     {
+        if(map.IsTown)return System.Linq.Enumerable.Any(TownLayout.Obstacles,o=>y>=-margin && y<=o.Height+margin && o.Contains(x,z,margin));
         if(map.Platform==null && (y<=7000+margin && y>=-margin && IslandMap.DistanceSquared(x,z,0,1050)<(long)(2050+margin)*(2050+margin) ||
             y<=3000+margin && y>=-margin && IslandMap.DistanceSquared(x,z,-2150,1550)<(long)(390+margin)*(390+margin)))return true;
         if(map.Fishing!=null && y<=2000+margin && y>=-margin)
@@ -53,6 +54,7 @@ public static class GrenadeRules
     public static int LandingHeight(IslandMap map,IReadOnlyList<PlatformTile> tiles,int x,int z)
     {
         int height=SurfaceHeight(map,tiles,x,z);
+        if(map.IsTown){foreach(var o in TownLayout.Obstacles)if(o.Contains(x,z))height=Math.Max(height,o.Height);return height;}
         if(map.Platform==null)
         {if(IslandMap.DistanceSquared(x,z,0,1050)<2050L*2050)height=Math.Max(height,7000);if(IslandMap.DistanceSquared(x,z,-2150,1550)<390L*390)height=Math.Max(height,3000);}
         if(map.Fishing!=null)for(int i=0;i<=map.Fishing.Merchants.Definitions.Count;i++)

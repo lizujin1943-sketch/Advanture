@@ -47,13 +47,13 @@ internal sealed class EquipmentSystem
     }
     internal void Advance(IslandMap map,IReadOnlyList<PlatformTile> tiles,IReadOnlyList<Fisher> players,ulong step)
         =>merchants.Advance(map,tiles,players,step);
-    internal void Apply(IslandMap map,IReadOnlyList<PlatformTile> tiles,ref Fisher player,HookInput command,ref int coins,bool rescuing=false)
+    internal void Apply(IslandMap map,IReadOnlyList<PlatformTile> tiles,ref Fisher player,HookInput command,ref int coins,bool rescuing=false,int boundWeaponId=0,int boundLoaded=0)
     {
         if(command.Inventory.Action!=InventoryAction.None && command.Inventory.RequestId>player.LastInventoryRequest)
         {
             int previousActive=Inventory.ActiveItem(player.Slot)?.Id??0;
             player.LastInventoryRequest=command.Inventory.RequestId;
-            player.LastInventoryResult=Transact(map,tiles,ref player,command.Inventory,ref coins,rescuing);
+            player.LastInventoryResult=Transact(map,tiles,ref player,command.Inventory,ref coins,rescuing,command.Inventory.Target==boundWeaponId?boundLoaded:0);
             if(player.LastInventoryResult==InventoryResult.Success)
             {
                 if(Inventory.ActiveItem(player.Slot)?.Kind==ItemKind.Throwable && previousActive!=Inventory.ActiveItem(player.Slot)?.Id)player.Grenade.ReturnWeaponId=previousActive;
@@ -85,9 +85,14 @@ internal sealed class EquipmentSystem
         // 换装只裁切上限，不补满。自然休息仍由每帧的 StaminaSystem 负责。
         CharacterSystem.Clamp(ref player.Vitals,ref player.Stamina,Attributes(player));
     }
-    private InventoryResult Transact(IslandMap map,IReadOnlyList<PlatformTile> tiles,ref Fisher player,InventoryCommand command,ref int coins,bool rescuing=false)
+    private InventoryResult Transact(IslandMap map,IReadOnlyList<PlatformTile> tiles,ref Fisher player,InventoryCommand command,ref int coins,bool rescuing=false,int discardLoaded=0)
     {
         if(player.Unavailable || player.Vitals.Downed)return InventoryResult.Disabled;
+        if(map.IsTown)
+        {
+            if(command.Action==InventoryAction.Buy || command.Action==InventoryAction.BuyAndEquip || command.DropOld)return InventoryResult.Disabled;
+            if(command.Action==InventoryAction.Drop && command.Target<=Inventory.Capture().PlayerCount*3)return InventoryResult.InvalidItem;
+        }
         if(player.Grenade.Active)return InventoryResult.HookBusy;
         if(player.Firearm.DrawTicks>0 || player.Firearm.RecoveryTicks>0)return InventoryResult.HookBusy;
         if(player.Firearm.Reloading && !WeaponLoadout.CanCancelReload(Inventory.Capture(),player.Slot,command))return InventoryResult.HookBusy;
@@ -168,7 +173,7 @@ internal sealed class EquipmentSystem
         var outcome=command.Action switch {
             InventoryAction.Move=>Inventory.Move(owner,command.Target,command.X,command.Y,command.Rotated),
             InventoryAction.Split=>Inventory.Split(owner,command.Target,command.Amount,command.X,command.Y),
-            InventoryAction.Drop=>Inventory.Drop(owner,command.Target,command.Amount,point),
+            InventoryAction.Drop=>Inventory.Drop(owner,command.Target,command.Amount,point,discardLoaded),
             InventoryAction.Pickup=>Inventory.Pickup(owner,command.Target,point,out _),
             InventoryAction.PickupAndEquip=>Inventory.PickupAndEquip(owner,command.Target,point,command.DropOld),
             InventoryAction.Equip=>Inventory.Equip(owner,command.Target,command.DropOld,point),

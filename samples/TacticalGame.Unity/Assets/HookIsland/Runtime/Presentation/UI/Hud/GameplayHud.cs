@@ -27,7 +27,7 @@ namespace Advanture.HookIsland
         public void Draw(HudLayout layout,float scale)
         {
             if(room.State==null || !room.TryGetLocalPlayer(out var local))return;
-            if(room.State.Won){Hide();finale.DrawVictory(layout);return;}
+            if(room.State.Won){Hide();if(!room.Map.IsTown)finale.DrawVictory(layout);return;}
             reticle.Draw(local,scale);
             DrawSquad(layout);DrawWallet(layout,local);
             // HP 与装备提供的上限必须读取同一份确认态；预测回滚不能让固定血条反复掉血。
@@ -164,6 +164,7 @@ namespace Advanture.HookIsland
             if(ui.IconButton(new Rect(rect.xMax-48,rect.y+13,32,32),HudIcon.Close,"关闭 · Esc"))overlay.MenuOpen=false;
             string[] keys={"WASD","鼠标","左键","右键","C / V","R","E","Tab / I","B / 1–3","滚轮"};
             string[] hints={"移动 · 持枪时按视角方向","鼠标瞄准 / 转向","开火 / 出钩 · AK47 按住连射","狙击枪按住开镜 / 收钩 / 取消","C 切换视角 · V 回血","R 换弹 · 按住优先救起队友","开箱 / 商店",overlay.ShowObjectives?"角色与背包 · J 任务":"角色与背包","B 扩建 · 1 主武器 / 2 手枪 / 3 近战","俯视角缩放 / 第三人称拉近拉远"};
+            if(room.Map.IsTown){hints[2]="开火 · AK47 按住连射";hints[3]="狙击枪按住开镜 / 取消";hints[6]="门口服务 / 目标 / 祭火就位";hints[8]="1 主武器 / 2 手枪 / 3 近战";}
             for(int i=0;i<keys.Length;i++)
             {float y=rect.y+65+i*32;ui.Surface(new Rect(rect.x+26,y+3,70,24),HudPainter.Track);ui.Text(new Rect(rect.x+26,y+3,70,24),keys[i],12,HudPainter.White,TextAnchor.MiddleCenter);ui.Text(new Rect(rect.x+116,y,280,30),hints[i],14,HudPainter.Muted);}
         }

@@ -10,14 +10,24 @@ public sealed partial class HookGame
         private BossSystem boss=null!;
         private void AdvanceBoss()
         {
-            int before=tiles.Count;boss.Advance(tick+1,players,tiles,ApplyEnemyHit);
+            int before=tiles.Count;
+            // Town membership is frozen by the attempt owner. Spectators and shooters outside
+            // the arena cannot keep an abandoned encounter alive or become skill targets.
+            var bossPlayers=players;
+            if(map.IsTown && townMembers!=0)
+            {
+                bossPlayers=players.ToArray();
+                for(int i=0;i<bossPlayers.Length;i++)if(!TownCanHitBoss(i))bossPlayers[i].Unavailable=true;
+            }
+            boss.Advance(tick+1,bossPlayers,tiles,ApplyEnemyHit);
             if(tiles.Count!=before)
             {
-                equipment!.Inventory.ReconcileGround(tiles);
+                if(map.IsTown)equipment!.Inventory.ReconcileTownGround(tiles);
+                else equipment!.Inventory.ReconcileGround(tiles);
                 foreach(var crab in crabs)crab.ReconcileTerrain(tiles);
                 for(int i=0;i<chests.Length;i++)
                 {
-                    if(chests[i].Phase!=TreasurePhase.Landed || PlatformRules.CanStand(tiles,chests[i].X,chests[i].Z))continue;
+                    if(map.IsTown || chests[i].Phase!=TreasurePhase.Landed || PlatformRules.CanStand(tiles,chests[i].X,chests[i].Z))continue;
                     var chest=chests[i];var bank=tiles.OrderBy(t=>IslandMap.DistanceSquared(chest.X,chest.Z,t.X*2000,t.Z*2000)).ThenBy(t=>t.Z).ThenBy(t=>t.X).First();
                     // 已登岸奖励归属不重新计算，仅将宝箱搬至最近的剩余地格。
                     chest.X=bank.X*2000;chest.Z=bank.Z*2000;chests[i]=chest;

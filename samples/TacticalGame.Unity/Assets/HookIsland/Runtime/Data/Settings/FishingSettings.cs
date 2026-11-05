@@ -18,6 +18,7 @@ namespace Advanture.HookIsland
         public ComboSettings combo;
         public CrabSettings crabs;
         public BossSettings boss;
+        public EldritchSettings eldritch;
         public bool enableMelee=true;
         public bool enableFirearms=true;
         public bool enableFishingRods=false;
@@ -39,6 +40,6 @@ namespace Advanture.HookIsland
             Mathf.RoundToInt(recoveryDelaySeconds*HookGame.Rate),Mathf.RoundToInt(recoveryPointsPerSecond*1000),
             Mathf.RoundToInt(fishReelMetresPerSecond*1000),merchantLevel,restockSeconds,worldSeed,character!=null?character.CreateConfig():new CharacterConfig(),swimming!=null?swimming.CreateConfig():new SwimmingConfig(),enemies!=null?enemies.CreateConfig():new EnemyConfig(),revival!=null?revival.CreateConfig():new RevivalConfig(),Mathf.RoundToInt(additionalAnglerSpeedBonus*1000),treasure!=null?treasure.CreateConfig():TreasureConfig.Disabled,commissions!=null?commissions.CreateConfig():CommissionConfig.Disabled,ocean!=null?ocean.CreateConfig():OceanConfig.Disabled,finale!=null?finale.CreateConfig():FinaleConfig.Disabled,merchants!=null?merchants.CreateConfig():MerchantConfig.Empty,combo!=null?combo.CreateConfig():new ComboConfig(),new MeleeConfig(enableMelee,enableMelee && startWithFryingPan,piranhaHealth,Mathf.RoundToInt(meleeStunSeconds*HookGame.Rate)),
             healing:new HealingConfig(healingCharges,healingPercent*10),firearms:new FirearmConfig(enableFirearms),crabs:crabs!=null?crabs.CreateConfig():CrabConfig.Disabled,
-            boss:boss!=null?boss.CreateConfig():BossConfig.Disabled,startingCoins:startingCoins,fishingRodsEnabled:enableFishingRods);
+            boss:boss!=null?boss.CreateConfig():BossConfig.Disabled,startingCoins:startingCoins,fishingRodsEnabled:enableFishingRods,eldritch:eldritch!=null?eldritch.CreateConfig():EldritchConfig.Disabled);
     }
 }

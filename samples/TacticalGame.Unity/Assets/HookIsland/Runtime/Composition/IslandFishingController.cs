@@ -27,6 +27,9 @@ namespace Advanture.HookIsland
         public CrabPresentation Crabs { get; private set; }
         public FinalePresentation Finale { get; private set; }
         public BossController Boss { get; private set; }
+        public TownController Town { get; private set; }
+        public EldritchPresentation Eldritch { get; private set; }
+        private TownPresentation townPresentation;
         public MerchantPresentation Merchants { get; private set; }
         public TreasureController Treasures { get; private set; }
         public RevivalController Revival { get; private set; }
@@ -72,13 +75,13 @@ namespace Advanture.HookIsland
         {
             get
             {
-                if(map==null || !TryGetLocalPlayer(out var p) || map.Fishing!=null && !MerchantRules.CanInteract(p))return -1;
+                if(map==null || map.IsTown || !TryGetLocalPlayer(out var p) || map.Fishing!=null && !MerchantRules.CanInteract(p))return -1;
                 return map.Fishing!=null?MerchantRules.Nearest(map,State.Tiles,p):
                     map.Platform==null && HookUpgrades.IsNearShop(p.X,p.Z)?0:-1;
             }
         }
         public bool NearShop=>NearestMerchantId>=0;
-        public bool CanShopAt(int id)=>id>=0 && map!=null && TryGetLocalPlayer(out var p) && (map.Fishing==null || MerchantRules.CanInteract(p)) &&
+        public bool CanShopAt(int id)=>id>=0 && map!=null && !map.IsTown && TryGetLocalPlayer(out var p) && (map.Fishing==null || MerchantRules.CanInteract(p)) &&
             (map.Fishing!=null?MerchantRules.Near(map,State.Tiles,p,id):id==0 && map.Platform==null && HookUpgrades.IsNearShop(p.X,p.Z));
         public bool Scoped=>playerInput?.Scoped==true;
         public bool HoldingFirearm=>TryGetLocalPlayer(out var player) && ActiveToolView.Firearm(State,player)!=null;
@@ -88,7 +91,7 @@ namespace Advanture.HookIsland
         public bool HoldingMelee=>TryGetLocalPlayer(out var player) && ActiveToolView.RightHand(State,player) && MeleeRules.Equipped(State,player)!=null;
         public bool CanCast=>Playing && State?.Won!=true && TryGetLocalPlayer(out var p) && !p.Unavailable && (State.Tackle==null || SwimmingSystem.CanCast(p.Swimming.InWater,p.Vitals.Downed,SwimRingCatalog.Equipped(State.Tackle.Inventory,p.Slot)!=null));
         public bool BeingPulled=>TryGetLocalPlayer(out var p) && p.PulledBy>=0;
-        public string Status=>Failure??(Restarting?"正在重新开始 · 等待全队同步…":!InRoom?"创建房间或加入好友":Playing?(map?.Fishing!=null?"捕鱼收入归自己 · 商店库存共享":"共同金币 · 捕鱼收益全队共享"):
+        public string Status=>Failure??(Restarting?"正在重新开始 · 等待全队同步…":!InRoom?"创建房间或加入好友":Playing?(map?.IsTown==true?"沉钟镇 · 清理六区，恢复电源、开闸并读取档案":map?.Fishing!=null?"捕鱼收入归自己 · 商店库存共享":"共同金币 · 捕鱼收益全队共享"):
             Host?.Restoring==true?$"恢复存档 · 等待原队友 {Host.JoinedCount} / {Host.RestoreRequiredCount} 人":
             Host!=null && Host.Session==null?$"等待好友 {Host.JoinedCount} / {Host.Capacity} 人":Synchronizing?"正在同步当前海域…":"已连接，等待房主开始…");
 
@@ -128,7 +131,9 @@ namespace Advanture.HookIsland
                 if(map.Fishing?.Enemies.Enabled==true)Enemies=new EnemyPresentation(transform,viewCamera,lineShader,map.Fishing.Enemies);
                 if(map.Fishing?.Finale.Enabled==true)Finale=new FinalePresentation(transform,lineShader,map.Fishing.Finale);
                 if(map.Fishing?.Boss.Enabled==true)Boss=new BossController(this,lineShader,platformSettings?.fishing?.boss);
-                if(map.Fishing?.Merchants.Definitions.Count>0)Merchants=new MerchantPresentation(transform,map.Fishing);
+                if(map.IsTown){Town=new TownController(this);townPresentation=new TownPresentation(transform);}
+                if(map.Fishing?.Eldritch.Enabled==true)Eldritch=new EldritchPresentation(transform,lineShader,map.Fishing.Eldritch,map.IsTown);
+                if(!map.IsTown && map.Fishing?.Merchants.Definitions.Count>0)Merchants=new MerchantPresentation(transform,map.Fishing);
             }
             catch(Exception e){error="小岛数据无法读取："+e.Message;UnityEngine.Debug.LogException(e);}
         }
@@ -156,13 +161,13 @@ namespace Advanture.HookIsland
             {
                 using(ConfirmedMarker.Auto())State=Client.Session.InspectState();
                 roomRulesRequests.Observe(State.RoomRules);
-                ObservePurchase();
+                ObservePurchase();Town?.Synchronize(State);
                 if(Incapacitated){CloseShop();Equipment?.Close();Construction?.Close();}
                 using(WorldMarker.Auto())
                 {
                     groundItems?.Synchronize(State.Tackle?.Inventory);
                     Enemies?.Synchronize(State);Crabs?.Synchronize(State);Treasures?.Synchronize(State);
-                    Finale?.Synchronize(State);
+                    Finale?.Synchronize(State);Eldritch?.Synchronize(State);townPresentation?.Synchronize(State);
                     Boss?.Synchronize(State);
                     Merchants?.Synchronize(State);
                 }
@@ -208,7 +213,7 @@ namespace Advanture.HookIsland
             result=roomRulesRequests.Compose(result);
             if(Boss!=null)result=Boss.Compose(result);
             if(Grenades!=null)result=Grenades.Compose(result);
-            return result;
+            return Town!=null?Town.Compose(result):result;
         }
         public bool TryGetLocalPlayer(out Fisher player)
         {
@@ -269,7 +274,7 @@ namespace Advanture.HookIsland
         {
             State=null;playerInput.Reset();Feedback.Reset();presentation?.ClearPlayers();
             ShopOpen=false;ShopMerchantId=-1;pendingPurchaseId=0;pendingUpgrade=HookUpgrade.None;shopMessage=null;
-            roomRulesRequests.Reset();
+            roomRulesRequests.Reset();Town?.Reset();Eldritch?.Clear();townPresentation?.Reset();
             Grenades?.Reset();
             Construction?.ResetSession();Equipment?.ResetSession();Revival?.ResetSession();groundItems?.Clear();Enemies?.Clear();Crabs?.Clear();Treasures?.Clear();
             Finale?.Clear();Boss?.Clear();Merchants?.Synchronize(null);
@@ -278,7 +283,7 @@ namespace Advanture.HookIsland
             {var spawn=map.Spawns[LocalSlot];viewCamera.transform.position=new Vector3(spawn.X/1000f,24,spawn.Z/1000f-20);}
         }
         private void OnDestroy()
-        {LeaveRoom();Grenades?.Dispose();playerInput.Dispose();presentation?.Dispose();groundItems?.Dispose();Enemies?.Dispose();Crabs?.Dispose();Treasures?.Dispose();Finale?.Dispose();Boss?.Dispose();Merchants?.Dispose();Application.runInBackground=restoreBackground;}
+        {LeaveRoom();Grenades?.Dispose();playerInput.Dispose();presentation?.Dispose();groundItems?.Dispose();Enemies?.Dispose();Crabs?.Dispose();Treasures?.Dispose();Finale?.Dispose();Boss?.Dispose();Merchants?.Dispose();Eldritch?.Dispose();townPresentation?.Dispose();Application.runInBackground=restoreBackground;}
         private void OnApplicationQuit(){roomSession?.Dispose();}
         public static string LaunchValue(string key)
         {var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,key);return i>=0 && i+1<args.Length?args[i+1]:null;}

@@ -8,33 +8,46 @@ internal static class BossStateCodec
 {
     internal static void Write(BinaryWriter w,HookState s)
     {
-        var b=s.Boss;w.Write(0x31535741);w.Write((byte)b.Phase);w.Write(b.Health);w.Write(b.MaxHealth);w.Write(b.ParticipantCount);w.Write(b.Attackers);w.Write(b.Rewarded);
-        w.Write(b.PhaseTicks);w.Write(b.Sequence);w.Write(b.InkTicks);w.Write(b.InkStartTick);w.Write(b.IdleTicks);w.Write(b.InkWindupTicks);w.Write(b.InkCooldownTicks);w.Write(b.NoTargetTicks);w.Write(b.Enraged);
-        w.Write(b.Limbs.Count);foreach(var l in b.Limbs){w.Write(l.Id);w.Write(l.Health);w.Write(l.MaxHealth);w.Write((byte)l.Attack);w.Write(l.AttackTicks);w.Write(l.SeverTicks);w.Write(l.TargetSlot);w.Write(l.HitPlayers);}
+        var b=s.Boss;w.Write(0x32535741);w.Write((byte)b.Phase);w.Write(b.Health);w.Write(b.MaxHealth);w.Write(b.ParticipantCount);w.Write(b.Attackers);w.Write(b.Rewarded);
+        w.Write(b.PhaseTicks);w.Write(b.Sequence);w.Write(b.InkTicks);w.Write(b.InkStartTick);w.Write(b.IdleTicks);w.Write(b.InkWindupTicks);w.Write(b.InkCooldownTicks);w.Write(b.NoTargetTicks);w.Write(b.Enraged);w.Write(b.TownArena);w.Write(b.InkSector);
+        w.Write(b.Limbs.Count);foreach(var l in b.Limbs){w.Write(l.Id);w.Write(l.Health);w.Write(l.MaxHealth);w.Write((byte)l.Attack);w.Write(l.AttackTicks);w.Write(l.SeverTicks);w.Write(l.TargetSlot);w.Write(l.HitPlayers);w.Write(l.AttackX);w.Write(l.AttackZ);}
         w.Write(b.Receipts.Count);foreach(var r in b.Receipts){w.Write(r.Request);w.Write((byte)r.Result);}
         w.Write(b.DestroyedTiles.Count);foreach(var t in b.DestroyedTiles){w.Write(t.X);w.Write(t.Z);w.Write((byte)t.Kind);w.Write(t.Builder);w.Write(t.Paid);}
     }
     private static bool Flag(BinaryReader r){byte b=r.ReadByte();if(b>1)throw new InvalidDataException("Invalid boss flag.");return b==1;}
     internal static HookState Read(BinaryReader r,HookState s)
     {
-        if(r.ReadInt32()!=0x31535741)throw new InvalidDataException("Boss state version mismatch.");
+        if(r.ReadInt32()!=0x32535741)throw new InvalidDataException("Boss state version mismatch.");
         var phase=(BossPhase)r.ReadByte();int health=r.ReadInt32(),max=r.ReadInt32(),party=r.ReadInt32();byte attackers=r.ReadByte();bool rewarded=Flag(r);
-        int phaseTicks=r.ReadInt32();uint sequence=r.ReadUInt32();int ink=r.ReadInt32();ulong inkStart=r.ReadUInt64();int idle=r.ReadInt32(),animation=r.ReadInt32(),cooldown=r.ReadInt32(),absent=r.ReadInt32();bool enraged=Flag(r);
+        int phaseTicks=r.ReadInt32();uint sequence=r.ReadUInt32();int ink=r.ReadInt32();ulong inkStart=r.ReadUInt64();int idle=r.ReadInt32(),animation=r.ReadInt32(),cooldown=r.ReadInt32(),absent=r.ReadInt32();bool enraged=Flag(r);bool town=Flag(r);int sector=r.ReadInt32();
         int count=r.ReadInt32();if(count!=0 && count!=8)throw new InvalidDataException("Invalid boss limb count.");var limbs=new BossLimbState[count];
-        for(int i=0;i<count;i++)limbs[i]=new BossLimbState(r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),(BossAttack)r.ReadByte(),r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),r.ReadByte());
+        for(int i=0;i<count;i++)limbs[i]=new BossLimbState(r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),(BossAttack)r.ReadByte(),r.ReadInt32(),r.ReadInt32(),r.ReadInt32(),r.ReadByte(),r.ReadInt32(),r.ReadInt32());
         count=r.ReadInt32();if(count<0 || count>s.Players.Count)throw new InvalidDataException("Invalid boss receipts.");var receipts=new BossRequestReceipt[count];
         for(int i=0;i<count;i++)receipts[i]=new BossRequestReceipt(r.ReadUInt32(),(BossRequestResult)r.ReadByte());
         count=r.ReadInt32();if(count<0 || count>2048)throw new InvalidDataException("Invalid boss loss ledger.");var lost=new BossTileLoss[count];
         for(int i=0;i<count;i++)lost[i]=new BossTileLoss(r.ReadInt32(),r.ReadInt32(),(TileKind)r.ReadByte(),r.ReadInt32(),r.ReadInt64());
-        var boss=new BossState(phase,health,max,party,attackers,rewarded,phaseTicks,sequence,ink,inkStart,limbs,receipts,lost,idle,animation,cooldown,absent,enraged);
+        var boss=new BossState(phase,health,max,party,attackers,rewarded,phaseTicks,sequence,ink,inkStart,limbs,receipts,lost,idle,animation,cooldown,absent,enraged,town,sector);
         var result=new HookState(s.Steps,s.Players,s.Fish,s.Coins,s.Tiles,s.Driftwood,s.Tackle,s.Enemies,s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale,s.Crabs,boss);
         Validate(result);return result;
+    }
+    private static bool ValidLockedDirection(BossLimbState limb,bool town)
+    {
+        if(limb.AttackX==0 && limb.AttackZ==0)return true; // Existing fixed-lane states.
+        if(!town || limb.Attack==BossAttack.None || limb.Id<0 || limb.Id>=4 || Math.Abs((long)limb.AttackX)>1000 || Math.Abs((long)limb.AttackZ)>1000)return false;
+        long length=(long)limb.AttackX*limb.AttackX+(long)limb.AttackZ*limb.AttackZ;
+        if(length<996000 || length>1002000)return false;
+        // Match the scheduler's arm cone. Its outer western/eastern edges extend slightly
+        // north of the center; allow integer normalization error in both cone projections.
+        var lane=BossGeometry.AttackDirection(limb.Id,true);
+        long along=(long)limb.AttackX*lane.X+(long)limb.AttackZ*lane.Z;
+        long across=(long)limb.AttackX*lane.Z-(long)limb.AttackZ*lane.X;
+        return along>0 && Math.Abs(across)<=along*7/10+3000;
     }
     internal static void Validate(HookState s)
     {
         var c=s.Tackle?.Config.Boss??BossConfig.Disabled;var b=s.Boss;int mask=(1<<s.Players.Count)-1;
-        if(b.Phase>BossPhase.Defeated || b.PhaseTicks<0 || b.ParticipantCount<0 || b.ParticipantCount>s.Players.Count || (b.Attackers&~mask)!=0 ||
-            b.InkTicks<0 || b.InkTicks>BossConfig.InkDurationTicks || b.InkStartTick>s.Steps || b.InkWindupTicks<0 || b.InkWindupTicks>=BossConfig.InkFinishTicks ||
+        if(b.TownArena!=(s.Tackle?.Config.TownMode??false) || b.InkSector<0 || b.InkSector>2 || !b.TownArena && b.InkSector!=1 || b.Phase>BossPhase.Defeated || b.PhaseTicks<0 || b.ParticipantCount<0 || b.ParticipantCount>s.Players.Count || (b.Attackers&~mask)!=0 ||
+            b.InkTicks<0 || b.InkTicks>BossConfig.InkDurationTicks || b.InkStartTick>s.Steps || b.InkWindupTicks<0 || b.InkWindupTicks>=(b.TownArena?BossConfig.TownInkFinishTicks:BossConfig.InkFinishTicks) ||
             b.IdleTicks<0 || b.IdleTicks>90 || b.InkCooldownTicks<0 || b.InkCooldownTicks>360 || b.NoTargetTicks<0 || b.NoTargetTicks>=300 ||
             (b.InkTicks>0 && (b.InkStartTick==0 || s.Steps-b.InkStartTick>180)) || b.Rewarded && b.Phase!=BossPhase.Defeated)
             throw new InvalidDataException("Invalid boss clock or receipt.");
@@ -58,6 +71,7 @@ internal static class BossStateCodec
         {
             var l=b.Limbs[i];int expected=c.ScaledLimb(i,Math.Max(1,b.ParticipantCount));
             if(l.Id!=i || l.MaxHealth!=expected || l.Health<0 || l.Health>expected || l.Attack>BossAttack.Sweep || l.AttackTicks<0 || l.SeverTicks<0 || l.SeverTicks>78 ||
+                !ValidLockedDirection(l,b.TownArena) ||
                 l.TargetSlot< -1 || l.TargetSlot>=s.Players.Count || (l.HitPlayers&~mask)!=0 || l.Health>0 && l.SeverTicks!=0 ||
                 (b.Phase==BossPhase.Dormant && l.Health!=l.MaxHealth) || (l.Attack!=BossAttack.None && (i>=4 || l.Health==0 || inactive || l.TargetSlot<0)) ||
                 (l.Attack==BossAttack.None && (l.AttackTicks!=0 || l.TargetSlot!=-1 || l.HitPlayers!=0)) ||
@@ -66,10 +80,12 @@ internal static class BossStateCodec
         }
         foreach(var player in s.Players)if(player.WaitingToJoin && (b.Attackers&(1<<player.Slot))!=0)throw new InvalidDataException("Unjoined boss contributor.");
         if(b.DestroyedTiles.Count>0 && b.Sequence==0)throw new InvalidDataException("Boss damage has no attempt.");
-        var initial=b.DestroyedTiles.Count==0?Array.Empty<PlatformTile>():BossArena.InitialTiles(s.Tackle?.Config);
+        if(b.TownArena && (b.DestroyedTiles.Count>16 || b.Phase==BossPhase.Dormant && b.DestroyedTiles.Count!=0 || b.DestroyedTiles.Any(t=>t.Kind!=TileKind.Wood || t.Builder!=-1 || t.Paid!=0)))
+            throw new InvalidDataException("Invalid town boss damage ledger.");
+        var initial=b.DestroyedTiles.Count==0?Array.Empty<PlatformTile>():b.TownArena?TownLayout.InitialTiles():BossArena.InitialTiles(s.Tackle?.Config);
         var keys=new System.Collections.Generic.HashSet<(int,int,TileKind,int)>();
         foreach(var loss in b.DestroyedTiles)
-            if(!BossArena.Destructible(loss.X,loss.Z) || !PlatformRules.InBounds(loss.X,loss.Z) || loss.Kind<TileKind.Wood || loss.Kind>TileKind.Fishbone || loss.Builder< -1 || loss.Builder>=s.Players.Count || loss.Paid<0 || loss.Paid>4L*int.MaxValue ||
+            if(!(b.TownArena?TownLayout.Destructible(loss.X,loss.Z):BossArena.Destructible(loss.X,loss.Z)) || !PlatformRules.InBounds(loss.X,loss.Z) || loss.Kind<TileKind.Wood || loss.Kind>TileKind.Fishbone || loss.Builder< -1 || loss.Builder>=s.Players.Count || loss.Paid<0 || loss.Paid>4L*int.MaxValue ||
                 (loss.Builder==-1)!=(loss.Paid==0) || loss.Builder==-1 && (!initial.Any(t=>t.X==loss.X && t.Z==loss.Z) || loss.Kind!=TileKind.Wood) || !keys.Add((loss.X,loss.Z,loss.Kind,loss.Builder)))
                 throw new InvalidDataException("Invalid boss destroyed tile ledger.");
     }

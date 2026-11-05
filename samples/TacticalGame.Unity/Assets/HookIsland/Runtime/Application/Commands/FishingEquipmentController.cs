@@ -26,7 +26,7 @@ namespace Advanture.HookIsland
             previousEscapes=p.Escapes;
             if(!room.Playing || room.Incapacitated){InventoryOpen=false;return;}
             if(Application.isFocused && (Input.GetKeyDown(KeyCode.I) || Input.GetKeyDown(KeyCode.Tab)))ToggleInventory();
-            if(Application.isFocused && !InventoryOpen && !room.ShopOpen && room.Construction?.Open!=true &&
+            if(Application.isFocused && !InventoryOpen && room.Town?.Open!=true && !room.ShopOpen && room.Construction?.Open!=true &&
                 !GetComponent<FishingOverlay>().MenuOpen)
             {
                 if(Input.GetKeyDown(KeyCode.F))PickupNearest(p);
@@ -63,7 +63,7 @@ namespace Advanture.HookIsland
         {
             if(!room.Playing || room.Incapacitated)return;
             room.Grenades?.CancelAim();
-            InventoryOpen=!InventoryOpen;room.CloseShop();room.Construction?.Close();
+            room.Town?.Close();InventoryOpen=!InventoryOpen;room.CloseShop();room.Construction?.Close();
             GetComponent<FishingOverlay>().MenuOpen=false;
         }
         public void Close(){InventoryOpen=false;}

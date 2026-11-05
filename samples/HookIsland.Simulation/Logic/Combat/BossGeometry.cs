@@ -19,27 +19,45 @@ public readonly struct BossProxy
 public static class BossGeometry
 {
     private static readonly Point[] Directions={new Point(-906,-423),new Point(-407,-914),new Point(407,-914),new Point(906,-423)};
-    public static Point AttackDirection(int id)=>Directions[id>=0 && id<4?id:throw new ArgumentOutOfRangeException(nameof(id))];
-    public static bool SlamContainsXZ(int id,int x,int z,int margin=0)
+    private static readonly Point[] TownDirections={new Point(-866,-500),new Point(-342,-940),new Point(342,-940),new Point(866,-500)};
+    private static readonly Point[] InkDirections={new Point(-643,-766),new Point(0,-1000),new Point(643,-766)};
+    public static Point AttackDirection(int id,bool town=false)=>(town?TownDirections:Directions)[id>=0 && id<4?id:throw new ArgumentOutOfRangeException(nameof(id))];
+    public static bool SlamContainsXZ(int id,int x,int z,int margin=0,bool town=false,Point? direction=null)
     {
-        var d=AttackDirection(id);long rx=x-BossConfig.CenterX,rz=z-BossConfig.CenterZ;
+        var d=direction??AttackDirection(id,town);long rx=x-(town?TownLayout.CenterX:BossConfig.CenterX),rz=z-(town?TownLayout.CenterZ:BossConfig.CenterZ);
         long along=(rx*d.X+rz*d.Z)/1000,across=(rx*d.Z-rz*d.X)/1000;
-        return along>=12000-margin && along<=20000+margin && Math.Abs(across)<=1000+margin;
+        return along>=(town?8500:12000)-margin && along<=(town?22000:20000)+margin && Math.Abs(across)<=1000+margin;
     }
-    public static bool SweepContainsXZ(int id,int attackTicks,int x,int z,int margin=0)
+    public static bool SweepContainsXZ(int id,int attackTicks,int x,int z,int margin=0,bool town=false,Point? direction=null)
     {
         if(attackTicks<BossConfig.SweepStartTicks || attackTicks>BossConfig.SweepEndTicks)return false;
-        var d=AttackDirection(id);long rx=x-BossConfig.CenterX,rz=z-BossConfig.CenterZ;
+        var d=direction??AttackDirection(id,town);long rx=x-(town?TownLayout.CenterX:BossConfig.CenterX),rz=z-(town?TownLayout.CenterZ:BossConfig.CenterZ);
         long along=(rx*d.X+rz*d.Z)/1000,across=(rx*d.Z-rz*d.X)/1000;
         // 横向扫掠在固定扇道中经过玩家；命中位图保证一轮只击退一次。
         int center=-5000+(attackTicks-BossConfig.SweepStartTicks)*10000/(BossConfig.SweepEndTicks-BossConfig.SweepStartTicks);
-        return along>=11000-margin && along<=20000+margin && Math.Abs(across-center)<=1600+margin;
+        long radius=rx*rx+rz*rz;
+        return town?along>0 && radius>=(12000L-margin)*(12000-margin) && radius<=(19500L+margin)*(19500+margin) && Math.Abs(across-center)<=1600+margin:
+            along>=11000-margin && along<=20000+margin && Math.Abs(across-center)<=1600+margin;
     }
     public static bool InkContainsXZ(int x,int z,int margin=0)
     {
         long dx=x-BossConfig.CenterX,dz=BossConfig.CenterZ-z;
         return dz>=3000-margin && dz<=22000+margin && Math.Abs(dx)<=dz*7/10+margin && dx*dx+dz*dz<=(22000L+margin)*(22000+margin);
     }
+    public static Point InkDirection(BossState state)=>state.TownArena?InkDirections[state.InkSector]:new Point(0,-1000);
+    public static bool InkContainsXZ(BossState state,int x,int z,int margin=0)
+    {
+        if(!state.TownArena)return InkContainsXZ(x,z,margin);
+        var d=InkDirection(state);long rx=x-TownLayout.CenterX,rz=z-TownLayout.CenterZ;
+        long along=(rx*d.X+rz*d.Z)/1000,across=(rx*d.Z-rz*d.X)/1000,r2=rx*rx+rz*rz;
+        return along>=8500-margin && r2<=(19500L+margin)*(19500+margin) && Math.Abs(across)<=along*414/1000+margin;
+    }
+    public static Point AttackDirection(BossState state,int id)
+    {
+        var l=state.Limbs[id];return state.TownArena && (l.AttackX!=0 || l.AttackZ!=0)?new Point(l.AttackX,l.AttackZ):AttackDirection(id,state.TownArena);
+    }
+    public static bool SlamContainsXZ(BossState state,int id,int x,int z,int margin=0)=>SlamContainsXZ(id,x,z,margin,state.TownArena,AttackDirection(state,id));
+    public static bool SweepContainsXZ(BossState state,int id,int attackTicks,int x,int z,int margin=0)=>SweepContainsXZ(id,attackTicks,x,z,margin,state.TownArena,AttackDirection(state,id));
     public static int MuzzleHeight(Fisher p)=>p.Swimming.InWater?350:1480;
     public static void Direction3(int horizontalX,int horizontalZ,short vertical,out int dx,out int dy,out int dz)
     {

@@ -94,15 +94,38 @@ namespace Advanture.HookIsland
                     { Sample("AW_" + limb.Attack + "_" + id, limb.AttackTicks / 30d, false); Capture("DEF_" + id + "_"); }
                 }
                 if (boss.InkWindupTicks > 0)
-                { Sample("AW_Ink", boss.InkWindupTicks / 30d, false); CaptureHead(); CaptureFace(); }
+                { int inkTick=boss.InkWindupTicks; if(boss.TownArena)inkTick=inkTick<=60?inkTick*36/60:36+inkTick-60;
+                    Sample("AW_Ink", inkTick / 30d, false); CaptureHead(); CaptureFace(); }
             }
             Restore(); RestoreFace();
+            if(boss.TownArena)RotateAttackChains(boss);
             foreach (var limb in boss.Limbs)
             {
                 bool severed = limb.Health == 0 && limb.SeverTicks >= 9;
                 foreach (var renderer in limbs[limb.Id]) renderer.enabled = !severed;
                 foreach (var stump in stumps[limb.Id]) stump.SetActive(severed);
                 UpdateDebris(limb, severed);
+            }
+        }
+
+        // Rotate the root of each sampled attacking chain around the model origin, exactly
+        // as BossPoseData rotates its world-space collision samples. Child joints inherit it.
+        private void RotateAttackChains(BossState boss)
+        {
+            foreach(var limb in boss.Limbs)
+            {
+                if(limb.Id>=4 || limb.Attack==BossAttack.None || limb.Health==0)continue;
+                string prefix="DEF_"+LimbNames[limb.Id]+"_";
+                var from=BossGeometry.AttackDirection(limb.Id);var to=BossGeometry.AttackDirection(boss,limb.Id);
+                float angle=Vector3.SignedAngle(new Vector3(from.X,0,from.Z),new Vector3(to.X,0,to.Z),Vector3.up);
+                var turn=Quaternion.AngleAxis(angle,Vector3.up);
+                foreach(var joint in joints)
+                {
+                    if(!joint.name.StartsWith(prefix,StringComparison.Ordinal) || joint.parent!=null && joint.parent.name.StartsWith(prefix,StringComparison.Ordinal))continue;
+                    Vector3 local=model.transform.InverseTransformPoint(joint.position);
+                    joint.position=model.transform.TransformPoint(turn*local);
+                    joint.rotation=model.transform.rotation*turn*Quaternion.Inverse(model.transform.rotation)*joint.rotation;
+                }
             }
         }
 

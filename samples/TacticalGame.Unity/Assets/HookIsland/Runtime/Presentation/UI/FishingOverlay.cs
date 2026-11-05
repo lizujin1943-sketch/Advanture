@@ -21,14 +21,14 @@ namespace Advanture.HookIsland
         private bool menuOpen,helpOpen;
         public bool MenuOpen { get=>menuOpen; set { menuOpen=value;if(!value)helpOpen=false; } }
         private float Scale=>HudLayout.Scale(Screen.width,Screen.height);
-        public void OpenMenu() { room.Grenades?.CancelAim();room.CloseShop();room.Equipment?.Close();room.Construction?.Close();helpOpen=false;MenuOpen=true; }
+        public void OpenMenu() { room.Grenades?.CancelAim();room.Town?.Close();room.CloseShop();room.Equipment?.Close();room.Construction?.Close();helpOpen=false;MenuOpen=true; }
         public void OpenHelp() { OpenMenu();helpOpen=true; }
         public bool PointerOverHud
         {
             get
             {
                 var p=new Vector2(Input.mousePosition.x,Screen.height-Input.mousePosition.y)/Scale;
-                if(room.Incapacitated || MenuOpen || room.Equipment?.InventoryOpen==true || room.ShopOpen)return true;
+                if(room.Town?.Open==true || room.Incapacitated || MenuOpen || room.Equipment?.InventoryOpen==true || room.ShopOpen)return true;
                 if(!room.Playing)return room.InRoom;
                 var layout=new HudLayout(Screen.width/Scale,Screen.height/Scale);
                 return layout.Contains(p,GameplayHud.TeammateCount(room.State,room.LocalSlot),room.Construction?.Open==true,room.State?.Tackle?.Config.Commissions.Enabled==true,room.State?.Tackle?.Config.Ocean.Enabled==true,room.State!=null && room.State.Finale.Phase!=FinalePhase.Dormant,hud?.ObjectiveReveal??0,showObjectives);
@@ -44,11 +44,11 @@ namespace Advanture.HookIsland
         {
             if(!room.InRoom || !Application.isFocused)return;
             if(Input.GetKeyDown(KeyCode.Escape))
-            {if(room.Construction?.Open==true)room.Construction.Close();else if(room.ShopOpen)room.CloseShop();else if(room.Equipment?.InventoryOpen==true)room.Equipment.Close();else MenuOpen=!MenuOpen;}
+            {if(room.Town?.Open==true)room.Town.Close();else if(room.Construction?.Open==true)room.Construction.Close();else if(room.ShopOpen)room.CloseShop();else if(room.Equipment?.InventoryOpen==true)room.Equipment.Close();else MenuOpen=!MenuOpen;}
             else if(Input.GetKeyDown(KeyCode.F1)) { if(helpOpen)MenuOpen=false;else OpenHelp(); }
-            else if(showObjectives && Input.GetKeyDown(KeyCode.J) && room.Playing && !MenuOpen && !room.ShopOpen && room.Equipment?.InventoryOpen!=true)hud?.ToggleObjectives();
+            else if(showObjectives && Input.GetKeyDown(KeyCode.J) && room.Playing && !MenuOpen && room.Town?.Open!=true && !room.ShopOpen && room.Equipment?.InventoryOpen!=true)hud?.ToggleObjectives();
             else if(Input.GetKeyDown(KeyCode.E) && !MenuOpen)
-            {if(room.ShopOpen)room.CloseShop();else if(room.Boss?.TryAwakenNearest()!=true && room.Treasures?.TryOpenNearest()!=true)room.OpenShop();}
+            {if(room.Town?.TryInteract()==true){}else if(room.ShopOpen)room.CloseShop();else if(room.Boss?.TryAwakenNearest()!=true && room.Treasures?.TryOpenNearest()!=true)room.OpenShop();}
         }
         private GUIStyle Style(GUIStyle source,int size,Color color)
         {return new GUIStyle(source){font=font,fontSize=size,normal={textColor=color},wordWrap=true};}
@@ -67,7 +67,7 @@ namespace Advanture.HookIsland
             float w=Screen.width/scale,h=Screen.height/scale;
             if(hudPainter==null){hudPainter=new HudPainter(font);hud=new GameplayHud(room,this,hudPainter);acquisitions=new AcquisitionHud(hudPainter,room.Feedback.Acquisitions);}
             hudPainter.BeginFrame();var layout=new HudLayout(w,h);
-            if(room.Playing && !MenuOpen && !room.ShopOpen && room.Equipment?.InventoryOpen!=true){hud.Draw(layout,scale);if(!room.State.Won){room.Treasures?.Draw(scale,small);room.Boss?.Draw(w,h,body,small);} }
+            if(room.Playing && !MenuOpen && room.Town?.Open!=true && !room.ShopOpen && room.Equipment?.InventoryOpen!=true){hud.Draw(layout,scale);if(!room.State.Won){room.Treasures?.Draw(scale,small);room.Boss?.Draw(w,h,body,small);} }
             else hud.Hide();
             if(!room.InRoom)DrawLobby(w,h);
             else if(!room.Playing || MenuOpen)
@@ -109,6 +109,7 @@ namespace Advanture.HookIsland
                 }
             }
             else if(room.ShopOpen && room.State?.Tackle==null)DrawShop(w,h);
+            if(room.Playing && !MenuOpen && room.Equipment?.InventoryOpen!=true)room.Town?.Draw(w,h,body,small,button);
             equipmentView?.Draw();revivalView?.Draw(w,h);
             if(room.Playing && !MenuOpen && !room.State.Won)acquisitions.Draw(room,layout,scale,!room.ShopOpen && room.Equipment?.InventoryOpen!=true);
             if(!string.IsNullOrEmpty(room.SaveMessage))GUI.Label(new Rect(24,h-42,w-48,34),room.SaveMessage,small);
@@ -154,8 +155,8 @@ namespace Advanture.HookIsland
             bool saved=room.HasManualSave || room.HasAutoSave;
             float height=saved?432:362,x=w/2-264,y=Mathf.Max(70,h/2-height/2);
             Panel(new Rect(x,y,528,height));
-            GUI.Label(new Rect(x+28,y+18,472,38),"把鱼钩上岸，和好友分享收获",title);
-            GUI.Label(new Rect(x+28,y+61,472,27),room.Failure??"1–4 人合作捕鱼 · 本机 / 局域网联机",small);
+            GUI.Label(new Rect(x+28,y+18,472,38),room.Map?.IsTown==true?"沉钟镇 · 深渊之下的钟声":"把鱼钩上岸，和好友分享收获",title);
+            GUI.Label(new Rect(x+28,y+61,472,27),room.Failure??(room.Map?.IsTown==true?"1–4 人合作探索与枪战 · 本机 / 局域网联机":"1–4 人合作捕鱼 · 本机 / 局域网联机"),small);
             GUI.Label(new Rect(x+28,y+106,104,30),"房主地址",body);
             address=GUI.TextField(new Rect(x+136,y+102,230,35),address,45,field);
             port=GUI.TextField(new Rect(x+380,y+102,120,35),port,5,field);

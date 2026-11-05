@@ -8,11 +8,12 @@ public static class SwimmingTerrain
 {
     public const int WorldLimit=50000,BodySpacing=PlatformRules.Footprint*2;
     public static bool Ground(IslandMap map,IReadOnlyList<PlatformTile> tiles,int x,int z)=>
-        map.Platform==null?map.CanStand(x,z):PlatformRules.CanStand(tiles,x,z);
+        map.IsTown?TownLayout.CanStand(tiles,x,z):map.Platform==null?map.CanStand(x,z):PlatformRules.CanStand(tiles,x,z);
     public static bool Obstacle(IslandMap map,int x,int z)=>
-        Math.Abs((long)x)>WorldLimit || Math.Abs((long)z)>WorldLimit ||
+        !map.InWorldBounds(x,z) ||
+        (map.IsTown && TownLayout.Blocked(x,z,PlatformRules.Footprint)) ||
         (map.Platform==null && IslandMap.Blocked(x,z,330)) ||
-        (map.Fishing!=null && MerchantRules.Obstacle(map.Fishing,x,z));
+        (!map.IsTown && map.Fishing!=null && MerchantRules.Obstacle(map.Fishing,x,z));
     public static bool Landing(IslandMap map,IReadOnlyList<PlatformTile> tiles,IReadOnlyList<Fisher> players,int slot,int x,int z)
     {
         if(Obstacle(map,x,z) || !Ground(map,tiles,x,z))return false;

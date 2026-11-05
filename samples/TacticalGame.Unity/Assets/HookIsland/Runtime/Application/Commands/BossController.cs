@@ -23,12 +23,13 @@ namespace Advanture.HookIsland
             view = new BossPresentation(room.transform, shader, settings);
         }
 
-        public bool NearBeacon => room.TryGetLocalPlayer(out var p) && BossArena.NearBeacon(p);
+        public bool NearBeacon => room.TryGetLocalPlayer(out var p) && (room.Map.IsTown?IslandMap.DistanceSquared(p.X,p.Z,TownLayout.BeaconX,TownLayout.BeaconZ)<=2500L*2500:BossArena.NearBeacon(p));
 
         /// <summary>附近的 E 优先用于挑战入口；不让同一次按键再打开商店或宝箱。</summary>
         public bool TryAwakenNearest()
         {
             if (!NearBeacon || room.State == null) return false;
+            if(room.Map.IsTown)return room.Town?.TryInteract()==true;
             // 开战和击败后入口不再消费 E，附近正常落岸的宝箱、商店仍能交互。
             if (room.State.Boss.Phase != BossPhase.Dormant) return false;
             if (!room.Playing || room.Incapacitated || room.State.RoundFinished || Pending ||
@@ -60,7 +61,7 @@ namespace Advanture.HookIsland
         {
             if (room.State == null || !room.TryGetLocalPlayer(out var p)) return;
             var s = room.State.Boss;
-            if (s.Active && IslandMap.DistanceSquared(p.X, p.Z, BossConfig.CenterX, BossConfig.CenterZ) <= 25000L * 25000)
+            if (s.Active && IslandMap.DistanceSquared(p.X, p.Z, s.CenterX, s.CenterZ) <= 25000L * 25000)
             {
                 var rect = new Rect(width / 2 - 220, 20, 440, 76);
                 Fill(rect, new Color(.015f, .055f, .065f, .9f));
@@ -74,6 +75,7 @@ namespace Advanture.HookIsland
                     s.Phase == BossPhase.Dying ? "深渊正在沉寂…" : $"攻击触手 {alive}/4 · 主眼伤害 ×1.5 · 红色预警区域会毁板";
                 GUI.Label(new Rect(rect.x + 12, rect.y + 50, 416, 22), hint, small);
             }
+            if(room.Map.IsTown)return;
             string prompt = null;
             if (Time.unscaledTime < messageUntil) prompt = message;
             else if (Pending) prompt = "正在唤醒…";

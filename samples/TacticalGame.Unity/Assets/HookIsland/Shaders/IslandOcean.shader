@@ -18,6 +18,8 @@ Shader "Hook Island/Stylized Ocean"
         _CloudReflectionCoverage ("Reflected Cloud Coverage", Range(0,1)) = 0.4
         _CloudReflectionHeight ("Reflected Cloud Layer Height", Range(4,60)) = 12
         _CloudReflectionWarp ("Cloud Reflection Wave Warp (Metres)", Range(0,1)) = 0.18
+        _HorizonStart ("Sea Horizon Fade Start", Float) = 45
+        _HorizonEnd ("Sea Horizon Fade End", Float) = 155
         _GlintStrength ("Sun Glints", Range(0,1)) = 0.35
         _SkyHorizonColor ("Sky Reflection Horizon", Color) = (0.57,0.82,0.82,1)
         _SkyZenithColor ("Sky Reflection Zenith", Color) = (0.19,0.48,0.63,1)
@@ -59,7 +61,7 @@ Shader "Hook Island/Stylized Ocean"
             float4 _ShoreBounds,_PlatformShore,_PlatformShoreMotion;
             float _WaveHeight,_WaveSpeed,_FoamWidth,_ShallowDistance,_OceanTime;
             float _RippleScale,_RippleStrength,_ReflectionStrength,_GlintStrength,_OceanReflectionValid;
-            float _IslandSkyAvailable;
+            float _IslandSkyAvailable,_HorizonStart,_HorizonEnd;
             float _SkyReflectionBlur;
             float _CloudReflectionStrength, _CloudReflectionCoverage, _CloudReflectionHeight, _CloudReflectionWarp;
             float4x4 _OceanReflectionVP;
@@ -206,7 +208,7 @@ Shader "Hook Island/Stylized Ocean"
                 UNITY_LIGHT_ATTENUATION(attenuation,i,i.worldPos);
                 color*=lerp(.78,1,attenuation);
                 color+=_LightColor0.rgb*sun*attenuation;
-                float horizon=smoothstep(45,155,length(_WorldSpaceCameraPos.xz-p))*(1-unity_OrthoParams.w);
+                float horizon=smoothstep(_HorizonStart,_HorizonEnd,length(_WorldSpaceCameraPos.xz-p))*(1-unity_OrthoParams.w);
                 color=lerp(color,_SkyHorizonColor.rgb,horizon);
                 return fixed4(color,1);
             }

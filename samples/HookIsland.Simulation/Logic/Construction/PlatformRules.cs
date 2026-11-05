@@ -46,7 +46,7 @@ public static class PlatformRules
     // Floor division (including negative world coordinates); centres are integer multiples of two metres.
     public static int CellAt(int millimetres)
     {long shifted=millimetres+1000L;return (int)(shifted>=0?shifted/2000:(shifted-1999)/2000);}
-    public static PlatformTile[] InitialTiles(IslandMap map)=>map.Fishing?.Boss.Enabled==true?BossArena.InitialTiles(map.Fishing):InitialTiles();
+    public static PlatformTile[] InitialTiles(IslandMap map)=>map.IsTown?TownLayout.InitialTiles():map.Fishing?.Boss.Enabled==true?BossArena.InitialTiles(map.Fishing):InitialTiles();
     public static PlatformTile[] InitialTiles()=>Enumerable.Range(-1,3)
         .SelectMany(z=>Enumerable.Range(-1,3).Select(x=>new PlatformTile(x,z,TileKind.Wood))).ToArray();
     public static bool Contains(IReadOnlyList<PlatformTile> tiles,int x,int z)=>tiles.Any(t=>t.X==x && t.Z==z);
@@ -66,7 +66,7 @@ public static class PlatformRules
     /// Authority still validates and charges each real placement against its current state.</summary>
     public static BuildResult CheckPreview(IslandMap map,HookState state,Fisher previewPlayer,
         IReadOnlyList<PlatformTile> previewTiles,TileKind kind,int x,int z)
-        => state.Won || map.Fishing!=null && previewPlayer.Vitals.Downed?BuildResult.Busy:
+        => map.IsTown?BuildResult.Disabled:state.Won || map.Fishing!=null && previewPlayer.Vitals.Downed?BuildResult.Busy:
             Check(map.Platform,previewTiles,state.Players,state.Fish,state.Driftwood,previewPlayer,kind,x,z,state.Treasure.Chests,map.Fishing?.Finale,state.Finale);
 
     internal static BuildResult Check(PlatformConfig? config,IReadOnlyList<PlatformTile> tiles,

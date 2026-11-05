@@ -61,8 +61,8 @@ internal static class FishingStateCodec
         // Older firearm saves have a fully paid inventory. New games additionally grant one
         // fixed starter-ID pistol per seat; accept either complete loadout without adding items on restore.
         long grantValue=equipmentValue-inventory.SpentCoins.Sum(i=>(long)i);
-        bool starterGuns=t.Config.Firearms.Enabled && grantValue==(long)players*FirearmCatalog.Get(0).Price;
-        if(grantValue!=0 && !starterGuns)throw new InvalidDataException("Equipment purchase ledger differs from surviving items.");
+        bool starterGuns=t.Config.TownMode || t.Config.Firearms.Enabled && grantValue==(long)players*FirearmCatalog.Get(0).Price;
+        if(!t.Config.TownMode && grantValue!=0 && !starterGuns)throw new InvalidDataException("Equipment purchase ledger differs from surviving items.");
         int starterCount=toolCount+(starterGuns?players:0);
         for(int id=1;id<=starterCount;id++)
         {
@@ -72,20 +72,20 @@ internal static class FishingStateCodec
         }
         if(inventory.Items.Any(i=>i.Kind==ItemKind.Rod && (!t.Config.FishingRodsEnabled || i.Type==0 && i.Id>rodEnd)))
             throw new InvalidDataException("Equipment purchase ledger differs from surviving items.");
-        if(!t.Config.Firearms.Enabled && (inventory.Items.Any(i=>i.Kind==ItemKind.Firearm || i.Kind==ItemKind.Ammunition) || inventory.PurchasedAmmunition.Any(c=>c!=0) || inventory.ConsumedAmmunition.Any(c=>c!=0) || inventory.ReplenishedAmmunition.Any(c=>c!=0)))throw new InvalidDataException("Firearm inventory is disabled.");
+        if(!t.Config.Firearms.Enabled && (inventory.Items.Any(i=>i.Kind==ItemKind.Firearm || i.Kind==ItemKind.Ammunition) || inventory.PurchasedAmmunition.Any(c=>c!=0) || inventory.ConsumedAmmunition.Any(c=>c!=0) || inventory.ReplenishedAmmunition.Any(c=>c!=0) || inventory.RetiredFirearmAmmunition.Any(c=>c!=0)))throw new InvalidDataException("Firearm inventory is disabled.");
         foreach(var i in inventory.Items.Where(i=>i.Location==ItemLocation.Ground))
-            if(!PlatformRules.CanStand(state.Tiles,i.WorldX,i.WorldZ))throw new InvalidDataException("Ground item is outside the platform.");
+            if(!(t.Config.TownMode?TownLayout.CanStand(state.Tiles,i.WorldX,i.WorldZ):PlatformRules.CanStand(state.Tiles,i.WorldX,i.WorldZ)))throw new InvalidDataException("Ground item is outside the platform.");
         foreach(var p in state.Players)
         {
             SwimmingStateCodec.Validate(p.Swimming);
-            if(state.Tiles.Count>0 && p.Swimming.InWater==PlatformRules.CanStand(state.Tiles,p.X,p.Z))throw new InvalidDataException("Water state differs from terrain.");
+            if((state.Tiles.Count>0 || t.Config.TownMode) && p.Swimming.InWater==(t.Config.TownMode?TownLayout.CanStand(state.Tiles,p.X,p.Z):PlatformRules.CanStand(state.Tiles,p.X,p.Z)))throw new InvalidDataException("Water state differs from terrain.");
             if((p.Swimming.InWater && p.Shopping) || (p.Swimming.Active && (p.Vitals.Downed || p.PulledBy>=0)))throw new InvalidDataException("Invalid water activity.");
             CharacterStateCodec.Validate(p.Vitals,p.MoveRemainderX,p.MoveRemainderZ,FishingRules.Attributes(state,p));
             var right=inventory.ActiveItem(p.Slot);
             if(p.EquippedRod!=(right?.Kind==ItemKind.Rod?right.Value.Id:0) ||
                 p.Stamina<0 || p.Stamina>FishingRules.MaxStamina(state,p) || p.RegenDelay<0 || p.RegenDelay>t.Config.RegenDelayTicks ||
                 p.HookTravelRemainder<0 || p.HookTravelRemainder>=HookGame.Rate || p.ReelRemainder<0 || p.ReelRemainder>=HookGame.Rate ||
-                p.CoinsEarned<0 || p.CoinsEarned-(long)inventory.SpentCoins[p.Slot]-p.Revival.CoinsSpent!=p.Coins || p.Escapes<0 ||
+                p.CoinsEarned<0 || (!t.Config.TownMode && p.CoinsEarned-(long)inventory.SpentCoins[p.Slot]-p.Revival.CoinsSpent!=p.Coins) || p.Escapes<0 ||
                 p.LastRodResult>RodResult.NotOwned || (p.LastRodRequest==0)!=(p.LastRodResult==RodResult.None) ||
                 p.HealingCharges<0 || p.HealingCharges>t.Config.Healing.Charges || p.SelectedQuickSlot< -1 || p.SelectedQuickSlot>=QuickbarRules.SlotCount ||
                 p.LastInventoryResult>InventoryResult.NoHealingCharges || (p.LastInventoryRequest==0)!=(p.LastInventoryResult==InventoryResult.None) ||

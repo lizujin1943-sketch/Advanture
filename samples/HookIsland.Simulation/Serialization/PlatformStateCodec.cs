@@ -50,6 +50,13 @@ internal static class PlatformStateCodec
     }
     internal static void Validate(HookState s)
     {
+        if(s.Tackle?.Config.TownMode==true)
+        {
+            var cellsTown=new HashSet<(int,int)>();
+            foreach(var t in s.Tiles)if(!TownLayout.IsDynamicTile(t.X,t.Z) || t.Kind!=TileKind.Wood || t.Builder!=-1 || t.Paid!=0 || !cellsTown.Add((t.X,t.Z)))throw new InvalidDataException("Invalid town dynamic terrain.");
+            if(s.Driftwood.Count!=0 || s.Players.Any(p=>p.Wood!=0 || p.Fishbones!=0 || p.WoodEarned!=0 || p.FishbonesEarned!=0 || p.DriftwoodId!=-1) || s.Tackle.Inventory.Items.Any(i=>InventoryCatalog.IsMaterial(i.Kind)))throw new InvalidDataException("Town has removed material currencies.");
+            return;
+        }
         if((s.Tiles.Count==0)!=(s.Driftwood.Count==0))throw new InvalidDataException("Incomplete platform world.");
         var initialTiles=s.Tackle?.Config.Boss.Enabled==true?BossArena.InitialTiles(s.Tackle?.Config):PlatformRules.InitialTiles();
         var initialCells=new HashSet<(int,int)>(initialTiles.Select(t=>(t.X,t.Z)));

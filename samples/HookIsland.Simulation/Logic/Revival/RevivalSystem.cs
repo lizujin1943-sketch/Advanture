@@ -92,7 +92,7 @@ public static class RevivalSystem
         }
     }
     public static void Respawn(IslandMap map,IReadOnlyList<PlatformTile> tiles,IReadOnlyList<Fisher> players,
-        ref Fisher p,RevivalCommand command,CharacterStats attributes,ref int totalCoins)
+        ref Fisher p,RevivalCommand command,CharacterStats attributes,ref int totalCoins,Point? preferredSpawn=null)
     {
         if(command.RespawnRequest==0 || command.RespawnRequest<=p.Revival.LastRequest)return;
         p.Revival.LastRequest=command.RespawnRequest;
@@ -102,11 +102,23 @@ public static class RevivalSystem
         if(GameOver(players)){p.Revival.LastResult=RespawnResult.GameOver;return;}
         int cost=p.Revival.DeathCost;
         if(p.Coins<cost){p.Revival.LastResult=RespawnResult.InsufficientCoins;return;}
-        if(!Landing(map,tiles,players,p.Slot,out var point)){p.Revival.LastResult=RespawnResult.NoLanding;return;}
+        if(!Landing(map,tiles,players,p.Slot,out var point,preferredSpawn)){p.Revival.LastResult=RespawnResult.NoLanding;return;}
         // No fallible work follows the commit. Income bounds guarantee the loss ledger cannot overflow.
         p.Coins-=cost;totalCoins-=cost;p.Revival.CoinsSpent+=cost;
         p.Revival.Dead=false;ClearQuote(ref p.Revival);
         p.Revival.LastResult=RespawnResult.Success;
+        RespawnAt(map,ref p,point,attributes);
+    }
+    /// <summary>The abandoned town finale returns incapacitated participants to its beacon, once per reset.</summary>
+    internal static bool RecoverTownFailure(IslandMap map,IReadOnlyList<PlatformTile> tiles,IReadOnlyList<Fisher> players,
+        ref Fisher p,CharacterStats attributes)
+    {
+        if(!map.IsTown || !p.Vitals.Downed)return false;
+        if(!Landing(map,tiles,players,p.Slot,out var point,new Point(TownLayout.BeaconX,TownLayout.BeaconZ)))return false;
+        p.Revival.Dead=false;ClearQuote(ref p.Revival);RespawnAt(map,ref p,point,attributes);return true;
+    }
+    private static void RespawnAt(IslandMap map,ref Fisher p,Point point,CharacterStats attributes)
+    {
         p.Vitals.Health=Health(attributes.HealthMax,map.Fishing!.Revival.RespawnHealthPermille);
         HealingSystem.Refill(ref p,map.Fishing.Healing);
         p.Stamina=(int)((long)attributes.StaminaMax*map.Fishing.Revival.RespawnStaminaPermille/1000);
@@ -121,9 +133,9 @@ public static class RevivalSystem
         life.DeathTick=0;
     }
     private static int Health(int maximum,int permille)=>Math.Max(1,(int)((long)maximum*permille/1000));
-    private static bool Landing(IslandMap map,IReadOnlyList<PlatformTile> tiles,IReadOnlyList<Fisher> players,int slot,out Point point)
+    private static bool Landing(IslandMap map,IReadOnlyList<PlatformTile> tiles,IReadOnlyList<Fisher> players,int slot,out Point point,Point? preferredSpawn=null)
     {
-        var spawn=map.Spawns[slot];
+        var spawn=preferredSpawn??map.Spawns[slot];
         if(SwimmingTerrain.Landing(map,tiles,players,slot,spawn.X,spawn.Z)){point=spawn;return true;}
         // Deterministic outward search, limited to the safe starting area around the configured spawn.
         for(int radius=250;radius<=3000;radius+=250)

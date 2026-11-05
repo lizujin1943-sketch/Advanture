@@ -10,6 +10,7 @@ public sealed class BossConfig
     public const int ArenaInnerRadius=12000,ArenaOuterRadius=20000,AggroRadius=23000;
     public const int EmergeTicks=120,EnrageTicks=90,DyingTicks=180,ResetTicks=300;
     public const int SlamImpactTicks=45,SlamFinishTicks=90,SweepStartTicks=36,SweepEndTicks=60,SweepFinishTicks=108;
+    public const int TownInkWindupTicks=60,TownInkFinishTicks=120;
     public const int InkWindupTicks=36,InkFinishTicks=96,InkDurationTicks=180,InkSlowPermille=650;
     public BossConfig(bool enabled=true,int bodyHealth=2400,int limbHealth=300,int supportHealth=220,int rewardCoins=600)
     {

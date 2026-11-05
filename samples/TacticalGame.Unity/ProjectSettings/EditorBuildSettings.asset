@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/HookIsland/Scenes/DrownedBellTown.unity
+    guid: 0809757d3736d48419a819e9a5ececf7
+  - enabled: 1
     path: Assets/TacticalGame/Scenes/Yard07Network.unity
     guid: 3cde169748b5140549fe7612e0e1a652
   - enabled: 0

@@ -37,8 +37,10 @@ public sealed partial class HookGame
                             if(system.ReachableHit(tiles,p.X,p.Z) && system.Strike(p.Slot,weapon.Damage))Hit(-3,crab.X,crab.Z);
                         }
                     }
+                    for(int j=0;j<eldritch.Count;j++)
+                    {var c=eldritch.Get(j);if(c.Damageable && MeleeRules.Contains(p,c.X,c.Z,weapon,EldritchCatalog.BodyRadius) && eldritch.ReachableHit(j,p.X,p.Z) && eldritch.Strike(j,p.Slot,weapon.Damage,p.X,p.Z)>0)Hit(-8,c.X,c.Z);}
                     var abyss=boss.Capture();
-                    if(abyss.Damageable)
+                    if(abyss.Damageable && TownCanHitBoss(p.Slot))
                     {
                         var hitLimbs=new System.Collections.Generic.HashSet<int>();
                         foreach(var proxy in BossGeometry.Proxies(abyss))

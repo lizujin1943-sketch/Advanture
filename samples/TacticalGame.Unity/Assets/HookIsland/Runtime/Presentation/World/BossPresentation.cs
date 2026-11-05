@@ -9,7 +9,7 @@ namespace Advanture.HookIsland
     /// <summary>确认态的 BOSS、危险区和唤醒标记。所有几何查询复用模拟规则，不反向修改世界。</summary>
     public sealed class BossPresentation : IDisposable
     {
-        private readonly Transform root, beacon;
+        private readonly Transform root, beacon, creature;
         private readonly BossAnimationView animation;
         private readonly Material overlayMaterial, beaconMaterial;
         private readonly Mesh overlayMesh;
@@ -25,7 +25,7 @@ namespace Advanture.HookIsland
         public BossPresentation(Transform parent, Shader shader, BossSettings settings)
         {
             root = new GameObject("Abyssal challenge (confirmed)").transform; root.SetParent(parent, false);
-            var creature = new GameObject("Sea boss anchor").transform; creature.SetParent(root, false);
+            creature = new GameObject("Sea boss anchor").transform; creature.SetParent(root, false);
             creature.localPosition = new Vector3(BossConfig.CenterX / 1000f, 0, BossConfig.CenterZ / 1000f);
             animation = new BossAnimationView(creature, settings);
             overlayMaterial = new Material(shader) { name = "Boss warnings", color = Color.white };
@@ -55,6 +55,8 @@ namespace Advanture.HookIsland
         {
             if (state == null) { Clear(); return; }
             root.gameObject.SetActive(true);
+            creature.localPosition=new Vector3(state.Boss.CenterX/1000f,0,state.Boss.CenterZ/1000f);
+            beacon.localPosition=new Vector3(state.Boss.BeaconX/1000f,PlatformGeometry.DeckHeight,state.Boss.BeaconZ/1000f);
             beacon.gameObject.SetActive(state.Boss.Phase == BossPhase.Dormant);
             animation.Synchronize(state.Boss, state.Steps);
             // 全灭会冻结世界 Steps；独立退场时钟仍须刷新危险区和断肢显示。
@@ -64,6 +66,7 @@ namespace Advanture.HookIsland
             RefreshWarnings(state);
             UpdateLimbHealth(state.Boss);
             int inkAge = state.Boss.InkWindupTicks;
+            if(state.Boss.TownArena)inkAge=inkAge<=60?inkAge*36/60:36+inkAge-60;
             inkJet.enabled = inkAge >= 36 && inkAge <= 54 && state.Boss.Damageable;
             if (inkJet.enabled)
             {
@@ -71,8 +74,8 @@ namespace Advanture.HookIsland
                 for (int i = 0; i < 8; i++)
                 {
                     float t = i / 7f;
-                    inkJet.SetPosition(i, new Vector3(Mathf.Sin(i * 2 + inkAge) * .22f * t,
-                        Mathf.Lerp(2.6f, .52f, t) + Mathf.Sin(t * Mathf.PI) * 1.6f, BossConfig.CenterZ / 1000f - 2 - t * 15));
+                    inkJet.SetPosition(i, new Vector3(state.Boss.CenterX/1000f + BossGeometry.InkDirection(state.Boss).X/1000f*(2+t*15)+Mathf.Sin(i * 2 + inkAge) * .22f * t,
+                        Mathf.Lerp(2.6f, .52f, t) + Mathf.Sin(t * Mathf.PI) * 1.6f, state.Boss.CenterZ / 1000f + BossGeometry.InkDirection(state.Boss).Z/1000f*(2+t*15)));
                 }
             }
         }
@@ -84,20 +87,20 @@ namespace Advanture.HookIsland
             // 按一米格绘制真实危险区域：开战前没有伤害色块，毁板后墨池仍可覆盖水面。
             if (boss.Damageable)
             {
-                for (int x = -22; x <= 22; x++) for (int z = 6; z <= 48; z++)
+                for (int x = boss.CenterX/1000-25; x <= boss.CenterX/1000+25; x++) for (int z = boss.CenterZ/1000-25; z <= boss.CenterZ/1000+25; z++)
                 {
                     Color color = default; bool any = false;
                     int wx = x * 1000, wz = z * 1000;
-                    if ((boss.InkTicks > 0 || boss.InkWindupTicks > 0 && boss.InkWindupTicks <= 36) && BossGeometry.InkContainsXZ(wx, wz))
+                    if ((boss.InkTicks > 0 || boss.InkWindupTicks > 0 && boss.InkWindupTicks <= (boss.TownArena?60:36)) && BossGeometry.InkContainsXZ(boss, wx, wz))
                     { color = boss.InkTicks > 0 ? new Color(.015f, .10f, .08f, .72f) : new Color(.40f, .79f, .17f, .24f); any = true; }
                     foreach (var limb in boss.Limbs)
                     {
                         if (limb.Health == 0 || limb.Attack == BossAttack.None || limb.Id >= 4) continue;
                         bool hit = false;
                         if (limb.Attack == BossAttack.Slam && limb.AttackTicks <= 47)
-                            hit = BossGeometry.SlamContainsXZ(limb.Id, wx, wz);
+                            hit = BossGeometry.SlamContainsXZ(boss, limb.Id, wx, wz);
                         else if (limb.Attack == BossAttack.Sweep && limb.AttackTicks <= 60)
-                            for (int t = 36; t <= 60 && !hit; t += 2) hit = BossGeometry.SweepContainsXZ(limb.Id, t, wx, wz);
+                            for (int t = 36; t <= 60 && !hit; t += 2) hit = BossGeometry.SweepContainsXZ(boss, limb.Id, t, wx, wz);
                         if (!hit) continue;
                         bool impact = limb.Attack == BossAttack.Slam ? limb.AttackTicks >= 45 : limb.AttackTicks >= 36;
                         color = limb.Attack == BossAttack.Slam ? new Color(1, .14f, .06f, impact ? .78f : .38f) :
@@ -105,7 +108,7 @@ namespace Advanture.HookIsland
                     }
                     if (any)
                     {
-                        float y = PlatformRules.OnPlatform(state.Tiles, wx, wz) ? PlatformGeometry.DeckHeight + .025f : .15f;
+                        float y = (state.Town.Enabled?TownLayout.OnGround(state.Tiles,wx,wz):PlatformRules.OnPlatform(state.Tiles, wx, wz)) ? PlatformGeometry.DeckHeight + .025f : .15f;
                         Quad(x, y, z, .495f, color);
                     }
                 }
@@ -126,7 +129,7 @@ namespace Advanture.HookIsland
                 foreach (var proxy in proxies)
                 {
                     if (proxy.LimbId != limb.Id || proxy.Y < 0) continue;
-                    long distance = IslandMap.DistanceSquared(proxy.X, proxy.Z, BossConfig.CenterX, BossConfig.CenterZ);
+                    long distance = IslandMap.DistanceSquared(proxy.X, proxy.Z, state.CenterX, state.CenterZ);
                     if (distance > farthest) { farthest = distance; point = proxy; }
                 }
                 if (!point.HasValue) continue;

@@ -27,7 +27,7 @@ public sealed partial class InventorySystem
     private int nextId;
     private int[] spent;
     private int[] consumedFoods;
-    private int[] purchasedAmmunition,consumedAmmunition,replenishedAmmunition;
+    private int[] purchasedAmmunition,consumedAmmunition,replenishedAmmunition,retiredFirearmAmmunition;
     private QuickbarBinding[] quickbar;
     private int[] activeItems;
 
@@ -46,7 +46,7 @@ public sealed partial class InventorySystem
         }
         if(starterGrenade)for(int owner=0;owner<players;owner++)items.Add(EquippedItem(nextId++,owner,ItemKind.Throwable,0));
         purchasedAmmunition=new int[AmmunitionCatalog.All.Count];consumedAmmunition=new int[AmmunitionCatalog.All.Count];
-        replenishedAmmunition=new int[AmmunitionCatalog.All.Count];
+        replenishedAmmunition=new int[AmmunitionCatalog.All.Count];retiredFirearmAmmunition=new int[AmmunitionCatalog.All.Count];
         consumedFoods=new int[FoodCatalog.All.Count];quickbar=QuickbarRules.Defaults(players,items);
         activeItems=Enumerable.Range(0,players).Select(owner=>starterRod?Equipped(owner,EquipmentSlot.RightHand)!.Value.Id:WeaponLoadout.Fallback(items,owner)).ToArray();
     }
@@ -55,11 +55,11 @@ public sealed partial class InventorySystem
         InventoryStateCodec.Validate(state);
         playerCount = state.PlayerCount; items = state.Items.ToList(); nextId = state.NextId; spent = state.SpentCoins.ToArray();
         purchasedAmmunition=state.PurchasedAmmunition.ToArray();consumedAmmunition=state.ConsumedAmmunition.ToArray();
-        replenishedAmmunition=state.ReplenishedAmmunition.ToArray();
+        replenishedAmmunition=state.ReplenishedAmmunition.ToArray();retiredFirearmAmmunition=state.RetiredFirearmAmmunition.ToArray();
         consumedFoods=state.ConsumedFoods.ToArray();quickbar=state.Quickbar.ToArray();
         activeItems=state.ActiveItems.ToArray();
     }
-    public InventoryState Capture() => new InventoryState(playerCount, items.OrderBy(i => i.Id), nextId, spent, consumedFoods, quickbar, purchasedAmmunition, consumedAmmunition, replenishedAmmunition,activeItems);
+    public InventoryState Capture() => new InventoryState(playerCount, items.OrderBy(i => i.Id), nextId, spent, consumedFoods, quickbar, purchasedAmmunition, consumedAmmunition, replenishedAmmunition,activeItems,retiredFirearmAmmunition);
     public InventoryItem? ActiveItem(int owner)=>OwnerExists(owner)?Find(activeItems[owner]):null;
     public InventoryResult SelectWeapon(int owner,EquipmentSlot slot)
     {
@@ -152,12 +152,16 @@ public sealed partial class InventorySystem
         ReplaceOrRemove(draft.Items, item); draft.Items.Add(split); Commit(draft); return InventoryResult.Success;
     }
     /// <summary>主动放下选定数量。装备实例保留 ID；材料在同一地块按种类合包，不会定时消失。</summary>
-    public InventoryResult Drop(int owner, int id, int amount, Point ground)
+    public InventoryResult Drop(int owner, int id, int amount, Point ground, int discardLoaded = 0)
     {
         if (!TryOwned(owner, id, out var item)) return InventoryResult.NotOwned;
         if (item.Location != ItemLocation.Backpack) return InventoryResult.InvalidItem;
         if (amount <= 0 || amount > item.Count) return InventoryResult.InvalidQuantity;
+        if(discardLoaded<0 || discardLoaded>0 && (item.Kind!=ItemKind.Firearm || discardLoaded>item.LoadedAmmo))return InventoryResult.InvalidQuantity;
+        int ammo=item.Kind==ItemKind.Firearm?FirearmCatalog.Get(item.Type).AmmoType:-1;
+        if(discardLoaded>0 && consumedAmmunition[ammo]>int.MaxValue-discardLoaded)return InventoryResult.LimitReached;
         var draft = Draft();
+        item.LoadedAmmo-=discardLoaded;
         if (InventoryCatalog.IsMaterial(item.Kind))
         {
             item.Count -= amount; ReplaceOrRemove(draft.Items, item);
@@ -170,7 +174,7 @@ public sealed partial class InventorySystem
             item.Count-=amount;ReplaceOrRemove(draft.Items,item);
         }
         else { ToGround(ref item, ground); ReplaceOrRemove(draft.Items, item); }
-        Commit(draft); return InventoryResult.Success;
+        Commit(draft);if(discardLoaded>0)consumedAmmunition[ammo]+=discardLoaded;return InventoryResult.Success;
     }
     /// <summary>主动拾取，最多搬走可容纳部分。地面包不属于原收获者，任意附近玩家都可拿取。</summary>
     public InventoryResult Pickup(int owner, int id, Point playerPosition, out int taken)

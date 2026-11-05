@@ -30,5 +30,5 @@ public static class BossArena
     }
     public static bool Destructible(int x,int z)=>!(Math.Abs(x)<=1 && Math.Abs(z)<=1) &&
         Enumerable.Range(0,4).Any(id=>BossGeometry.SlamContainsXZ(id,x*PlatformRules.TileSize,z*PlatformRules.TileSize));
-    public static bool NearBeacon(Fisher p)=>IslandMap.DistanceSquared(p.X,p.Z,BossConfig.BeaconX,BossConfig.BeaconZ)<=2500L*2500;
+    public static bool NearBeacon(Fisher p,bool town=false)=>IslandMap.DistanceSquared(p.X,p.Z,town?TownLayout.BeaconX:BossConfig.BeaconX,town?TownLayout.BeaconZ:BossConfig.BeaconZ)<=2500L*2500;
 }

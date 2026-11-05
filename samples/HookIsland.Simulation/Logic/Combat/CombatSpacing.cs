@@ -36,7 +36,7 @@ public sealed class CombatSpacing
         {
             var b=bodies[i];
             if(b.Id<0 || b.Radius<1 || b.Radius>12000 || b.Layers<1 || b.Layers>3 ||
-                Math.Abs((long)b.X)>SwimmingTerrain.WorldLimit || Math.Abs((long)b.Z)>SwimmingTerrain.WorldLimit ||
+                Math.Abs((long)b.X)>100000 || Math.Abs((long)b.Z)>100000 ||
                 i>0 && bodies[i-1].Id==b.Id)throw new ArgumentException("Invalid combat body.",nameof(bodies));
         }
         for(int i=0;i<usedBuckets;i++)buckets[i].Clear();

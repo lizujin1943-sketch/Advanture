@@ -24,7 +24,7 @@ namespace Advanture.HookIsland
         public bool CameraPointerCaptured=>cameraView?.PointerCaptured==true;
         public void Initialize(Camera camera,FishingCameraView view){viewCamera=camera;cameraView=view;}
         private static bool CameraControlsActive(IslandFishingController room)=>room.Playing && !room.Incapacitated && Application.isFocused &&
-            !room.ShopOpen && room.Equipment?.InventoryOpen!=true && room.Construction?.Open!=true && room.Overlay?.MenuOpen!=true && !room.BeingPulled && room.InputProvider==null;
+            room.Town?.Open!=true && !room.ShopOpen && room.Equipment?.InventoryOpen!=true && room.Construction?.Open!=true && room.Overlay?.MenuOpen!=true && !room.BeingPulled && room.InputProvider==null;
         public void TogglePerspective(IslandFishingController room)
         {
             if(cameraView==null || FirstPerson || !room.Playing || !room.TryGetLocalPlayer(out var player) || player.WaitingToJoin)return;
@@ -87,7 +87,7 @@ namespace Advanture.HookIsland
             cameraView?.UpdateFirearmFraming(room.Playing && room.HoldingFirearm && !room.Incapacitated,Time.unscaledDeltaTime);
             UpdateScope(room,Time.unscaledDeltaTime);
             CaptureCameraInput(room);
-            if(!room.Playing || room.Incapacitated || !Application.isFocused || room.ShopOpen || room.Equipment?.InventoryOpen==true || room.BeingPulled || (room.Overlay!=null && room.Overlay.MenuOpen))
+            if(!room.Playing || room.Incapacitated || !Application.isFocused || room.Town?.Open==true || room.ShopOpen || room.Equipment?.InventoryOpen==true || room.BeingPulled || (room.Overlay!=null && room.Overlay.MenuOpen))
             { ClearCommands();return; }
             Vector2 move=new Vector2((Input.GetKey(KeyCode.D)?1:0)-(Input.GetKey(KeyCode.A)?1:0),
                 (Input.GetKey(KeyCode.W)?1:0)-(Input.GetKey(KeyCode.S)?1:0));

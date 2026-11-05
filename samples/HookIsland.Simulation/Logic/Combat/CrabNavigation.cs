@@ -8,6 +8,18 @@ namespace Advanture.HookIsland.Simulation;
 public sealed class CrabNavigation
 {
     private readonly IslandMap map;
+    // Rollback creates new navigation instances. These bounded immutable graphs are derived
+    // solely from town geometry and confirmed tile coordinates, never from actors or timers.
+    private sealed class TownGraph
+    {
+        internal TownGraph(Point[] nodes,int[][] edges,(Point land,Point water)[] shores)
+        {Nodes=nodes;Edges=edges;Shores=shores;}
+        internal readonly Point[] Nodes;internal readonly int[][] Edges;
+        internal readonly (Point land,Point water)[] Shores;
+    }
+    private static readonly object TownGraphLock=new object();
+    private static readonly Dictionary<string,TownGraph> TownGraphs=new Dictionary<string,TownGraph>();
+    private static readonly Queue<string> TownGraphOrder=new Queue<string>();
     private readonly HashSet<(int,int)> cells=new HashSet<(int,int)>();
     private readonly Dictionary<(int,int),int> indices=new Dictionary<(int,int),int>();
     private Point[] nodes=Array.Empty<Point>();
@@ -15,25 +27,43 @@ public sealed class CrabNavigation
     private readonly List<(Point land,Point water)> shores=new List<(Point,Point)>();
     private Point[] terrain=Array.Empty<Point>();
     private bool graphReady;
+    private IReadOnlyList<PlatformTile> confirmedTiles=Array.Empty<PlatformTile>();
+    private bool refreshed;
+    private int Spacing=>map.IsTown?1000:500;
     private static readonly Point[] Directions={new Point(0,-1),new Point(1,0),new Point(0,1),new Point(-1,0)};
     public CrabNavigation(IslandMap map){this.map=map;}
     public void Refresh(IReadOnlyList<PlatformTile> tiles)
     {
         // A rollback or a destroyed/rebuilt tile can change coordinates without changing the count.
-        bool unchanged=terrain.Length==tiles.Count;
+        bool unchanged=refreshed && terrain.Length==tiles.Count;
         for(int i=0;unchanged && i<tiles.Count;i++)
             unchanged=terrain[i].X==tiles[i].X && terrain[i].Z==tiles[i].Z;
         if(unchanged)return;
-        terrain=new Point[tiles.Count];cells.Clear();graphReady=false;
+        refreshed=true;confirmedTiles=tiles.ToArray();terrain=new Point[tiles.Count];cells.Clear();graphReady=false;
         for(int i=0;i<tiles.Count;i++)
         {var t=tiles[i];terrain[i]=new Point(t.X,t.Z);cells.Add((t.X,t.Z));}
     }
     private void EnsureGraph()
     {
         if(graphReady)return;
+        string? townKey=map.IsTown?string.Join(";",terrain.OrderBy(p=>p.Z).ThenBy(p=>p.X).Select(p=>p.X+","+p.Z)):null;
+        if(townKey!=null)
+        {
+            lock(TownGraphLock)if(TownGraphs.TryGetValue(townKey,out var cached))
+            {
+                nodes=cached.Nodes;edges=cached.Edges;indices.Clear();shores.Clear();
+                for(int i=0;i<nodes.Length;i++)indices.Add((nodes[i].X,nodes[i].Z),i);
+                shores.AddRange(cached.Shores);graphReady=true;return;
+            }
+        }
         indices.Clear();shores.Clear();
         var points=new List<Point>();
-        foreach(var t in terrain.OrderBy(t=>t.Z).ThenBy(t=>t.X))
+        if(map.IsTown)
+        {
+            for(int z=-64000;z<=64000;z+=Spacing)for(int x=-80000;x<=80000;x+=Spacing)
+                if(CanStand(x,z))points.Add(new Point(x,z));
+        }
+        else foreach(var t in terrain.OrderBy(t=>t.Z).ThenBy(t=>t.X))
             for(int z=-500;z<=1000;z+=500)for(int x=-500;x<=1000;x+=500)
             {var p=new Point(t.X*2000+x,t.Z*2000+z);if(CanStand(p.X,p.Z))points.Add(p);}
         nodes=points.ToArray();
@@ -43,10 +73,18 @@ public sealed class CrabNavigation
         {
             var p=nodes[i];var adjacent=new List<int>();
             foreach(var d in Directions)
-                if(indices.TryGetValue((p.X+d.X*500,p.Z+d.Z*500),out int n) && Segment(p.X,p.Z,nodes[n].X,nodes[n].Z))adjacent.Add(n);
+                if(indices.TryGetValue((p.X+d.X*Spacing,p.Z+d.Z*Spacing),out int n) && Segment(p.X,p.Z,nodes[n].X,nodes[n].Z))adjacent.Add(n);
             edges[i]=adjacent.ToArray();
         }
-        foreach(var t in terrain.OrderBy(t=>t.Z).ThenBy(t=>t.X))foreach(var d in Directions)
+        if(map.IsTown)
+        {
+            foreach(var p in nodes)foreach(var d in Directions)
+            {
+                var water=new Point(p.X+d.X*1000,p.Z+d.Z*1000);
+                if(!TownLayout.OnGround(confirmedTiles,water.X,water.Z) && !SwimmingTerrain.Obstacle(map,water.X,water.Z))shores.Add((p,water));
+            }
+        }
+        else foreach(var t in terrain.OrderBy(t=>t.Z).ThenBy(t=>t.X))foreach(var d in Directions)
         {
             if(cells.Contains((t.X+d.X,t.Z+d.Z)))continue;
             var land=new Point(t.X*2000+d.X*500,t.Z*2000+d.Z*500);
@@ -54,9 +92,18 @@ public sealed class CrabNavigation
             if(CanStand(land.X,land.Z) && !SwimmingTerrain.Obstacle(map,water.X,water.Z))shores.Add((land,water));
         }
         graphReady=true;
+        if(townKey!=null)lock(TownGraphLock)
+        {
+            if(!TownGraphs.ContainsKey(townKey))
+            {
+                while(TownGraphOrder.Count>=8)TownGraphs.Remove(TownGraphOrder.Dequeue());
+                TownGraphs.Add(townKey,new TownGraph(nodes,edges,shores.ToArray()));TownGraphOrder.Enqueue(townKey);
+            }
+        }
     }
     public bool CanStand(int x,int z)
     {
+        if(map.IsTown)return TownLayout.CanStand(confirmedTiles,x,z,CrabConfig.BodyRadius);
         if(Math.Abs((long)x)>49000 || Math.Abs((long)z)>49000)return false;
         if(!CoversFootprint(x,z,CrabConfig.BodyRadius))return false;
         if(map.Fishing!=null)foreach(var merchant in map.Fishing.Merchants.Definitions)
@@ -66,6 +113,7 @@ public sealed class CrabNavigation
     /// <summary>共享已确认地格的哈希，不为每次单位分离重新线性扫描整座平台。</summary>
     internal bool CoversFootprint(int x,int z,int radius)
     {
+        if(map.IsTown)return TownLayout.CanStand(confirmedTiles,x,z,radius);
         for(int cz=PlatformRules.CellAt(z-radius);cz<=PlatformRules.CellAt(z+radius);cz++)
             for(int cx=PlatformRules.CellAt(x-radius);cx<=PlatformRules.CellAt(x+radius);cx++)
                 if(!cells.Contains((cx,cz)))return false;
@@ -83,7 +131,7 @@ public sealed class CrabNavigation
         for(int i=0;i<=steps;i++)
         {
             int px=x+(int)((long)(toX-x)*i/steps),pz=z+(int)((long)(toZ-z)*i/steps);
-            if(!cells.Contains((PlatformRules.CellAt(px),PlatformRules.CellAt(pz))) || SwimmingTerrain.Obstacle(map,px,pz))return false;
+            if((map.IsTown?!TownLayout.OnGround(confirmedTiles,px,pz):!cells.Contains((PlatformRules.CellAt(px),PlatformRules.CellAt(pz)))) || SwimmingTerrain.Obstacle(map,px,pz))return false;
         }
         return true;
     }

@@ -150,8 +150,10 @@ public sealed partial class HookGame
                 var monster=enemies.Monster;if(monster.Phase==MonsterPhase.Windup && Damage(monster.X,500,monster.Z)>0)enemies.Interrupt();
             }
             foreach(var crab in crabs){var c=crab.Capture();int amount=Damage(c.X,700,c.Z);if(c.Damageable && amount>0)crab.Strike(g.Owner,amount);}
+            for(int i=0;i<eldritch.Count;i++)
+            {var c=eldritch.Get(i);int amount=Damage(c.X,700,c.Z);if(c.Damageable && amount>0)eldritch.Strike(i,g.Owner,amount,g.X,g.Z,true);}
             var abyss=boss.Capture();
-            if(abyss.Damageable)
+            if(abyss.Damageable && TownCanHitBoss(g.Owner))
             {
                 // 一个部位可能有多个关节代理；每部位只取最大一次伤害，眼睛不产生爆炸暴击。
                 var damage=new SortedDictionary<int,int>();
