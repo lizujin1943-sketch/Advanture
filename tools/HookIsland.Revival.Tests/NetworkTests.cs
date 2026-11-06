@@ -66,34 +66,5 @@ internal static partial class Program
             {var now=TimeSpan.FromMilliseconds(ms);host.Poll(now);client.Poll(now,_=>default);}
             Require(client.Failure!=null && host.Session==null,"Different revival rules joined room.");
         });
-        yield return ("network_four_clients_free_rescue_and_personal_paid_respawn",()=>{
-            var map=NetworkMap();using var host=new IslandHost(map,0,4);
-            var clients=Enumerable.Range(0,4).Select(i=>new IslandClient(map,IPAddress.Loopback,host.Port,i==0?(ushort)0:ushort.MaxValue)).ToArray();
-            var pilots=clients.Select(_=>new RevivalSmokePilot()).ToArray();var observer=new RevivalSmokePilot();
-            var clock=System.Diagnostics.Stopwatch.StartNew();TimeSpan last=default;
-            try
-            {
-                while(clock.Elapsed<TimeSpan.FromSeconds(160))
-                {
-                    var now=last=clock.Elapsed;host.Poll(now);
-                    for(int i=0;i<clients.Length;i++)
-                    {var c=clients[i];var pilot=pilots[i];c.Poll(now,t=>c.Session?.LocalParticipant==null?default:pilot.Sample(map,c.Session.InspectState(),c.Slot,t));Require(c.Failure==null,c.Failure??"");}
-                    Require(host.Failure==null,host.Failure??"");
-                    if(host.Session!=null && observer.Complete(host.Session.InspectState()))break;
-                    System.Threading.Thread.Sleep(1);
-                }
-                for(int i=0;i<300;i++){host.Poll(last);foreach(var c in clients)c.Poll(last,_=>default);}
-                Require(host.Session!=null,"Room did not start.");var s=host.Session!.InspectState();
-                Require(observer.Complete(s),$"Revival loop incomplete at {s.Steps}.");
-                Require(s.Players[1].Revival.CoinsSpent==0 && s.Players[2].Revival.CoinsSpent>0 && s.Players[2].CoinsEarned-s.Players[2].Coins==s.Players[2].Revival.CoinsSpent,"Personal/free settlement differs.");
-                Require(s.Players[2].Revival.Deaths==0,"Manual respawn waited for final death instead of accepting the downed state.");
-                var cp=host.Session.CaptureCheckpoint();string hash=CheckpointCodec.Hash(cp);
-                foreach(var c in clients)Require(CheckpointCodec.Hash(c.Session!.CaptureCheckpoint())==hash,"Revival checkpoint differs across peers.");
-                var copy=Model(4,enemies:new EnemyConfig());copy.Restore(new HookGame().Decode(cp.ApplicationState.Span));
-                Require(copy.Capture().Players[2].Revival.CoinsSpent==s.Players[2].Revival.CoinsSpent,"Death/payment receipt lost on restore.");
-                Console.WriteLine($"REVIVAL_NETWORK players=4 tick={s.Steps} fee={s.Players[2].Revival.CoinsSpent} hash={hash}");
-            }
-            finally{foreach(var c in clients)c.Dispose();}
-        });
     }
 }

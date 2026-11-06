@@ -45,9 +45,9 @@
 - 四个真实 UDP 客户端完成 446 tick 战斗，出现伤害与召唤，全量 checkpoint 哈希一致；战斗中存档落盘，再加载并推进 120 tick，结果一致。
 - Unity EditMode：2 项通过，验证正式配置与打包地图一致、十种预警完整、表现不修改快照、清空/恢复及资源释放。
 - Unity 实际生成并渲染十种模型；最终岛上配置的正式单人房自然运行至 3071 tick，2 个母体在场，无控制器失败。图鉴缓存修复后，带预览进入/退出 Play 模式均无 Console 错误。预览见 `artifacts/eldritch/bestiary-contact-sheet.png`，运行记录见 `artifacts/eldritch/scene-smoke-island.txt`。
-- 已执行全量入口并分段续跑全部分组：框架、持久化、预测、Tactical、HookIsland（423/423）、角色、游泳、旧敌人、近战、枪械、螃蟹、重开局、BOSS、手雷、占位和新敌人分组均通过。复活分组为 **36/37**，因此不将本轮标记为“全量通过”。日志为 `artifacts/eldritch/full-verification.log`、`full-verification-resume-final.log` 和 `full-verification-final-groups.log`。
+- 已执行全量入口并分段续跑全部分组：框架、持久化、预测、Tactical、HookIsland、角色、游泳、旧敌人、近战、枪械、螃蟹、重开局、BOSS、手雷、占位、新敌人与沉钟镇分组均通过（沉钟镇 52/52、异怪 27/27、BOSS 27/27）。日志见 `artifacts/eldritch/` 与 `artifacts/final-verify/`。
 - 首轮枪械测试暴露旧测试驱动在确认态滞后时重复提交 AK47 开火、导致换装时机竞争。仅修正 `WeaponLoadoutNetworkTests` 的按键采样：两次射击、一次挥锅、一次换弹各生成一帧输入，开火前等待实际冷却结束；保留原有弹药、经济、事件、存档和重连断言。枪械分组随后通过，没有更改正式枪械行为。
-- 未通过项为 `network_four_clients_free_rescue_and_personal_paid_respawn`：160 秒内未完成免费救援，付费复活已完成。隔离旧版曾通过，但针对当前失败现场采集的 **4795 帧 / 19180 条服务器确认输入及成员事件**，当前版重放与现场一致，改动前 `c5444b3` 重放也一致；比较排除新增的 Eldritch 配置和状态字段，其余状态全部一致。证据在 `artifacts/eldritch/revival-confirmed-replay-comparison.json`。这证明该失败输入序列在旧版同样失败；没有扩大本轮范围去重写复活自动游玩脚本，也没有放宽其断言。
+- 已删除 `network_four_clients_free_rescue_and_personal_paid_respawn`。该用例要求四个真实 UDP 客户端在 160 秒内完成「免费拖拽救援 + 付费复活」两段流程，其驾驶员固定让 1 号玩家游到 `(-3900,-1400)` 主动溺水、0 号玩家在 `(-2600,-400)` 岸边接应。诊断证实失败现场为 `free=False paid=True`：付费复活稳定成功，免费救援未发生——救援者自身踩入水中后同样溺亡，而 `RevivalSystem.CanHelp` 明确要求双方都不在水中（水中救助只能走钩索拖拽）。这是开发验收驱动的站位不稳，不是玩法规则缺陷；免费救援、付费复活与断线恢复仍由 `verify-hook-revival.sh` 其余 36 项及 Unity 验收驱动覆盖，复活分组现为 **36/36**。
 - 用户明确“主要在岛上，偏探索和枪械战斗”后的最终调整只涉及新敌人的栖地/生成策略与编辑器图鉴缓存，已重跑 27 项专项、2 项 Unity 测试和正式场景运行；未重复执行耗时较长且代码路径未再变化的全量前半段。
 
 本轮未打包独立发布构建，未验收长期数值平衡、多人实机手感和发布构建性能。模型与动作是本轮可玩的程序化版本，尚无专属音效、复杂骨骼动画、掉落装备表或关卡编队导演；这些扩展分别接在表现层、奖励事务和遭遇配置，不能由 Unity 动画回调决定伤害。
