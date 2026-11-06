@@ -15,7 +15,7 @@ public sealed partial class InventorySystem
         draft.Spent[owner]+=ammo.Price;Commit(draft);coins-=ammo.Price;purchasedAmmunition[type]++;
         Received(owner,ItemKind.Ammunition,type,ammo.Quantity,0,ground);return InventoryResult.Success;
     }
-    public int AmmunitionBalance(int owner,int type)=>items.Where(i=>i.Owner==owner && i.Kind==ItemKind.Ammunition && i.Type==type && i.Location==ItemLocation.Backpack).Sum(i=>i.Count);
+    public int AmmunitionBalance(int owner,int type)=>FirearmRules.BackpackRounds(items,owner,type);
     /// <summary>Caller owns action timing and deduplication. A failed shot never consumes ammunition.</summary>
     public bool TryFireRound(int owner,int weaponId)
     {

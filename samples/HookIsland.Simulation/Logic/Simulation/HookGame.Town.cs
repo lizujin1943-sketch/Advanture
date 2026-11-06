@@ -11,19 +11,31 @@ public sealed partial class HookGame
         private TownZoneState[] townZones=Array.Empty<TownZoneState>();
         private int townGoals,townShortcuts,townReady,townFinish,townMap,townContracts,townContractsPaid,townMembers;
         private uint townAttempt;
-        private bool townCompleted,townFinished;
+        private bool townCompleted,townFinished,legacyTownSupply;
         private void InitializeTown(TownState? state=null)
         {
             if(!map.IsTown)return;
             var s=state??new TownState(true,new TownPersonalState[players.Length],new TownZoneState[6]);
             townPlayers=s.Players.ToArray();townZones=s.Zones.ToArray();townGoals=s.Goals;townShortcuts=s.Shortcuts;townReady=s.ReadyMask;townFinish=s.FinishMask;
+            legacyTownSupply=!FiniteAmmunition && state!=null && townPlayers.Any(p=>p.BoundWeaponId!=0 || p.BoundReserve!=0 || p.EmergencyReserve!=0);
             townMap=s.MapKnownMask;townContracts=s.ContractMask;townContractsPaid=s.ContractsPaidMask;townAttempt=s.Attempt;townMembers=s.Members;townCompleted=s.FinaleCompleted;townFinished=s.Finished;
+        }
+        // Keep old checkpoints byte-exact until play advances. Rounds already in magazines become ordinary rounds.
+        private void ReleaseLegacyTownSupply()
+        {
+            if(!legacyTownSupply)return;
+            for(int i=0;i<townPlayers.Length;i++)
+            {
+                townPlayers[i].BoundReserve=townPlayers[i].BoundLoaded=townPlayers[i].BoundWeaponId=0;
+                townPlayers[i].EmergencyReserve=0;
+            }
+            legacyTownSupply=false;
         }
         private TownState CaptureTown()=>!map.IsTown?TownState.Empty:new TownState(true,townPlayers,townZones,townGoals,townShortcuts,townReady,townFinish,townMap,townContracts,townContractsPaid,townAttempt,townMembers,townCompleted,townFinished);
         private bool TownNear(Fisher p,int building,int range=3000)
         {var b=TownLayout.Buildings[building-1];return IslandMap.DistanceSquared(p.X,p.Z,b.Entrance.X,b.Entrance.Z)<=(long)range*range;}
         private int TownOnlineMask()=>players.Where(p=>!p.WaitingToJoin && !p.Unavailable).Aggregate(0,(m,p)=>m|(1<<p.Slot));
-        private bool TownInside(Fisher p)=>IslandMap.DistanceSquared(p.X,p.Z,TownLayout.CenterX,TownLayout.CenterZ)<=26000L*26000;
+        private bool FiniteAmmunition=>map.Fishing?.FiniteAmmunition==true;
         private void ApplyTownCommands(HookInput[] commands)
         {
             if(!map.IsTown)return;
@@ -34,7 +46,7 @@ public sealed partial class HookGame
                 var result=TownTransact(i,c);receipt=townPlayers[i];receipt.LastResult=result;townPlayers[i]=receipt;
             }
             townReady&=TownOnlineMask();
-            foreach(var p in players)if(!EldritchSystem.Eligible(p) || !TownInside(p))townReady&=~(1<<p.Slot);
+            foreach(var p in players)if(!EldritchSystem.Eligible(p) || !TownLayout.InArena(p))townReady&=~(1<<p.Slot);
             townFinish&=TownOnlineMask();
             foreach(var p in players)if(!EldritchSystem.Eligible(p) || !TownNear(p,1))townFinish&=~(1<<p.Slot);
             int online=TownOnlineMask();
@@ -49,6 +61,7 @@ public sealed partial class HookGame
         private TownResult TownTransact(int slot,TownCommand c)
         {
             var p=players[slot];if(!EldritchSystem.Eligible(p))return TownResult.Disabled;
+            if(!FiniteAmmunition && (c.Action==TownAction.BuyAmmo || c.Action==TownAction.EmergencyAmmo))return TownResult.Disabled;
             if(p.Knockback.Active || p.Melee.Active || p.Grenade.Active || p.Firearm.Busy || p.PulledBy>=0 || p.Shopping || p.Swimming.InWater)return TownResult.Busy;
             int building=c.Action switch {TownAction.BuyAmmo or TownAction.BuyRifle=>2,TownAction.Heal=>3,TownAction.BuyRing=>4,TownAction.BuyGrenade=>5,TownAction.Contract=>6,TownAction.Sell=>7,TownAction.RevealMap=>8,TownAction.ShortcutOne or TownAction.ShortcutTwo or TownAction.OpenTideGate=>9,TownAction.RegisterInn=>10,TownAction.ReadArchive=>11,TownAction.ReadClues=>12,TownAction.ReturnToHarbor=>1,_=>0};
             if(building>0 && !TownNear(p,building))return TownResult.TooFar;
@@ -62,7 +75,7 @@ public sealed partial class HookGame
             if(c.Action==TownAction.ReadyBoss)
             {
                 if(townGoals!=7)return TownResult.GoalLocked;
-                if(!TownInside(p))return TownResult.TooFar;
+                if(!TownLayout.InArena(p))return TownResult.TooFar;
                 if(townCompleted)return TownResult.AlreadyCompleted;
                 if(townAttempt==uint.MaxValue)return TownResult.LimitReached;
                 if(boss.Capture().Active)return TownResult.Busy;
@@ -136,13 +149,10 @@ public sealed partial class HookGame
             if(b.Phase==BossPhase.Emerge && townMembers==0)
             {
                 townAttempt++;townMembers=TownOnlineMask();townReady=0;
-                int n=b.ParticipantCount,hp=map.Fishing!.Boss.ScaledBody(n)+4*map.Fishing.Boss.ScaledLimb(0,n);
-                int rounds=((hp*3+2*n*35*14-1)/(2*n*35*14))*14;
-                for(int i=0;i<players.Length;i++)if((townMembers&(1<<i))!=0)
-                {townPlayers[i].GrantedAttempt=townAttempt;townPlayers[i].BoundReserve=rounds;}
+                if(FiniteAmmunition)GrantTownAttemptAmmo(b.ParticipantCount);
             }
-            for(int i=0;i<players.Length;i++)
-                if(!b.Active || !TownInside(players[i]) || (townMembers&(1<<i))==0)
+            for(int i=0;FiniteAmmunition && i<players.Length;i++)
+                if(!b.Active || !TownLayout.InArena(players[i]) || (townMembers&(1<<i))==0)
                 {DiscardTownMagazine(i);townPlayers[i].BoundReserve=0;}
             if(b.Phase==BossPhase.Dormant && townMembers!=0)
             {
@@ -206,27 +216,34 @@ public sealed partial class HookGame
                     townContractsPaid|=bit;coins+=reward;players[i].Coins+=reward;players[i].CoinsEarned+=reward;
                 }
         }
+        private void GrantTownAttemptAmmo(int participants)
+        {
+            int hp=map.Fishing!.Boss.ScaledBody(participants)+4*map.Fishing.Boss.ScaledLimb(0,participants);
+            int rounds=((hp*3+2*participants*35*14-1)/(2*participants*35*14))*14;
+            for(int i=0;i<players.Length;i++)if((townMembers&(1<<i))!=0)
+            {townPlayers[i].GrantedAttempt=townAttempt;townPlayers[i].BoundReserve=rounds;}
+        }
         private void DiscardTownMagazine(int slot)
         {
             var p=townPlayers[slot];if(p.BoundLoaded>0)equipment!.Inventory.DiscardLoaded(slot,p.BoundWeaponId,p.BoundLoaded);
             p.BoundLoaded=p.BoundWeaponId=0;townPlayers[slot]=p;
         }
-        private int ReloadTown(int slot,int weapon)
+        private int TownServiceReserve(int slot,InventoryItem gun,out bool attempt)
         {
-            var gun=equipment!.Inventory.Find(weapon);bool basic=gun?.Type==0;
-            bool attempt=basic && boss.Capture().Active && TownInside(players[slot]) && (townMembers&(1<<slot))!=0;
-            // One source binding may be live at a time. A second pistol can still use paid
-            // rounds, and may bind the attempt pool once the previous magazine is empty.
-            bool bindable=townPlayers[slot].BoundLoaded==0 || townPlayers[slot].BoundWeaponId==weapon;
-            int external=basic?(attempt?(bindable?townPlayers[slot].BoundReserve:0):townPlayers[slot].EmergencyReserve):0;
-            int loaded=equipment.Inventory.ReloadFinite(slot,weapon,external,out int used);
-            if(attempt){townPlayers[slot].BoundReserve-=used;townPlayers[slot].BoundLoaded+=used;if(used>0)townPlayers[slot].BoundWeaponId=weapon;}
-            else if(basic)townPlayers[slot].EmergencyReserve-=used;
+            attempt=FirearmRules.UsesAttemptReserve(players[slot],townMembers,boss.Capture().Active);
+            return FirearmRules.ServiceReserve(gun,townPlayers[slot],attempt);
+        }
+        private int ReloadTown(int slot,InventoryItem gun)
+        {
+            int external=TownServiceReserve(slot,gun,out bool attempt);
+            int loaded=equipment!.Inventory.ReloadFinite(slot,gun.Id,external,out int used);
+            if(attempt){townPlayers[slot].BoundReserve-=used;townPlayers[slot].BoundLoaded+=used;if(used>0)townPlayers[slot].BoundWeaponId=gun.Id;}
+            else townPlayers[slot].EmergencyReserve-=used;
             return loaded;
         }
         private void ReconcileTownAmmo()
         {
-            if(!map.IsTown)return;
+            if(!FiniteAmmunition)return;
             for(int i=0;i<players.Length;i++)
             {
                 var receipt=townPlayers[i];
@@ -234,11 +251,11 @@ public sealed partial class HookGame
                 // Own backpack moves and weapon selection preserve the loaded source.
                 if(receipt.BoundWeaponId>0 && equipment!.Inventory.Find(receipt.BoundWeaponId)?.Owner!=i)
                 {receipt.BoundLoaded=receipt.BoundWeaponId=0;townPlayers[i]=receipt;}
-                if(!boss.Capture().Active || !TownInside(players[i]) || (townMembers&(1<<i))==0)
+                if(!boss.Capture().Active || !TownLayout.InArena(players[i]) || (townMembers&(1<<i))==0)
                 {DiscardTownMagazine(i);townPlayers[i].BoundReserve=0;}
             }
         }
-        private bool TownCanHitBoss(int slot)=>!map.IsTown || (townMembers&(1<<slot))!=0 && TownInside(players[slot]);
+        private bool TownCanHitBoss(int slot)=>!map.IsTown || (townMembers&(1<<slot))!=0 && TownLayout.InArena(players[slot]);
         private void TownFired(int slot,int weapon)
         {if(map.IsTown && townPlayers[slot].BoundWeaponId==weapon && townPlayers[slot].BoundLoaded>0)townPlayers[slot].BoundLoaded--;}
     }

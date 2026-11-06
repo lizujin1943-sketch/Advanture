@@ -61,13 +61,13 @@ public sealed class IslandMap
         var schools=directions.SelectMany(d=>new[]{6200,10400,14800}.Select(r=>new Point(d.X*r/1000,d.Z*r/1000)));
         return new IslandMap(edge,edge,spawns,schools,new PlatformConfig(woodTileCost,fishboneTileCost),new FishingConfig());
     }
-    public static IslandMap CreateTown(EldritchConfig? eldritch=null)
+    public static IslandMap CreateTown(EldritchConfig? eldritch=null,bool finiteAmmunition=false)
     {
         var envelope=new[]{new Point(-80000,-64000),new Point(80000,-64000),new Point(80000,64000),new Point(-80000,64000)};
         var dock=TownLayout.FromDesign(25,111);
         var spawns=new[]{new Point(dock.X-700,dock.Z-700),new Point(dock.X+700,dock.Z-700),new Point(dock.X+700,dock.Z+700),new Point(dock.X-700,dock.Z+700)};
         return new IslandMap(envelope,envelope,spawns,new[]{TownLayout.FromDesign(5,120)},new PlatformConfig(),
-            new FishingConfig(melee:new MeleeConfig(),firearms:new FirearmConfig(),boss:new BossConfig(),startingCoins:300,fishingRodsEnabled:false,eldritch:eldritch??new EldritchConfig(),townMode:true),true);
+            new FishingConfig(melee:new MeleeConfig(),firearms:new FirearmConfig(),boss:new BossConfig(),startingCoins:300,fishingRodsEnabled:false,eldritch:eldritch??new EldritchConfig(),townMode:true,finiteAmmunition:finiteAmmunition),true);
     }
     public int DistanceToLand(int x,int z)
     {

@@ -51,14 +51,17 @@ public sealed partial class HookGame
                 var p=players[i];var c=commands[i];var item=ActiveFirearm(p);
                 if(!FirearmRules.CanMaintain(p,equipment!.Ring(p)!=null)){FirearmRules.CancelActions(ref p);players[i]=p;continue;}
                 if(p.Shopping || p.Grenade.Active)continue;
-                if(!item.HasValue || p.Firearm.Busy || Rescuing(p,c) || c.Build!=TileKind.None || c.RodAction!=RodAction.None || c.Inventory.Action!=InventoryAction.None || !c.Treasure.IsEmpty)continue;
+                if(!item.HasValue || p.Firearm.DrawTicks>0 || p.Firearm.Reloading || Rescuing(p,c) || c.Build!=TileKind.None || c.RodAction!=RodAction.None || c.Inventory.Action!=InventoryAction.None || !c.Treasure.IsEmpty)continue;
                 var gun=item.Value;var definition=FirearmCatalog.Get(gun.Type);
                 if(c.Reload && gun.LoadedAmmo<definition.Capacity)
                 {
+                    if(FiniteAmmunition && TownServiceReserve(i,gun,out _)==0 && equipment.Inventory.AmmunitionBalance(i,definition.AmmoType)==0)continue;
+                    // A deliberate reload can follow the last shot immediately, while its fire cooldown still runs.
+                    p.Firearm.RecoveryTicks=0;
                     p.Firearm.ReloadWeaponId=gun.Id;p.Firearm.ReloadTicks=definition.ReloadTicks;
                     Record(HookGameplayEventKind.FirearmReloadStarted,p,value:definition.ReloadTicks,itemKind:ItemKind.Firearm,itemType:gun.Type);
                 }
-                else if(c.Fire && p.Firearm.CooldownTicks==0 && p.Firearm.ShotSequence<uint.MaxValue &&
+                else if(c.Fire && p.Firearm.RecoveryTicks==0 && p.Firearm.CooldownTicks==0 && p.Firearm.ShotSequence<uint.MaxValue &&
                     IslandMap.DistanceSquared(p.X,p.Z,p.AimX,p.AimZ)>10000 && equipment.Inventory.TryFireRound(i,gun.Id))
                 {
                     TownFired(i,gun.Id);p.Firearm.ShotSequence++;p.Firearm.CooldownTicks=definition.CooldownTicks;p.Firearm.RecoveryTicks=definition.RecoveryTicks;
@@ -82,8 +85,8 @@ public sealed partial class HookGame
                 if(gun?.Id!=p.Firearm.ReloadWeaponId){FirearmRules.CancelReload(ref p);players[i]=p;continue;}
                 if(--p.Firearm.ReloadTicks==0)
                 {
-                    int loaded=map.IsTown?ReloadTown(i,p.Firearm.ReloadWeaponId):equipment.Inventory.ReloadFirearm(i,p.Firearm.ReloadWeaponId);p.Firearm.ReloadWeaponId=0;
-                    Record(HookGameplayEventKind.FirearmReloaded,p,amount:loaded,itemKind:ItemKind.Firearm,itemType:gun.Value.Type);
+                    int loaded=FiniteAmmunition?ReloadTown(i,gun.Value):equipment.Inventory.ReloadFirearm(i,p.Firearm.ReloadWeaponId);p.Firearm.ReloadWeaponId=0;
+                    if(loaded>0)Record(HookGameplayEventKind.FirearmReloaded,p,amount:loaded,itemKind:ItemKind.Firearm,itemType:gun.Value.Type);
                 }
                 players[i]=p;
             }

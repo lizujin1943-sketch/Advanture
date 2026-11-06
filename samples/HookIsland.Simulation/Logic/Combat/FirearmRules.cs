@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Advanture.HookIsland.Simulation;
 
@@ -6,6 +7,30 @@ public static class FirearmRules
 {
     public static FirearmDefinition? Equipped(HookState s,Fisher p)
     {var item=s.Tackle?.Inventory.ActiveItem(p.Slot);return s.Tackle?.Config.Firearms.Enabled==true && item?.Kind==ItemKind.Firearm?FirearmCatalog.Get(item.Value.Type):null;}
+    internal static bool UsesAttemptReserve(Fisher p,int members,bool bossActive)=>
+        bossActive && (members&(1<<p.Slot))!=0 && TownLayout.InArena(p);
+    internal static int ServiceReserve(InventoryItem gun,TownPersonalState supply,bool attempt)
+    {
+        if(gun.Type!=0)return 0;
+        if(!attempt)return supply.EmergencyReserve;
+        return supply.BoundLoaded==0 || supply.BoundWeaponId==gun.Id?supply.BoundReserve:0;
+    }
+    internal static int BackpackRounds(IEnumerable<InventoryItem> items,int owner,int type)
+    {
+        int rounds=0;
+        foreach(var item in items)
+            if(item.Owner==owner && item.Kind==ItemKind.Ammunition && item.Type==type && item.Location==ItemLocation.Backpack)
+                rounds+=item.Count;
+        return rounds;
+    }
+    /// <summary>Null denotes unlimited supply. Magazine contents are reported separately.</summary>
+    public static int? ReserveRounds(HookState state,Fisher player,InventoryItem gun)
+    {
+        if(state.Tackle?.Config.FiniteAmmunition!=true)return null;
+        bool attempt=UsesAttemptReserve(player,state.Town.Members,state.Boss.Active);
+        return BackpackRounds(state.Tackle.Inventory.Items,player.Slot,FirearmCatalog.Get(gun.Type).AmmoType)
+            +ServiceReserve(gun,state.Town.Players[player.Slot],attempt);
+    }
     public static bool CanMaintain(Fisher p,bool hasRing)=>!p.Unavailable && !p.Vitals.Downed && !p.Revival.Dead && !p.Knockback.Active && p.PulledBy<0 && p.HookedPlayer<0 && p.Phase==HookPhase.Ready && !p.Melee.Active && (!p.Swimming.InWater || hasRing);
     public static bool CanAct(Fisher p,bool hasRing)=>CanMaintain(p,hasRing) && !p.Shopping;
     public static int FriendlyDamage(int damage,int armor,int percent=50)

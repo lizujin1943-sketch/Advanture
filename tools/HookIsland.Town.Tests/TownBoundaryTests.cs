@@ -23,13 +23,13 @@ public static partial class TownGameplayTests
     }
     static IDeterministicSimulation<HookState> LoadedAttempt()
     {
-        var m=Model();PrepareFinale(m,true);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.ReadyBoss,1)));
+        var m=Model(finite:true);PrepareFinale(m,true);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.ReadyBoss,1)));
         Step(m,new HookInput(0,0,reload:true));for(int k=0;k<60;k++)Step(m);
         Require(m.Capture().Town.Players[0].BoundLoaded==7,"Fixture failed to load attempt magazine");return m;
     }
     static IDeterministicSimulation<HookState> LoadedTransferableAttempt()
     {
-        var m=Model();var s=m.Capture();var inv=new InventorySystem(s.Tackle!.Inventory);var ps=s.Players.ToArray();
+        var m=Model(finite:true);var s=m.Capture();var inv=new InventorySystem(s.Tackle!.Inventory);var ps=s.Players.ToArray();
         Require(inv.Purchase(0,ItemKind.Firearm,0,true,false,default,ref ps[0].Coins)==InventoryResult.Success,"Transferable pistol fixture purchase failed");
         int gun=inv.ActiveItem(0)!.Value.Id;for(int k=0;k<7;k++)inv.TryFireRound(0,gun);
         // Empty both weapons through the inventory's real firing ledger before the attempt.
@@ -43,6 +43,24 @@ public static partial class TownGameplayTests
     {
         int failed=0;
         void Test(string name,Action f){try{f();Console.WriteLine("PASS "+name);}catch(Exception e){failed++;Console.WriteLine("FAIL "+name+": "+e.Message);}}
+        Test("legacy_town_save_keeps_loaded_attempt_rounds_in_unlimited_mode",()=>{
+            var saved=LoadedAttempt().Capture();
+            var restored=Model();
+            // Legacy towns used the default town config byte and could carry a bound magazine.
+            var oldConfig=restored.Capture().Tackle!.Config;
+            var oldTackle=new TackleState(oldConfig,saved.Tackle!.Inventory,saved.Tackle.Merchants);
+            var bytes=Codec.Encode(With(saved,tackle:oldTackle));
+            restored.Restore(Codec.Decode(bytes));
+            Require(Codec.Encode(restored.Capture()).SequenceEqual(bytes),"Restoring changed the saved checkpoint before play resumed");
+            Step(restored);
+            var after=restored.Capture();
+            var supply=after.Town.Players[0];
+            Require(supply.BoundLoaded==0 && supply.BoundWeaponId==0 && supply.BoundReserve==0 && Reserve(after)==null,"Legacy supply still restricted unlimited reloads");
+            restored.Restore(Codec.Decode(Codec.Encode(after)));
+            At(restored,1);
+            var inventory=restored.Capture().Tackle!.Inventory;
+            Require(inventory.ActiveItem(0)!.Value.LoadedAmmo==7 && inventory.ConsumedAmmunition[0]==saved.Tackle.Inventory.ConsumedAmmunition[0],"Leaving the arena discarded rounds loaded in the old save");
+        });
         Test("paused_adults_resume_only_with_global_slots_and_roundtrip",()=>{
             var m=Model(2);var s=m.Capture();var ps=s.Players.ToArray();Position(ref ps[0],ZonePoint(2));Position(ref ps[1],ZonePoint(3));
             var roster=s.Eldritch.Creatures.ToArray();for(int id=5;id<11;id++)roster[id]=Living(roster[id],id<8);
@@ -125,7 +143,7 @@ public static partial class TownGameplayTests
         });
         foreach(int balance in new[]{0,AmmunitionCatalog.Get(0).Price-1,AmmunitionCatalog.Get(0).Price})
             Test("emergency_ammo_affordability_boundary_"+balance,()=>{
-                var m=Model();At(m,2);var s=m.Capture();var ps=s.Players.ToArray();ps[0].Coins=balance;var people=s.Town.Players.ToArray();people[0].ServiceSpent=300-balance;
+                var m=Model(finite:true);At(m,2);var s=m.Capture();var ps=s.Players.ToArray();ps[0].Coins=balance;var people=s.Town.Players.ToArray();people[0].ServiceSpent=300-balance;
                 var inv=new InventorySystem(s.Tackle!.Inventory);int gun=inv.ActiveItem(0)!.Value.Id;for(int k=0;k<7;k++)inv.TryFireRound(0,gun);
                 m.Restore(Codec.Decode(Codec.Encode(With(s,ps,new TownState(true,people,s.Town.Zones),tackle:new TackleState(s.Tackle.Config,inv.Capture(),s.Tackle.Merchants)))));
                 Step(m,new HookInput(0,0,town:new TownCommand(TownAction.EmergencyAmmo,1)));s=m.Capture();bool granted=balance<AmmunitionCatalog.Get(0).Price;

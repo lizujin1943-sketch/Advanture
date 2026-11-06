@@ -18,6 +18,28 @@ namespace Advanture.HookIsland.Tests
             Assert.That(config.MaxAlive,Is.EqualTo(4));
             Assert.That(settings.CreateMap().Encode(),Is.EqualTo(AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/HookIsland/Data/PlatformMap.bytes").bytes));
         }
+        [Test] public void TownDeathHidesTheModelAndWarningsEvenWhenTheEncounterClockIsFrozen()
+        {
+            var root=new GameObject("Town death test");
+            var config=new EldritchConfig();
+            var creature=new EldritchCreature{Id=0,Kind=TownEncounters.Kind(0),Phase=EldritchPhase.Windup,
+                Generation=1,Health=20,Timer=1,Ally=-1,DirectionZ=1000000};
+            HookState Snapshot()=>new HookState(30,new[]{new Fisher()},Array.Empty<Fish>(),0,
+                eldritch:new EldritchState(new[]{creature}),town:new TownState(true));
+            try
+            {
+                using(var view=new EldritchPresentation(root.transform,Shader.Find("Hook Island/Fishing Line"),config,true))
+                {
+                    view.Synchronize(Snapshot());Assert.That(root.GetComponentsInChildren<Renderer>(),Is.Not.Empty);
+                    creature.Phase=EldritchPhase.Dead;creature.Health=0;creature.Timer=config.RespawnTicks;
+                    var dead=Snapshot();view.Synchronize(dead);Assert.That(root.GetComponentsInChildren<Renderer>(),Is.Empty);
+                    view.Clear();view.Synchronize(dead);Assert.That(root.GetComponentsInChildren<Renderer>(),Is.Empty);
+                    creature.Phase=EldritchPhase.Hunting;creature.Health=20;view.Synchronize(Snapshot());
+                    Assert.That(root.GetComponentsInChildren<Renderer>(),Is.Not.Empty);
+                }
+            }
+            finally{Object.DestroyImmediate(root);}
+        }
         [Test] public void ConfirmedTelegraphsAreReadOnlyAndClearOnRestore()
         {
             var root=new GameObject("eldritch-presentation-test");

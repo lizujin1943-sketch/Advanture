@@ -33,6 +33,7 @@ namespace Advanture.HookIsland
         private readonly FishingAudioFeedback audioFeedback;
         private readonly CatchEscapePresentation escapes;
         private readonly FryingPanArt meleeArt;
+        private readonly Transform firstPersonPan;
         private readonly FoodArt foodArt;
         private readonly FirearmArt firearmArt;
         private readonly FirearmFeedback firearms;
@@ -96,7 +97,20 @@ namespace Advanture.HookIsland
             aimLine=Line("Aim guide",.035f,new Color(1,1,.7f,.5f));
             audioFeedback=new FishingAudioFeedback(root);
             if(map.Fishing!=null)foodArt=new FoodArt();
-            if(map.Fishing?.Melee.Enabled==true)meleeArt=new FryingPanArt(lineShader);
+            if(map.Fishing?.Melee.Enabled==true)
+            {
+                meleeArt=new FryingPanArt(lineShader);
+                firstPersonPan=meleeArt.Create(root);
+                firstPersonPan.name="First person frying pan";
+                Part(firstPersonPan,"Grip hand",cube,new Vector3(0,-.025f,.065f),new Vector3(.086f,.08f,.10f),skin);
+                foreach(var renderer in firstPersonPan.GetComponentsInChildren<Renderer>())
+                {
+                    renderer.gameObject.layer=LayerMask.NameToLayer("UI");
+                    renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+                    renderer.receiveShadows=false;
+                }
+                firstPersonPan.gameObject.SetActive(false);
+            }
             if(map.Fishing?.Firearms.Enabled==true)
             {
                 firearmArt=new FirearmArt(lineShader);firearms=new FirearmFeedback(root,firearmArt);
@@ -110,7 +124,7 @@ namespace Advanture.HookIsland
         /// </summary>
         public void PresentFirstPerson(HookState state,HookState predicted,ushort local,bool enabled,Camera camera,Vector3 aim,bool scoped=false)
         {
-            bool active=enabled && firstPersonFirearm!=null && camera!=null && state!=null &&
+            bool active=enabled && (firstPersonFirearm!=null || firstPersonPan!=null) && camera!=null && state!=null &&
                 !state.RoundFinished && local<state.Players.Count && avatars.ContainsKey(local);
             Fisher player=active?state.Players[local]:default;
             var gun=active?ActiveToolView.Firearm(state,player):null;
@@ -118,8 +132,19 @@ namespace Advanture.HookIsland
             active&=!player.Unavailable && !player.Vitals.Downed;
             firstPersonSlot=active && gun!=null?local:-1;
             foreach(var pair in avatars)pair.Value.Visibility.SetHidden(active && pair.Key==local);
+            var melee=active && !player.Grenade.Active && ActiveToolView.RightHand(state,player)?MeleeRules.Equipped(state,player):null;
+            if(firstPersonPan!=null)firstPersonPan.gameObject.SetActive(melee!=null);
             if(!active){firstPersonFirearm?.Reset();return;}
             localPlayerMarker.Hide();
+            if(melee!=null)
+            {
+                // The selected model and swing clock come from the same confirmed player.
+                float progress=1-player.Melee.RemainingTicks/(float)melee.DurationTicks;
+                float swing=player.Melee.Active?Mathf.Sin(Mathf.PI*progress):0;
+                var grip=new Vector3(.22f-.28f*swing,-.24f+.08f*swing,.34f);
+                firstPersonPan.SetPositionAndRotation(camera.transform.TransformPoint(grip),
+                    camera.transform.rotation*Quaternion.Euler(-27+32*swing,22-88*swing,-32));
+            }
             if(gun==null || player.Grenade.Active){firstPersonFirearm?.Reset();return;}
             var motion=predicted!=null && local<predicted.Players.Count?predicted.Players[local]:player;
             bool interrupted=!FirearmRules.CanAct(player,SwimRingCatalog.Equipped(state.Tackle.Inventory,local)!=null) || player.Revival.RescueTicks>0;
@@ -128,6 +153,7 @@ namespace Advanture.HookIsland
         public void ClearFirstPerson()
         {
             firstPersonSlot=-1;firstPersonFirearm?.Reset();
+            if(firstPersonPan!=null)firstPersonPan.gameObject.SetActive(false);
             foreach(var avatar in avatars.Values)avatar.Visibility.SetHidden(false);
         }
         public bool TryGetPlayerHudAnchors(int slot,out Vector3 head,out Vector3 chest,out float halfWidth)

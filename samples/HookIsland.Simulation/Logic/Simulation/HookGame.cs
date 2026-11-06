@@ -222,6 +222,7 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
         public IReadOnlyList<ByteString> Step(FrameContext context,IReadOnlyList<SimulationInput> inputs)
         {
             events.Clear();
+            ReleaseLegacyTownSupply();
             bool finished=townFinished || finale?.Capture().Phase==FinalePhase.Victory || equipment!=null && !(map.IsTown && boss.Capture().Active) && RevivalSystem.GameOver(players);
             foreach(var change in context.MemberEvents)
                 if(change.Kind==MemberEventKind.Deactivate && change.Slot<players.Length)

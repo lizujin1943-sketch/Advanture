@@ -61,6 +61,39 @@ namespace Advanture.HookIsland.Tests
             Assert.That(new HookGame().Encode(state),Is.EqualTo(before));
         }
 
+        [Test] public void SwitchingBetweenPistolAndPanKeepsViewDirectionAndShowsTheSwing()
+        {
+            var inventory=new InventorySystem(state.Tackle.Inventory);
+            Assert.That(inventory.SelectWeapon(0,EquipmentSlot.MeleeWeapon),Is.EqualTo(InventoryResult.Success));
+            var players=state.Players.ToArray();
+            players[0].SelectedQuickSlot=-1;players[0].Firearm=default;
+            HookState PanState()=>new HookState(state.Steps,players,state.Fish,state.Coins,state.Tiles,state.Driftwood,
+                new TackleState(state.Tackle.Config,inventory.Capture(),state.Tackle.Merchants));
+            var melee=PanState();
+            using(var view=new FishingCameraView(camera,false))
+            {
+                view.UpdateFirearmFraming(ActiveToolView.UsesFirstPerson(state,state.Players[0]),1);
+                view.Look(new Vector2(17,-5));var look=camera.transform.rotation;
+                view.UpdateFirearmFraming(ActiveToolView.UsesFirstPerson(melee,players[0]),1);
+                Assert.That(view.FirstPerson,Is.True);
+                Assert.That(Quaternion.Angle(look,camera.transform.rotation),Is.LessThan(.02f));
+                presentation.PresentFirstPerson(melee,melee,0,view.FirstPerson,camera,Vector3.forward);
+                var pan=root.transform.Find("Fishing visuals/First person frying pan");
+                Assert.That(pan.gameObject.activeInHierarchy,Is.True);
+                var center=camera.WorldToViewportPoint(pan.TransformPoint(new Vector3(0,0,.52f)));
+                Assert.That(center.z,Is.Positive);Assert.That(center.x,Is.InRange(0f,1f));Assert.That(center.y,Is.InRange(0f,1f));
+                var rest=pan.rotation;players[0].Melee.RemainingTicks=WeaponCatalog.Get(0).DurationTicks/2;
+                var swing=PanState();presentation.PresentFirstPerson(swing,swing,0,true,camera,Vector3.forward);
+                Assert.That(Quaternion.Angle(rest,pan.rotation),Is.GreaterThan(35));
+                Assert.That(root.transform.Find("Fishing visuals/First person firearm").gameObject.activeSelf,Is.False);
+                Assert.That(root.transform.Find("Fishing visuals/Fisher 1/Body").GetComponentsInChildren<Renderer>(true).All(r=>r.forceRenderingOff),Is.True);
+                view.UpdateFirearmFraming(ActiveToolView.UsesFirstPerson(state,state.Players[0]),1);
+                presentation.PresentFirstPerson(state,state,0,view.FirstPerson,camera,Vector3.forward);
+                Assert.That(pan.gameObject.activeSelf,Is.False);
+                Assert.That(Quaternion.Angle(look,camera.transform.rotation),Is.LessThan(.02f));
+            }
+        }
+
         [Test] public void GrenadeKeepsLocalHeadHiddenUntilTheCameraIsPulledBack()
         {
             var inventory=new InventorySystem(state.Tackle.Inventory);var players=state.Players.ToArray();

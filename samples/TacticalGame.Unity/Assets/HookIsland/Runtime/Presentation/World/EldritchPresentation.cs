@@ -43,7 +43,8 @@ namespace Advanture.HookIsland
             public void Sync(EldritchCreature c,HookState state)
             {
                 float death=c.Phase==EldritchPhase.Dead?Mathf.Clamp01((config.RespawnTicks-c.Timer)/24f):0;
-                bool visible=c.Visible && (c.Phase!=EldritchPhase.Dead || death<1);root.gameObject.SetActive(visible);if(!visible)return;
+                // Town deaths are permanent encounter receipts. Their respawn clock never advances.
+                bool visible=c.Visible && (c.Phase!=EldritchPhase.Dead || !state.Town.Enabled && death<1);root.gameObject.SetActive(visible);if(!visible)return;
                 float floor=(state.Town.Enabled?TownLayout.OnGround(state.Tiles,c.X,c.Z):PlatformRules.OnPlatform(state.Tiles,c.X,c.Z)) ? .45f : 0;
                 float height=definition.Habitat==EldritchHabitat.Ground?floor:definition.Habitat==EldritchHabitat.Hover?floor+.35f:.02f;
                 if(c.Phase==EldritchPhase.Emerging)height-=.8f*c.Timer/EldritchCatalog.EmergenceTicks;

@@ -6,10 +6,10 @@ namespace Advanture.HookIsland
 {
     internal sealed partial class BackpackOverlay
     {
-        private void DrawAmmunitionDetails(Fisher player,InventoryItem item,int type,float x,float y,bool pending,Func<InventoryCommand,bool> request)
+        private void DrawAmmunitionDetails(bool finite,Fisher player,InventoryItem item,int type,float x,float y,bool pending,Func<InventoryCommand,bool> request)
         {
             var ammo=AmmunitionCatalog.Get(type);bool enabled=GUI.enabled;
-            GUI.Label(new Rect(x,y+88,410,50),$"旧版备用子弹 · 当前枪械无需消耗\n每格最多 {ammo.StackLimit} 发",text);
+            GUI.Label(new Rect(x,y+88,410,50),(finite?"换弹时消耗同口径备弹":"当前使用无限备用弹匣")+$"\n每格最多 {ammo.StackLimit} 发",text);
             amount=Mathf.Clamp(amount,1,item.Count);GUI.enabled=enabled && !pending;
             GUI.Label(new Rect(x,y+151,400,25),$"数量 {amount} / {item.Count}",small);
             amount=Mathf.RoundToInt(GUI.HorizontalSlider(new Rect(x,y+184,398,20),amount,1,item.Count));

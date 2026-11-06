@@ -69,11 +69,12 @@ namespace Advanture.HookIsland
         public void Draw(float width,float height,GUIStyle body,GUIStyle small,GUIStyle button)
         {
             if(room.State==null || !room.TryGetLocalPlayer(out var p))return;
+            bool finite=room.State.Tackle.Config.FiniteAmmunition;
             var s=room.State.Town;var personal=s.Players[p.Slot];
             if(s.Finished){Panel(new Rect(width/2-220,height/2-70,440,140));GUI.Label(new Rect(width/2-200,height/2-45,400,100),"沉钟镇 · 全员归航\n深渊已平息，探索行动完成。",body);return;}
             Panel(new Rect(22,100,330,152));
             GUI.Label(new Rect(34,108,310,55),$"沉钟镇   C电源 {((s.Goals&1)!=0?"完成":"未完")} · E潮闸 {((s.Goals&2)!=0?"完成":"未完")}\nF档案 {((s.Goals&4)!=0?"完成":"未完")} · 就位 {Count(s.ReadyMask)}/{room.State.Players.Count(q=>!q.Unavailable && !q.WaitingToJoin)}",small);
-            GUI.Label(new Rect(34,165,310,44),$"尝试 #{s.Attempt}  专用弹 {personal.BoundLoaded}+{personal.BoundReserve}\n应急弹 {personal.EmergencyReserve} · 委托 {((s.ContractMask&(1<<p.Slot))!=0?"已接":"未接")}",small);
+            GUI.Label(new Rect(34,165,310,44),$"尝试 #{s.Attempt}"+(finite?$"  专用弹 {personal.BoundLoaded}+{personal.BoundReserve}\n应急弹 {personal.EmergencyReserve}":"")+$" · 委托 {((s.ContractMask&(1<<p.Slot))!=0?"已接":"未接")}",small);
             GUI.Label(new Rect(34,212,310,34),s.FinaleCompleted?"已击败大章鱼 · 回码头全员确认返航":"A→B→C→D→E→F · 礼拜堂祭火就位",small);
             if((s.MapKnownMask&(1<<p.Slot))!=0)
                 GUI.Label(new Rect(24,258,340,75),"地图：西南A码头 → 西B巷道 → 北C电源\n→ 东北D集市 → 东E潮闸 → 东南F档案\n档案北桥通礼拜堂 / 中央G深渊石环",small);
@@ -100,7 +101,20 @@ namespace Advanture.HookIsland
             switch(building)
             {
                 case 1:Text("击败大章鱼后，全体在线清醒成员在码头逐人确认，才结束本局。");Buy("确认返航 · 免费",TownAction.ReturnToHarbor);break;
-                case 2:Buy("手枪弹 14发 · 30金币",TownAction.BuyAmmo,0);Buy("步枪弹 30发 · 45金币",TownAction.BuyAmmo,1);Buy("霰弹 5发 · 60金币",TownAction.BuyAmmo,2);Buy("狙击弹 5发 · 90金币",TownAction.BuyAmmo,3);Buy("AK47 · 900金币",TownAction.BuyRifle);Buy("应急手枪弹 7发 · 免费 / 90秒",TownAction.EmergencyAmmo);Text("应急条件：金币不足30且所有可用弹药耗尽。");break;
+                case 2:
+                    Buy("AK47 · 900金币",TownAction.BuyRifle);
+                    if(finite)
+                    {
+                        for(int type=0;type<AmmunitionCatalog.All.Count;type++)
+                        {
+                            var ammo=AmmunitionCatalog.Get(type);
+                            Buy($"{ammo.Name} {ammo.Quantity}发 · {ammo.Price}金币",TownAction.BuyAmmo,type);
+                        }
+                        Buy("应急手枪弹 7发 · 免费 / 90秒",TownAction.EmergencyAmmo);
+                        Text("应急条件：金币不足30且所有可用弹药耗尽。");
+                    }
+                    else Text("所有枪械均有无限备用弹匣，按 R 换弹。");
+                    break;
                 case 3:Text("恢复生命并补满医疗次数。");Buy("诊疗 · 40金币",TownAction.Heal);break;
                 case 4:Buy("泳圈 · 150金币",TownAction.BuyRing);break;
                 case 5:Buy("手榴弹 · 40金币",TownAction.BuyGrenade);break;
@@ -109,9 +123,12 @@ namespace Advanture.HookIsland
                     foreach(var item in room.State.Tackle.Inventory.Items.Where(i=>i.Owner==p.Slot && i.Id>room.State.Players.Count*3 && i.Definition.Price>=2 && i.Kind!=ItemKind.Ammunition && i.Kind!=ItemKind.Food && i.Kind!=ItemKind.Backpack && !InventoryCatalog.IsMaterial(i.Kind)).Take(8))Buy($"出售 {item.Definition.Name} · {item.Definition.Price/2}金币",TownAction.Sell,item.Id);break;
                 case 8:Text("标记A–F路线、免费目标与G深渊。沿石路探索，木桥只在解锁后出现。");Buy("揭示地图 · 免费",TownAction.RevealMap);break;
                 case 9:Buy("打开捷径 S1 · 60金币",TownAction.ShortcutOne);Buy("打开捷径 S2 · 80金币",TownAction.ShortcutTwo);Buy("开启潮闸 · E清场后免费",TownAction.OpenTideGate);break;
-                case 10:Buy("登记驿站复活点 · 免费",TownAction.RegisterInn);Buy("应急手枪弹 7发 · 免费 / 90秒",TownAction.EmergencyAmmo);Text("登记后可领取应急弹；付费复活仍使用原有复活面板。");break;
+                case 10:
+                    Buy("登记驿站复活点 · 免费",TownAction.RegisterInn);
+                    if(finite){Buy("应急手枪弹 7发 · 免费 / 90秒",TownAction.EmergencyAmmo);Text("登记后可领取应急弹。");}
+                    break;
                 case 11:Text("潮务档案：电源、潮闸与档案封印共同约束深渊。旧桥通往礼拜堂，完成三处任务后，全员进入石环26米内逐人就位，一人靠近祭火。",100);Buy("读取封印档案 · F清场后免费",TownAction.ReadArchive);break;
-                case 12:Text("沉钟碑文：红色砸击会摧毁木带；黄色横扫沿内环经过。永久外石环可躲避，南侧石尖台可射击与救援。墨区持续侵蚀，攻击主眼与触手。",100);Text("每次开战获得有限基础手枪尝试弹，只在本次场内使用；离场失效。全灭后木带复位，可重新集结。胜利后回码头返航。",100);Buy("阅读碑文 · 免费",TownAction.ReadClues);break;
+                case 12:Text("沉钟碑文：红色砸击会摧毁木带；黄色横扫沿内环经过。永久外石环可躲避，南侧石尖台可射击与救援。墨区持续侵蚀，攻击主眼与触手。",100);Text((finite?"每次开战获得场内专用手枪弹。":"")+"全灭后木带复位，可重新集结。胜利后回码头返航。",100);Buy("阅读碑文 · 免费",TownAction.ReadClues);break;
             }
             GUI.Label(new Rect(x+20,y+470,520,40),Pending?"等待确认；同一请求不会重复扣款":message??"服务读取确认态；失败后需重新点击。",small);
         }

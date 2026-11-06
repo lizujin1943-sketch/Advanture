@@ -34,13 +34,15 @@ namespace Advanture.HookIsland
             cameraView.Toggle(facing,feet);skipPointerFrame=true;
             cameraView.SetLookInputActive(CameraControlsActive(room));
         }
+        private static bool FirstPersonWeapon(IslandFishingController room)=>
+            room.Playing && !room.Incapacitated && room.TryGetLocalPlayer(out var player) && ActiveToolView.UsesFirstPerson(room.State,player);
         public void Follow(IslandFishingController room,Fisher local)
         {
             if(cameraView==null || local.WaitingToJoin)return;
             EnsureEntryPerspective(room);
             // Poll 可能刚确认一次装备切换或倒地；本帧显示立即跟上确认态，不多推进过渡时间。
             cameraView.SetGrenadeEquipped(room.HoldingGrenade || local.Grenade.Active);
-            cameraView.UpdateFirearmFraming(room.Playing && room.HoldingFirearm && !room.Incapacitated,0);
+            cameraView.UpdateFirearmFraming(FirstPersonWeapon(room),0);
             UpdateScope(room,0);
             // Follow the same smoothed/predicted avatar that is rendered this frame, including
             // while a UI is open, swimming or being towed. Never feed camera position into authority.
@@ -84,7 +86,7 @@ namespace Advanture.HookIsland
             room.Grenades?.BeginCapture(CameraControlsActive(room));
             cameraView?.UpdateGrenadeAim(room.Grenades?.Aiming==true,Time.unscaledDeltaTime);
             // 装备及库存使用同一份确认态，避免预测换装被回滚时镜头来回跳动。
-            cameraView?.UpdateFirearmFraming(room.Playing && room.HoldingFirearm && !room.Incapacitated,Time.unscaledDeltaTime);
+            cameraView?.UpdateFirearmFraming(FirstPersonWeapon(room),Time.unscaledDeltaTime);
             UpdateScope(room,Time.unscaledDeltaTime);
             CaptureCameraInput(room);
             if(!room.Playing || room.Incapacitated || !Application.isFocused || room.Town?.Open==true || room.ShopOpen || room.Equipment?.InventoryOpen==true || room.BeingPulled || (room.Overlay!=null && room.Overlay.MenuOpen))

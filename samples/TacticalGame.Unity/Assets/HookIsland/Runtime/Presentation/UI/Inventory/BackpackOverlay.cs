@@ -45,7 +45,7 @@ namespace Advanture.HookIsland
             string clock = !shop?" · 已穿戴装备不占背包格子":shelf?.Active==true?$" · {remaining/60:00}:{remaining%60:00} 后整批换货":" · 正在准备货架";
             GUI.Label(new Rect(x + 24, y + 60, 1040, 28), $"我的金币  {player.Coins:N0} G{clock}", text);
             // The overlay receives the confirmed local player; prices follow that player's settled wallet.
-            if (shop) DrawShop(player.Coins, x + 24, y + 105);
+            if (shop) DrawShop(player.Coins, state.Tackle.Config.FiniteAmmunition, x + 24, y + 105);
             else DrawSlots(inventory, player, x + 24, y + 105);
             if (!shop) DrawNearby(inventory, player, x + 24, y + 364, pending, request);
 
@@ -70,7 +70,7 @@ namespace Advanture.HookIsland
             DrawDetails(state, player, x + 658, y + 104, shop, pending, request);
             GUI.Label(new Rect(x + 24, y + 521, 1050, 28), message ?? "物品只在确认后转移 · Tab / I 关闭背包 · 金币各自所有", small);
         }
-        private void DrawShop(int coins, float x, float y)
+        private void DrawShop(int coins, bool finiteAmmunition, float x, float y)
         {
             if(GUI.Toggle(new Rect(x,y,138,28),!firearmShelf,"装备",button))firearmShelf=false;
             if(GUI.Toggle(new Rect(x+142,y,138,28),firearmShelf,"枪械",button))firearmShelf=true;
@@ -82,7 +82,7 @@ namespace Advanture.HookIsland
                     var gun=FirearmCatalog.Get(type);
                     DrawCommodity(ItemKind.Firearm,type,FirearmCatalog.OfferOffset+type,shelf.FirearmStock[type],gun.Price,coins,x+(type%2)*140,y+(type/2)*82);
                 }
-                GUI.Label(new Rect(x,y+190,280,75),"AK47：按住左键连射\n狙击枪：按住右键开镜\n无限备用弹药 · R 换弹",small);return;
+                GUI.Label(new Rect(x,y+190,280,75),"AK47：按住左键连射\n狙击枪：按住右键开镜\n"+(finiteAmmunition?"消耗对应备弹":"无限备用弹药")+" · R 换弹",small);return;
             }
             if(shelf==null)return;
             for (int n = 0; n < shelf.Stock.Count; n++)
@@ -182,7 +182,7 @@ namespace Advanture.HookIsland
             icons.Draw(new Rect(x, y, 52, 52), kind, type);
             GUI.Label(new Rect(x + 64, y, 346, 55), definition.Name, title);
             GUI.Label(new Rect(x, y + 53, 410, 28), $"占格 {definition.Width} × {definition.Height}" + (buying ? $"    售价 {definition.Price:N0} G" : $"    数量 {item.Count}"), text);
-            if(kind==ItemKind.Ammunition){DrawAmmunitionDetails(player,item,type,x,y,pending,request);return;}
+            if(kind==ItemKind.Ammunition){DrawAmmunitionDetails(state.Tackle.Config.FiniteAmmunition,player,item,type,x,y,pending,request);return;}
             if (kind == ItemKind.Rod)
             {
                 var rod = RodCatalog.Get(type); var current = FishingRules.Equipped(state, player);
@@ -201,8 +201,9 @@ namespace Advanture.HookIsland
             if(kind==ItemKind.Firearm)
             {
                 var gun=FirearmCatalog.Get(type);
+                string reserve=state.Tackle.Config.FiniteAmmunition?(buying?"消耗对应备弹":$"可用备弹 {FirearmRules.ReserveRounds(state,player,item)} 发"):"无限备用弹药";
                 string mode=gun.Automatic?"按住左键连射":gun.ScopeMagnification>1?$"单发 · 右键 {gun.ScopeMagnification} 倍镜":"左键单发";
-                GUI.Label(new Rect(x,y+86,410,70),$"伤害 {gun.Damage} · 射程 {gun.Range/1000f:0.#} 米 · 弹匣 {(buying?gun.Capacity:item.LoadedAmmo)}/{gun.Capacity}\n{mode} · 间隔 {gun.CooldownTicks/(float)HookGame.Rate:0.##} 秒\n无限备用弹药 · R 换弹 {gun.ReloadTicks/(float)HookGame.Rate:0.#} 秒",text);
+                GUI.Label(new Rect(x,y+86,410,70),$"伤害 {gun.Damage} · 射程 {gun.Range/1000f:0.#} 米 · 弹匣 {(buying?gun.Capacity:item.LoadedAmmo)}/{gun.Capacity}\n{mode} · 间隔 {gun.CooldownTicks/(float)HookGame.Rate:0.##} 秒\n{reserve} · R 换弹 {gun.ReloadTicks/(float)HookGame.Rate:0.#} 秒",text);
             }
             if(kind==ItemKind.Weapon)
             {

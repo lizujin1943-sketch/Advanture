@@ -6,8 +6,8 @@ using FrameSync.Abstractions;
 public static partial class TownGameplayTests
 {
     static readonly HookGame Codec=new HookGame(false);
-    static IDeterministicSimulation<HookState> Model(int count=1)
-    {var m=Codec.Create();m.Initialize(new SimulationInitialization(new SessionDescriptor(Guid.Parse("68dce040-d1df-4de3-b03c-ab1ad91cc343"),1,30,Enumerable.Range(0,count).Select(i=>new Participant((ushort)i,Guid.Parse("00000000-0000-0000-0000-"+(i+1).ToString("D12")))).ToArray()),new ByteString(IslandMap.CreateTown().Encode())));return m;}
+    static IDeterministicSimulation<HookState> Model(int count=1,bool finite=false)
+    {var m=Codec.Create();m.Initialize(new SimulationInitialization(new SessionDescriptor(Guid.Parse("68dce040-d1df-4de3-b03c-ab1ad91cc343"),1,30,Enumerable.Range(0,count).Select(i=>new Participant((ushort)i,Guid.Parse("00000000-0000-0000-0000-"+(i+1).ToString("D12")))).ToArray()),new ByteString(IslandMap.CreateTown(finiteAmmunition:finite).Encode())));return m;}
     static void Step(IDeterministicSimulation<HookState> m,HookInput input=default)
     {var s=m.Capture();m.Step(new FrameContext(s.Steps+1,s.Steps+1,30),new[]{new SimulationInput(new Participant(0,Guid.Parse("00000000-0000-0000-0000-000000000001")),new ByteString(input.Encode()))});}
     static HookState Copy(HookState s,Fisher[] p)=>new HookState(s.Steps,p,s.Fish,p.Sum(x=>x.Coins),s.Tiles,s.Driftwood,s.Tackle,s.Enemies,s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale,s.Crabs,s.Boss,s.Grenades,s.Eldritch,s.Town);
@@ -36,6 +36,7 @@ public static partial class TownGameplayTests
         var town=new TownState(true,people,zones,goals:7);var setup=new HookState(s.Steps,ps,s.Fish,ps.Sum(p=>p.Coins),s.Tiles,s.Driftwood,new TackleState(s.Tackle.Config,inv.Capture(),s.Tackle.Merchants),s.Enemies,s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale,s.Crabs,s.Boss,s.Grenades,new EldritchState(roster),town);
         m.Restore(Codec.Decode(Codec.Encode(setup)));for(int i=0;i<15;i++)MultiStep(m);
     }
+    static int? Reserve(HookState state)=>FirearmRules.ReserveRounds(state,state.Players[0],state.Tackle!.Inventory.ActiveItem(0)!.Value);
     static void Require(bool v,string msg){if(!v)throw new Exception(msg);}
     public static int Run(bool network=true)
     {
@@ -74,14 +75,35 @@ public static partial class TownGameplayTests
             system.ActivateTownZone(1,true);Require(system.Get(3).Health==60 && system.Get(3).Phase==EldritchPhase.Emerging && system.Get(3).Timer==45,"Reentry skipped emergence or healed");
         });
         Test("deep_southern_water_has_positive_distance_to_shore",()=>Require(TownLayout.DistanceToGround(-8000,-63000)>0,"Deep water reports shore distance zero"));
+        Test("default_town_reloads_after_last_shot_and_rejects_ammo_sales",()=>{
+            var m=Model();At(m,2);var state=m.Capture();var p=state.Players[0];
+            Require(!state.Tackle!.Config.FiniteAmmunition,"Town default is finite");
+            Step(m,new HookInput(0,0,town:new TownCommand(TownAction.BuyAmmo,1)));
+            Require(m.Capture().Town.Players[0].LastResult==TownResult.Disabled && m.Capture().Players[0].Coins==300,"Unlimited reserve charged for ammunition");
+            for(int magazine=0;magazine<2;magazine++)
+            {
+                for(int shot=0;shot<7;shot++)
+                {
+                    Step(m,new HookInput(0,0,p.X+5000,p.Z,fire:true));
+                    if(shot<6)for(int k=0;k<18;k++)Step(m);
+                }
+                state=m.Capture();var gun=state.Tackle!.Inventory.ActiveItem(0)!.Value;
+                Require(gun.LoadedAmmo==0 && FirearmRules.ReserveRounds(state,p,gun)==null,"Empty handgun should show unlimited reserve");
+                Step(m,new HookInput(0,0,reload:true));state=m.Capture();
+                Require(state.Players[0].Firearm.Reloading && state.Tackle!.Inventory.ActiveItem(0)!.Value.LoadedAmmo==0,"R after the last shot was lost");
+                m.Restore(Codec.Decode(Codec.Encode(state)));for(int k=0;k<FirearmCatalog.Get(0).ReloadTicks;k++)Step(m);
+                Require(m.Capture().Tackle!.Inventory.ActiveItem(0)!.Value.LoadedAmmo==7,"Completed reload did not fill the magazine");
+            }
+        });
         Test("purchased_rounds_reload_finitely_and_survive_save",()=>{
-            var m=Model();At(m,2);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.BuyAmmo,1)));
+            var m=Model(finite:true);At(m,2);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.BuyAmmo,1)));
+            Require(Reserve(m.Capture())==14,"HUD reserve omitted purchased rounds");
             Require(m.Capture().Tackle!.Inventory.Balance(0,ItemKind.Ammunition)==14 && m.Capture().Players[0].Coins==270,"Ammo purchase has wrong quantity or price");
             var p=m.Capture().Players[0];
             for(int i=0;i<7;i++){Step(m,new HookInput(0,0,p.X+5000,p.Z,fire:true));for(int k=0;k<20;k++)Step(m);}
             Require(m.Capture().Tackle!.Inventory.ActiveItem(0)!.Value.LoadedAmmo==0,"Starter pistol did not consume rounds");
             Step(m,new HookInput(0,0,reload:true));for(int k=0;k<60;k++)Step(m);
-            var s=m.Capture();Require(s.Tackle!.Inventory.ActiveItem(0)!.Value.LoadedAmmo==7 && s.Tackle.Inventory.Balance(0,ItemKind.Ammunition)==7,"Finite reload created ammunition");m.Restore(Codec.Decode(Codec.Encode(s)));
+            var s=m.Capture();Require(Reserve(s)==7 && s.Tackle!.Inventory.ActiveItem(0)!.Value.LoadedAmmo==7 && s.Tackle.Inventory.Balance(0,ItemKind.Ammunition)==7,"Finite reload created ammunition");m.Restore(Codec.Decode(Codec.Encode(s)));
         });
         Test("clinic_ring_pawn_and_workshop_use_gold_receipts",()=>{
             var m=Model();At(m,3);var s=m.Capture();var p=s.Players.ToArray();p[0].Vitals.Health-=25;m.Restore(Copy(s,p));
@@ -102,17 +124,17 @@ public static partial class TownGameplayTests
             Require(!restored.SellTownEquipment(0,3,3,out _,out _),"Fallback pistol can be sold");
         });
         Test("emergency_ammo_is_free_finite_and_deduplicated",()=>{
-            var m=Model();At(m,2);var s=m.Capture();var ps=s.Players.ToArray();ps[0].Coins=0;
+            var m=Model(finite:true);At(m,2);var s=m.Capture();var ps=s.Players.ToArray();ps[0].Coins=0;
             var people=s.Town.Players.ToArray();people[0].ServiceSpent=300;var inv=new InventorySystem(s.Tackle!.Inventory);int gun=inv.ActiveItem(0)!.Value.Id;for(int i=0;i<7;i++)inv.TryFireRound(0,gun);
             var t=new TownState(true,people,s.Town.Zones);var fixture=new HookState(s.Steps,ps,s.Fish,0,s.Tiles,s.Driftwood,new TackleState(s.Tackle.Config,inv.Capture(),s.Tackle.Merchants),s.Enemies,s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale,s.Crabs,s.Boss,s.Grenades,s.Eldritch,t);
-            m.Restore(Codec.Decode(Codec.Encode(fixture)));var click=new HookInput(0,0,town:new TownCommand(TownAction.EmergencyAmmo,1));Step(m,click);Require(m.Capture().Town.Players[0].EmergencyReserve==7,"Zero-gold player lacks fallback supply");
+            m.Restore(Codec.Decode(Codec.Encode(fixture)));var click=new HookInput(0,0,town:new TownCommand(TownAction.EmergencyAmmo,1));Step(m,new HookInput(0,0,reload:true));Require(!m.Capture().Players[0].Firearm.Reloading && Reserve(m.Capture())==0,"Empty finite reserve played a reload");Step(m,click);Require(Reserve(m.Capture())==7 && m.Capture().Town.Players[0].EmergencyReserve==7,"Zero-gold player lacks fallback supply");
             Step(m,new HookInput(0,0,reload:true));for(int i=0;i<60;i++)Step(m);Require(m.Capture().Town.Players[0].EmergencyReserve==0 && m.Capture().Tackle!.Inventory.ActiveItem(0)!.Value.LoadedAmmo==7,"Emergency reload unlimited");
             m.Restore(Codec.Decode(Codec.Encode(m.Capture())));Step(m,click);Require(m.Capture().Town.Players[0].EmergencyReserve==0,"Repeated request regranted emergency ammunition");
         });
         Test("finale_waits_for_every_online_player_and_grants_scaled_finite_pools",()=>{
             foreach(int count in new[]{1,2,3,4})
             {
-                var m=Model(count);PrepareFinale(m,true);
+                var m=Model(count,finite:true);PrepareFinale(m,true);
                 if(count>1){MultiStep(m,new HookInput(0,0,town:new TownCommand(TownAction.ReadyBoss,1)));Require(m.Capture().Boss.Phase==BossPhase.Dormant,"Party started before everyone was ready");}
                 var ready=Enumerable.Range(0,count).Select(i=>new HookInput(0,0,town:new TownCommand(TownAction.ReadyBoss,2))).ToArray();MultiStep(m,ready);var s=m.Capture();
                 int rounds=count==1?168:count==2?126:112;Require(s.Boss.Phase==BossPhase.Emerge && s.Town.Attempt==1 && s.Town.Members==(1<<count)-1,"Ready party did not start one attempt");
@@ -121,12 +143,12 @@ public static partial class TownGameplayTests
             }
         });
         Test("attempt_loaded_rounds_are_reclaimed_on_exit_without_touching_paid_reserve",()=>{
-            var m=Model();At(m,2);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.BuyAmmo,1)));PrepareFinale(m);
+            var m=Model(finite:true);At(m,2);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.BuyAmmo,1)));PrepareFinale(m);
             // Consume only the initial magazine; paid backpack rounds remain untouched.
             var s=m.Capture();var inv=new InventorySystem(s.Tackle!.Inventory);int gun=inv.ActiveItem(0)!.Value.Id;for(int i=0;i<7;i++)inv.TryFireRound(0,gun);
             m.Restore(new HookState(s.Steps,s.Players,s.Fish,s.Coins,s.Tiles,s.Driftwood,new TackleState(s.Tackle.Config,inv.Capture(),s.Tackle.Merchants),s.Enemies,s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale,s.Crabs,s.Boss,s.Grenades,s.Eldritch,s.Town));
             Step(m,new HookInput(0,0,town:new TownCommand(TownAction.ReadyBoss,2)));Step(m,new HookInput(0,0,reload:true));for(int i=0;i<60;i++)Step(m);
-            Require(m.Capture().Town.Players[0].BoundLoaded==7 && m.Capture().Town.Players[0].BoundReserve==161,"Attempt pool was not used first");
+            Require(Reserve(m.Capture())==161+14 && m.Capture().Town.Players[0].BoundLoaded==7 && m.Capture().Town.Players[0].BoundReserve==161,"Attempt pool was not used first");
             At(m,1);s=m.Capture();Require(s.Town.Players[0].BoundReserve==0 && s.Town.Players[0].BoundLoaded==0 && s.Tackle!.Inventory.ActiveItem(0)!.Value.LoadedAmmo==0,"Bound ammunition escaped arena");
             Require(s.Tackle!.Inventory.Balance(0,ItemKind.Ammunition)==14,"Paid ammunition was reclaimed");m.Restore(Codec.Decode(Codec.Encode(s)));
             for(int i=0;i<310;i++)Step(m);Require(m.Capture().Boss.Phase==BossPhase.Dormant && m.Capture().Tiles.Count(t=>TownLayout.Destructible(t.X,t.Z))==16,"Abandoned attempt did not reset for free");
@@ -145,7 +167,7 @@ public static partial class TownGameplayTests
             At(m,1);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.ReturnToHarbor,2)));Require(m.Capture().Won && m.Capture().Town.Finished,"Dock confirmation did not finish the round");m.Restore(Codec.Decode(Codec.Encode(m.Capture())));
         });
         Test("zero_gold_finale_wipe_recovers_at_beacon_and_allows_a_new_attempt",()=>{
-            var m=Model();PrepareFinale(m,true);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.ReadyBoss,1)));var s=m.Capture();var ps=s.Players.ToArray();ps[0].Vitals.Health=0;m.Restore(Copy(s,ps));Step(m);
+            var m=Model(finite:true);PrepareFinale(m,true);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.ReadyBoss,1)));var s=m.Capture();var ps=s.Players.ToArray();ps[0].Vitals.Health=0;m.Restore(Copy(s,ps));Step(m);
             Require(!m.Capture().GameOver,"Finale wipe became a permanent zero-gold game over");
             for(int i=0;i<305;i++)Step(m);s=m.Capture();Require(s.Boss.Phase==BossPhase.Dormant && s.Players[0].Vitals.Health>0 && s.Players[0].Coins==0,"Free finale reset failed to return player");
             m.Restore(Codec.Decode(Codec.Encode(s)));for(int i=0;i<15;i++)Step(m);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.ReadyBoss,2)));

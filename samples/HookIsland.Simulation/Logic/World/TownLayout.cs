@@ -61,6 +61,7 @@ public readonly struct TownWoodSegment
 public static class TownLayout
 {
     public const int Width=160000,Height=128000,CenterX=-8000,CenterZ=-12000,BeaconX=2000,BeaconZ=5000;
+    public static bool InArena(Fisher p)=>IslandMap.DistanceSquared(p.X,p.Z,CenterX,CenterZ)<=26000L*26000;
     public const int InnerRadius=12000,OuterRadius=22000,StoneOuterInnerRadius=20000;
     private static readonly Point[] Compass={new Point(1000,0),new Point(924,383),new Point(707,707),new Point(383,924),new Point(0,1000),new Point(-383,924),new Point(-707,707),new Point(-924,383),new Point(-1000,0),new Point(-924,-383),new Point(-707,-707),new Point(-383,-924),new Point(0,-1000),new Point(383,-924),new Point(707,-707),new Point(924,-383)};
     private static readonly Point[] WoodDirections={new Point(866,-500),new Point(342,-940),new Point(-342,-940),new Point(-866,-500)};
