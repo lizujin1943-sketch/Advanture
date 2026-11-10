@@ -34,6 +34,24 @@ namespace Advanture.HookIsland.Tests
             f.Update(session,1,101,State(101,p),0,Array.Empty<ConfirmedGameplayEvent>(),.1,true);
             Assert.That(f.Acquisitions.Notices,Is.Empty,"Bootstrap, inventory rearrangement or prediction cannot create an acquisition.");
         }
+        [Test] public void ConfirmedGrenadePurchaseProducesOneDrawableNotice()
+        {
+            var f = new FishingFeedback();
+            var state = State(8, new Fisher { Slot = 0 });
+            var events = new[] { Receipt(8, 0, new HookGameplayEvent(HookGameplayEventKind.EquipmentReceived,
+                0, 1, itemKind: ItemKind.Throwable, itemType: 0)) };
+            // 使用商店购买成功时相同的确认事件；重复呈现不能再次弹出获得提示。
+            f.Update(session, 1, 8, state, 0, events, .2, true);
+            f.Update(session, 1, 8, state, 0, events, .4, true);
+            var notice = f.Acquisitions.Notices.Single();
+            Assert.That(notice.Kind, Is.EqualTo(ItemKind.Throwable));
+            Assert.That(notice.Type, Is.Zero);
+            Assert.That(notice.Amount, Is.EqualTo(1));
+            // 重走 AcquisitionHud -> ItemIconPainter 所用的图标查询，覆盖原始异常入口。
+            Assert.That(ItemIconCatalog.Shared.TryGet(notice.Kind.Value, notice.Type, out var icon), Is.True);
+            Assert.That(icon.Aspect, Is.GreaterThan(0));
+            Assert.That(ItemIconCatalog.Shared.TextureFor(notice.Kind.Value), Is.Not.Null);
+        }
         [Test] public void CooperativeRecipientsAndPartialPickupsUseActualCreditedAmounts()
         {
             var f=new FishingFeedback();var state=State(3,new Fisher{Slot=0},new Fisher{Slot=1});
