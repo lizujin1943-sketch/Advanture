@@ -30,6 +30,7 @@ internal static partial class Program
     }
     private static int Main(string[] args)
     {
+        if(args.Contains("--director-only"))return TownGameplayTests.RunDirector();
         if(args.Contains("--navigation-startup-only"))return TownNavigationTests.RunStartup();
         if(args.Contains("--navigation-only"))return TownNavigationTests.Run();
         if(args.Contains("--town-boundaries"))return TownGameplayTests.RunBoundaries();

@@ -118,7 +118,7 @@ namespace Advanture.HookIsland
                 case 3:Text("恢复生命并补满医疗次数。");Buy("诊疗 · 40金币",TownAction.Heal);break;
                 case 4:Buy("泳圈 · 150金币",TownAction.BuyRing);break;
                 case 5:Buy("手榴弹 · 40金币",TownAction.BuyGrenade);break;
-                case 6:Text("清理B区奖励90金币，清理D区奖励120金币。每人接受，确认清场后自动结算。");Buy("接受两项清场委托 · 免费",TownAction.Contract);break;
+                case 6:Text("B区累计击败2只成体奖励90金币，D区累计击败3只奖励120金币。每人接受，各结算一次；完成后仍会刷怪。");Buy("接受两项清理委托 · 免费",TownAction.Contract);break;
                 case 7:Text("非保底装备半价出售；初始背包、近战与基础手枪不可出售。",40);
                     foreach(var item in room.State.Tackle.Inventory.Items.Where(i=>i.Owner==p.Slot && i.Id>room.State.Players.Count*3 && i.Definition.Price>=2 && i.Kind!=ItemKind.Ammunition && i.Kind!=ItemKind.Food && i.Kind!=ItemKind.Backpack && !InventoryCatalog.IsMaterial(i.Kind)).Take(8))Buy($"出售 {item.Definition.Name} · {item.Definition.Price/2}金币",TownAction.Sell,item.Id);break;
                 case 8:Text("标记A–F路线、免费目标与G深渊。沿石路探索，木桥只在解锁后出现。");Buy("揭示地图 · 免费",TownAction.RevealMap);break;

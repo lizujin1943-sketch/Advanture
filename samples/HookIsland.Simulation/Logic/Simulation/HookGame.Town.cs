@@ -174,34 +174,32 @@ public sealed partial class HookGame
                     players[i]=p;
                 }
             }
-            // Retain occupied encounters before admitting queued districts. A later, lower
-            // numbered trigger cannot hide enemies that still own a slot (including grace time).
+            // Cleared 只记录首次清理里程碑，不再阻止激活或生成。
+            // 保留已有城区的占用和离场宽限，新增城区按首次进入顺序排队。
             for(int z=0;z<townZones.Length;z++)
             {
                 var zone=townZones[z];bool held=players.Any(p=>TownEncounters.NearZone(z,p));
                 bool entered=players.Any(p=>TownEncounters.NearZone(z,p,0));
-                if(zone.Started && !zone.Cleared && Enumerable.Range(0,TownEncounters.AdultCount).Where(i=>TownEncounters.Zone(i)==z).All(i=>eldritch.Get(i).Phase==EldritchPhase.Dead) && (z!=5 || !Enumerable.Range(TownEncounters.AdultCount,4).Any(i=>eldritch.Get(i).Alive)))
-                {zone.Cleared=true;zone.Paused=false;zone.IdleTicks=0;zone.TriggerTick=0;}
-                if(zone.Started && !zone.Cleared && !zone.Paused)
+                if(zone.Started && !zone.Paused)
                 {
                     zone.IdleTicks=held?0:Math.Min(360,zone.IdleTicks+1);
                     if(b.Active || zone.IdleTicks==360){zone.Paused=true;zone.TriggerTick=0;}
                 }
-                if(!zone.Cleared && (!zone.Started || zone.Paused))
+                if(!zone.Started || zone.Paused)
                 {
                     if(!held || b.Active)zone.TriggerTick=0;
                     else if(entered && zone.TriggerTick==0)zone.TriggerTick=tick+1;
                 }
                 townZones[z]=zone;
-                if(!zone.Started || zone.Paused || zone.Cleared)eldritch.ActivateTownZone(z,false);
+                if(!zone.Started || zone.Paused)eldritch.ActivateTownZone(z,false);
             }
             int active=0;
             for(int z=0;z<townZones.Length;z++)
-                if(townZones[z].Started && !townZones[z].Paused && !townZones[z].Cleared)
+                if(townZones[z].Started && !townZones[z].Paused)
                 {eldritch.ActivateTownZone(z,true);active++;}
             if(!b.Active)
                 foreach(int z in Enumerable.Range(0,townZones.Length)
-                    .Where(z=>!townZones[z].Cleared && (!townZones[z].Started || townZones[z].Paused) && townZones[z].TriggerTick!=0)
+                    .Where(z=>(!townZones[z].Started || townZones[z].Paused) && townZones[z].TriggerTick!=0)
                     .OrderBy(z=>townZones[z].TriggerTick).ThenBy(z=>z))
                 {
                     if(active==2 || Enumerable.Range(0,TownEncounters.AdultCount).Count(i=>eldritch.Get(i).Damageable)>=map.Fishing!.Eldritch.MaxAlive)break;

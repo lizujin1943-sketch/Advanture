@@ -23,8 +23,9 @@ public struct EldritchCreature
 public sealed class EldritchState
 {
     public static EldritchState Empty {get;}=new EldritchState(Array.Empty<EldritchCreature>());
-    public EldritchState(IEnumerable<EldritchCreature> creatures,int nextSpawn=0)
-    {Creatures=Array.AsReadOnly(creatures.ToArray());NextSpawn=nextSpawn;}
+    public EldritchState(IEnumerable<EldritchCreature> creatures,int nextSpawn=0,TownDirectorState director=default)
+    {Creatures=Array.AsReadOnly(creatures.ToArray());NextSpawn=nextSpawn;Director=director;}
     public IReadOnlyList<EldritchCreature> Creatures {get;}
     public int NextSpawn {get;}
+    public TownDirectorState Director {get;}
 }

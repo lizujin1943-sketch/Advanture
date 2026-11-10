@@ -8,17 +8,17 @@ internal static class TownStateCodec
 {
     internal static void Write(BinaryWriter w,HookState s)
     {
-        var t=s.Town;w.Write(0x324E5754);w.Write(t.Enabled);if(!t.Enabled)return;
+        var t=s.Town;w.Write(0x334E5754);w.Write(t.Enabled);if(!t.Enabled)return;
         w.Write(t.Goals);w.Write(t.Shortcuts);w.Write(t.ReadyMask);w.Write(t.FinishMask);w.Write(t.MapKnownMask);w.Write(t.ContractMask);w.Write(t.ContractsPaidMask);
         w.Write(t.Attempt);w.Write(t.Members);w.Write(t.FinaleCompleted);w.Write(t.Finished);
-        foreach(var z in t.Zones){w.Write(z.Started);w.Write(z.Cleared);w.Write(z.Paused);w.Write(z.IdleTicks);w.Write(z.TriggerTick);}
+        foreach(var z in t.Zones){w.Write(z.Started);w.Write(z.Cleared);w.Write(z.Paused);w.Write(z.IdleTicks);w.Write(z.TriggerTick);w.Write(z.DefeatedAdults);}
         foreach(var p in t.Players)
         {w.Write(p.LastRequest);w.Write((byte)p.LastResult);w.Write(p.GrantedAttempt);w.Write(p.InnRegistered);w.Write(p.NextEmergencyTick);w.Write(p.EmergencyReserve);w.Write(p.BoundReserve);w.Write(p.BoundLoaded);w.Write(p.BoundWeaponId);w.Write(p.ServiceSpent);w.Write(p.SoldValue);}
     }
     private static bool Flag(BinaryReader r){byte b=r.ReadByte();if(b>1)throw new InvalidDataException("Invalid town flag.");return b==1;}
     internal static HookState Read(BinaryReader r,HookState s)
     {
-        if(r.ReadInt32()!=0x324E5754)throw new InvalidDataException("Town state version mismatch.");
+        if(r.ReadInt32()!=0x334E5754)throw new InvalidDataException("Town state version mismatch.");
         bool enabled=Flag(r);if(enabled!=(s.Tackle?.Config.TownMode==true))throw new InvalidDataException("Town/map mode mismatch.");
         if(!enabled)return s;
         int goals=r.ReadInt32(),shortcuts=r.ReadInt32(),ready=r.ReadInt32(),finish=r.ReadInt32(),known=r.ReadInt32(),contracts=r.ReadInt32(),paid=r.ReadInt32();
@@ -27,11 +27,15 @@ internal static class TownStateCodec
             throw new InvalidDataException("Invalid town progression.");
         var zones=new TownZoneState[6];
         for(int i=0;i<zones.Length;i++)
-        {zones[i]=new TownZoneState{Started=Flag(r),Cleared=Flag(r),Paused=Flag(r),IdleTicks=r.ReadInt32(),TriggerTick=r.ReadUInt64()};var z=zones[i];if(z.IdleTicks<0 || z.IdleTicks>360 || (z.Cleared || z.Paused) && !z.Started || z.Cleared && z.Paused || z.TriggerTick>s.Steps || z.Cleared && z.TriggerTick!=0)throw new InvalidDataException("Invalid district progression.");}
-        if(zones.Count(z=>z.Started && !z.Cleared && !z.Paused)>2)throw new InvalidDataException("Town encounter occupancy exceeded.");
-        for(int z=0;z<zones.Length;z++)if(zones[z].Cleared &&
-            (s.Eldritch.Creatures.Take(TownEncounters.AdultCount).Any(c=>TownEncounters.Zone(c.Id)==z && c.Phase!=EldritchPhase.Dead) || z==5 && s.Eldritch.Creatures.Skip(TownEncounters.AdultCount).Any(c=>c.Alive)))
-            throw new InvalidDataException("Cleared district still has living encounter members.");
+        {
+            zones[i]=new TownZoneState{Started=Flag(r),Cleared=Flag(r),Paused=Flag(r),IdleTicks=r.ReadInt32(),TriggerTick=r.ReadUInt64(),DefeatedAdults=r.ReadInt32()};
+            var z=zones[i];int target=TownEncounters.ClearTarget(i);
+            // 连续生成期间，已清理区仍可有活怪、暂停或再次排队；首次进度单独校验。
+            if(z.IdleTicks<0 || z.IdleTicks>360 || (z.Paused || z.DefeatedAdults>0) && !z.Started ||
+                z.TriggerTick>s.Steps || z.DefeatedAdults<0 || z.DefeatedAdults>target || z.Cleared!=(z.DefeatedAdults==target))
+                throw new InvalidDataException("Invalid district progression.");
+        }
+        if(zones.Count(z=>z.Started && !z.Paused)>2)throw new InvalidDataException("Town encounter occupancy exceeded.");
         if((goals&1)!=0 && !zones[2].Cleared || (goals&2)!=0 && !zones[4].Cleared || (goals&4)!=0 && !zones[5].Cleared)throw new InvalidDataException("Town objective bypassed encounter.");
         var personals=new TownPersonalState[s.Players.Count];
         for(int i=0;i<personals.Length;i++)

@@ -16,6 +16,8 @@ public struct TownZoneState
 {
     public bool Started,Cleared,Paused;
     public int IdleTicks;
+    /// <summary>已结算的成体击杀数，到首次清理目标后封顶；不受尸体回收与再次生成影响。</summary>
+    public int DefeatedAdults;
     public ulong TriggerTick; // First inner-boundary entry for the current admission queue. Zero means unqueued.
 }
 public sealed class TownState

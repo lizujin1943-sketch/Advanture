@@ -16,8 +16,8 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
     public static SimulationModule<HookState> CreateModule(bool initialFriendlyPranks=true)
     {
         var game=new HookGame(initialFriendlyPranks);
-        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"44",inputFormatVersion:"18",
-            stateFormatVersion:"39",contentHash:CatalogData.Hash()+"/"+BossPoseData.Hash,determinismHash:"integer-mm-town-v44"),game,game,game);
+        return new SimulationModule<HookState>(new CompatibilityManifest("hook-island",rulesVersion:"45",inputFormatVersion:"18",
+            stateFormatVersion:"40",contentHash:CatalogData.Hash()+"/"+BossPoseData.Hash,determinismHash:"integer-mm-town-director-v45"),game,game,game);
     }
     public IDeterministicSimulation<HookState> Create()=>new Model(initialFriendlyPranks);
     public void ValidateCanonical(ReadOnlySpan<byte> bytes)=>HookInput.Decode(bytes);

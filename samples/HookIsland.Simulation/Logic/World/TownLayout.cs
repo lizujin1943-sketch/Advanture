@@ -61,6 +61,20 @@ public readonly struct TownWoodSegment
 public static class TownLayout
 {
     public const int Width=160000,Height=128000,CenterX=-8000,CenterZ=-12000,BeaconX=2000,BeaconZ=5000;
+    /// <summary>
+    /// 服务门口三米范围不参与城区占用和刷怪压力。以所有端共有的位置判定，
+    /// 不依赖客户端是否打开 UI，也不复用旧海岛商人的 Shopping 授权几何。
+    /// 这不是伤害免疫：已经释放的攻击仍按原规则结算。
+    /// </summary>
+    public static bool NearService(int x,int z)
+    {
+        for(int i=0;i<Buildings.Count;i++)
+        {
+            var entrance=Buildings[i].Entrance;
+            if(IslandMap.DistanceSquared(x,z,entrance.X,entrance.Z)<=3000L*3000)return true;
+        }
+        return false;
+    }
     public static bool InArena(Fisher p)=>IslandMap.DistanceSquared(p.X,p.Z,CenterX,CenterZ)<=26000L*26000;
     public const int InnerRadius=12000,OuterRadius=22000,StoneOuterInnerRadius=20000;
     private static readonly Point[] Compass={new Point(1000,0),new Point(924,383),new Point(707,707),new Point(383,924),new Point(0,1000),new Point(-383,924),new Point(-707,707),new Point(-924,383),new Point(-1000,0),new Point(-924,-383),new Point(-707,-707),new Point(-383,-924),new Point(0,-1000),new Point(383,-924),new Point(707,-707),new Point(924,-383)};

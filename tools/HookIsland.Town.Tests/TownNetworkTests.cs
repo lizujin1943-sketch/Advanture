@@ -37,7 +37,9 @@ internal static class TownNetworkTests
                 }
                 for(int i=0;i<300;i++){host.Poll(now);foreach(var c in clients)c.Poll(now,Input);}
                 Require(host.Session!=null && host.Session.InspectState().Steps>=360 && save!=null,"Town encounter/save network scenario timed out: tick="+host.Session?.InspectState().Steps+" save="+(save!=null)+" poses="+string.Join(";",host.Session?.InspectState().Players.Select(p=>$"{p.X},{p.Z}")??Array.Empty<string>()));
-                var s=host.Session!.InspectState();Require(s.Town.Players.All(p=>p.LastRequest==1 && p.LastResult==TownResult.GoalLocked),"Failed service receipt changed on repeated input: "+string.Join(";",s.Town.Players.Select(p=>$"{p.LastRequest}:{p.LastResult}")));
+                var s=host.Session!.InspectState();
+                Require(s.Eldritch.Director.ElapsedTicks>0 && s.Eldritch.Director.RandomState!=0 && s.Eldritch.Creatures.Any(c=>c.Generation>0),"Four clients never exercised the new director");
+                Require(s.Town.Players.All(p=>p.LastRequest==1 && p.LastResult==TownResult.GoalLocked),"Failed service receipt changed on repeated input: "+string.Join(";",s.Town.Players.Select(p=>$"{p.LastRequest}:{p.LastResult}")));
                 string hash=CheckpointCodec.Hash(host.Session.CaptureCheckpoint());foreach(var c in clients)Require(CheckpointCodec.Hash(c.Session!.CaptureCheckpoint())==hash,"Town peer checkpoint mismatch");
                 Directory.CreateDirectory("artifacts/drowned-bell-town");var store=new IslandSaveStore(Path.GetFullPath("artifacts/drowned-bell-town/town-encounter.hisv"));store.Save(save!);var loaded=store.Load();
                 var codec=new HookGame(false);var a=codec.Create();var b=codec.Create();
@@ -45,7 +47,7 @@ internal static class TownNetworkTests
                 a.Restore(codec.Decode(save!.Document.Checkpoint.ApplicationState.Span));b.Restore(codec.Decode(loaded.Document.Checkpoint.ApplicationState.Span));
                 for(int n=0;n<120;n++){ulong tick=a.Capture().Steps+1;var context=new FrameContext(tick,tick,30);a.Step(context,Array.Empty<SimulationInput>());b.Step(context,Array.Empty<SimulationInput>());}
                 Require(codec.Encode(a.Capture()).SequenceEqual(codec.Encode(b.Capture())),"Town save recovery diverged");
-                Console.WriteLine($"PASS town_four_udp_clients_restore_encounter_and_failed_receipts tick={s.Steps} hash={hash}");return 0;
+                Console.WriteLine($"PASS town_four_udp_clients_restore_encounter_and_failed_receipts tick={s.Steps} directorTicks={s.Eldritch.Director.ElapsedTicks} creditUnits={s.Eldritch.Director.CreditUnits} hash={hash}");return 0;
             }
             finally{foreach(var c in clients)c.Dispose();}
         }

@@ -11,6 +11,7 @@ public sealed class EldritchSystem
     private readonly EldritchTerrain terrain;
     private readonly EldritchCreature[] creatures;
     private int nextSpawn;
+    private readonly TownSpawnDirector? director;
     private readonly bool town;
     private readonly bool[] activeZones=new bool[6];
     public EldritchSystem(IslandMap map,EldritchState? restored=null)
@@ -18,10 +19,11 @@ public sealed class EldritchSystem
         town=map.IsTown;config=map.Fishing?.Eldritch??EldritchConfig.Disabled;terrain=new EldritchTerrain(map);
         creatures=restored?.Creatures.ToArray()??(config.Enabled?Enumerable.Range(0,town?TownEncounters.Population:EldritchCatalog.Population).Select(i=>Dormant(i,0,town?0:i<10?config.InitialDelayTicks+i*config.StaggerTicks:0)).ToArray():Array.Empty<EldritchCreature>());
         nextSpawn=restored?.NextSpawn??0;
+        if(town && config.Enabled)director=new TownSpawnDirector(map.Fishing!.Seed,restored?.Director??default);
     }
     public int Count=>creatures.Length;
     public EldritchCreature Get(int id)=>creatures[id];
-    public EldritchState Capture()=>new EldritchState(creatures,nextSpawn);
+    public EldritchState Capture()=>new EldritchState(creatures,nextSpawn,director?.Capture()??default);
     public static bool Eligible(Fisher p)=>!p.WaitingToJoin && !p.Unavailable && !p.Vitals.Downed && !p.Revival.Dead;
     public static int Reward(EldritchCreature c)=>c.IsMinion?4:EldritchCatalog.Get(c.Kind).Coins;
     private EldritchCreature Dormant(int id,uint generation,int timer)=>new EldritchCreature
@@ -51,7 +53,7 @@ public sealed class EldritchSystem
             (long)(sourceX-c.X)*c.DirectionX+(long)(sourceZ-c.Z)*c.DirectionZ>0)damage=Math.Max(1,damage/4);
         int dealt=Math.Min(c.Health,damage);c.Health-=dealt;
         if(c.Health==0)
-        {c.Phase=EldritchPhase.Dead;c.Timer=config.RespawnTicks;c.Target=c.Ally=-1;c.RewardOwner=slot+1;c.RouteTicks=c.NoTargetTicks=0;}
+        {c.Phase=EldritchPhase.Dead;c.Timer=town?Math.Min(config.RespawnTicks,TownDirectorRules.CorpseTicks):config.RespawnTicks;c.Target=c.Ally=-1;c.RewardOwner=slot+1;c.RouteTicks=c.NoTargetTicks=0;}
         creatures[id]=c;
         if(c.Health>0)Interrupt(id);
         return dealt;
@@ -89,7 +91,7 @@ public sealed class EldritchSystem
             if(town && (!activeZones[TownEncounters.Zone(i)] || c.Paused))continue;
             if(c.Phase==EldritchPhase.Dormant){if(c.Timer>0)c.Timer--;creatures[i]=c;continue;}
             if(c.Phase==EldritchPhase.Dead)
-            {if(!town && c.Rewarded && --c.Timer==0)c=Dormant(i,c.Generation,0);creatures[i]=c;continue;}
+            {if(c.Rewarded && --c.Timer==0)c=Dormant(i,c.Generation,0);creatures[i]=c;continue;}
             if(!active[i])continue;
             if(c.Phase==EldritchPhase.Emerging || c.Phase==EldritchPhase.Recovering)
             {if(--c.Timer==0){c.Phase=EldritchPhase.Hunting;c.RouteTicks=0;c.Ally=-1;}creatures[i]=c;continue;}
@@ -106,22 +108,26 @@ public sealed class EldritchSystem
             }
             Hunt(ref c,d,players);creatures[i]=c;
         }
-        if(!allowSpawn)return;
-        int adults=town?TownEncounters.AdultCount:10;
-        int alive=creatures.Take(adults).Count(c=>c.Damageable && !c.Paused);
-        int start=nextSpawn;
-        for(int n=0;n<adults && alive<config.MaxAlive;n++)
+        if(town)
         {
-            int i=(start+n)%adults;var c=creatures[i];if((town?!activeZones[TownEncounters.Zone(i)]:!config.Includes(i)) || c.Phase!=EldritchPhase.Dormant || c.Timer>0)continue;
-            if(town && i==2 && (creatures[0].Phase!=EldritchPhase.Dead || creatures[1].Phase!=EldritchPhase.Dead))continue;
-            nextSpawn=(i+1)%adults;
-            if(Spawn(i,players))
-            {
-                alive++;
-                if(town)for(int other=0;other<adults;other++)
-                    if(TownEncounters.Zone(other)==TownEncounters.Zone(i) && creatures[other].Phase==EldritchPhase.Dormant && creatures[other].Timer==0)
-                        creatures[other].Timer=EldritchCatalog.EmergenceTicks;
-            }
+            // 仅统计正在活跃城区探索的玩家。购物、倒地、离线和竞技场内的玩家不会额外增加压力。
+            int participants=0;
+            foreach(var p in players)
+                for(int z=0;z<activeZones.Length;z++)
+                    if(activeZones[z] && TownEncounters.NearZone(z,p) && !TownLayout.InArena(p)){participants++;break;}
+            director!.Advance(allowSpawn,participants,activeZones,creatures,config.MaxAlive,id=>Spawn(id,players));
+            return;
+        }
+        // 非城镇旧钓鱼地图维持原生态刷新，不混入本地图的预算与区域规则。
+        if(!allowSpawn)return;
+        int alive=creatures.Take(10).Count(c=>c.Damageable);
+        int start=nextSpawn;
+        for(int n=0;n<10 && alive<config.MaxAlive;n++)
+        {
+            int i=(start+n)%10;var c=creatures[i];
+            if(!config.Includes(i) || c.Phase!=EldritchPhase.Dormant || c.Timer>0)continue;
+            nextSpawn=(i+1)%10;
+            if(Spawn(i,players))alive++;
             else creatures[i].Timer=30;
         }
     }

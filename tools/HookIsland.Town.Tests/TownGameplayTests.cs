@@ -23,7 +23,7 @@ public static partial class TownGameplayTests
         var s=m.Capture();var ps=s.Players.ToArray();var roster=s.Eldritch.Creatures.ToArray();var zones=s.Town.Zones.ToArray();var people=s.Town.Players.ToArray();
         foreach(int z in new[]{2,4,5})
         {
-            zones[z]=new TownZoneState{Started=true,Cleared=true};
+            zones[z]=new TownZoneState{Started=true,Cleared=true,Paused=true,DefeatedAdults=TownEncounters.ClearTarget(z)};
             for(int i=0;i<TownEncounters.AdultCount;i++)if(TownEncounters.Zone(i)==z)
             {var c=roster[i];c.Phase=EldritchPhase.Dead;c.Generation=1;c.Timer=2700;c.DirectionX=1000000;c.Target=c.Ally=-1;c.RewardOwner=1;c.Rewarded=true;roster[i]=c;}
         }
@@ -173,6 +173,6 @@ public static partial class TownGameplayTests
             m.Restore(Codec.Decode(Codec.Encode(s)));for(int i=0;i<15;i++)Step(m);Step(m,new HookInput(0,0,town:new TownCommand(TownAction.ReadyBoss,2)));
             Require(m.Capture().Town.Attempt==2 && m.Capture().Town.Players[0].BoundReserve==168,"Zero-gold second attempt lacks finite supply");
         });
-        return failed+RunBoundaries()+(network?TownNetworkTests.Run():0);
+        return failed+RunDirector()+RunBoundaries()+(network?TownNetworkTests.Run():0);
     }
 }

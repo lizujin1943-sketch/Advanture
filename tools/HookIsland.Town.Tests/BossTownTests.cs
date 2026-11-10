@@ -88,7 +88,7 @@ internal static class BossTownTests
                 var initial=model.Capture();var players=initial.Players.ToArray();var creatures=initial.Eldritch.Creatures.ToArray();var zones=initial.Town.Zones.ToArray();
                 foreach(int zone in new[]{2,4,5})
                 {
-                    zones[zone]=new TownZoneState{Started=true,Cleared=true};
+                    zones[zone]=new TownZoneState{Started=true,Cleared=true,Paused=true,DefeatedAdults=TownEncounters.ClearTarget(zone)};
                     for(int i=0;i<TownEncounters.AdultCount;i++)if(TownEncounters.Zone(i)==zone)
                     {var c=creatures[i];c.Phase=EldritchPhase.Dead;c.Generation=1;c.Timer=2700;c.DirectionX=1000000;c.Target=c.Ally=-1;c.RewardOwner=1;c.Rewarded=true;creatures[i]=c;}
                 }
