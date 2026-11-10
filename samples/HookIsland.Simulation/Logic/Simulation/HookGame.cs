@@ -217,6 +217,9 @@ public sealed partial class HookGame : IStateCodec<HookState>, ISimulationFactor
             tick=0;coins=players.Sum(p=>p.Coins);roomRules=new RoomRulesState(initialFriendlyPranks);
             InitializeTreasure();
             crabNavigation=new CrabNavigation(map);
+            // 把小镇第一次建图放在房间初始化阶段，避免玩家走入战斗区后第一批敌人突然阻塞 Step。
+            // 缓存只包含地形拓扑，不包含单位状态，也不写入快照；旧海岛继续按需生成。
+            if(map.IsTown){crabNavigation.Refresh(tiles);crabNavigation.Prepare();}
             crabs=map.Fishing?.Crabs.Enabled==true?Enumerable.Range(0,map.Fishing.Crabs.Count).Select(i=>new CrabSystem(map,crabNavigation,slot:i)).ToArray():Array.Empty<CrabSystem>();
         }
         public IReadOnlyList<ByteString> Step(FrameContext context,IReadOnlyList<SimulationInput> inputs)

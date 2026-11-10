@@ -38,6 +38,20 @@ C货场供电、E机房潮闸、F档案三个免费目标完成后，全体在�
 
 ## 验证边界
 
+### 首批敌人出现后的短暂停顿（2026-11-10）
+
+定位到 `EldritchSystem.Hunt → EldritchTerrain.Target → CrabNavigation.EnsureGraph` 的首次同步建图。旧实现等到敌人出场预警结束才遍历整座小镇，并在身体覆盖采样中重复扫描道路、建筑和环形场地。接口枚举器与 LINQ 闭包还产生大量临时对象。在本机独立复现中，首次查询在 .NET 8 下约 2.4～2.7 秒，累计分配约 1050 MiB；使用 Unity 2022.3.62f1 自带 Mono 运行同一模拟库约 9.7 秒。后续缓存查询约 1 毫秒，符合首次战斗短暂停顿后恢复的特征。
+
+修复包含三层：`TownGroundIndex` 按 8 米分区筛选固定地面，仍使用原有整数公式做精确判断；`TownNavigationTerrain` 在一次建图内缓存相同坐标的查询，保留 100 毫米身体覆盖采样；`HookGame.Initialize` 在房间初始化时准备初始寻路图。动态木板与解锁桥继续使用当前地格，建图临时缓存不会跨地形版本复用。常用地面/障碍查询改为无枚举器分配的遍历。
+
+修复后本机冷建图累计分配约 7.5 MiB。Unity Mono 独立模拟复测：初始化约 256 毫秒，初始化后的首次敌人查询约 1.5 毫秒；连续执行 360 帧并实际触发敌人追击，最慢模拟帧约 19.4 毫秒。以上是单次本机测量，包含首次 JIT，不能当作其他机器的固定帧率保证。
+
+验证包含五种地形状态共 10,254,405 个地面采样点的新旧结果一致、空间索引与全量查询对照、毁板/解锁桥/毫米边界采样、独立进程冷启动，以及小镇、螃蟹、异怪和单位分离四组真实四客户端 UDP 一致性。四个专项共 130 项检查通过；Unity 使用的模拟 DLL 已与构建产物校验一致。记录在 `artifacts/town-startup-stutter/`。本轮没有重启用户原来的 Play 会话录制完整画面，也未跑传输层全量 `verify.sh`；不能据此排除其他场景下的渲染或编辑器卡顿。
+
+`./scripts/verify-hook-town.sh` 会先在独立进程验证初始化准备，避免静态缓存掩盖问题，再执行正常镇区用例。单独复现入口是镇区测试程序的 `--navigation-startup-only` 和 `--navigation-only`；分配量是稳定回归门槛，耗时仅输出观测值。
+
+### 其他玩法与实机验收
+
 专项入口为 `./scripts/verify-hook-town.sh` 与 `./scripts/verify-hook-eldritch.sh`，完整入口为 `./scripts/verify.sh`。镇区测试覆盖无木板可达路线、隐蔽出怪口、价格和去重、有限弹来源、全员准备、零金币重试、真实枪击关底结算、返桥归航，以及四个真实UDP客户端与保存恢复一致性。
 
 正式入口是 `samples/TacticalGame.Unity/Assets/HookIsland/Scenes/DrownedBellTown.unity`，已设为Build Settings的第一启用场景。打开该场景进入Play后创建房间即可试玩；E与建筑、免费目标、祭火和维修点交互。编辑器菜单 `Tools/Hook Island/Create Drowned Bell Town` 可从权威几何重新生成场景。镇区使用独立设置和地图资源。

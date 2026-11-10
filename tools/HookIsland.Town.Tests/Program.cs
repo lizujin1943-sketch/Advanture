@@ -30,8 +30,11 @@ internal static partial class Program
     }
     private static int Main(string[] args)
     {
+        if(args.Contains("--navigation-startup-only"))return TownNavigationTests.RunStartup();
+        if(args.Contains("--navigation-only"))return TownNavigationTests.Run();
         if(args.Contains("--town-boundaries"))return TownGameplayTests.RunBoundaries();
         if(args.Contains("--boss-only"))return BossTownTests.Run();
+        int navigationFailures=TownNavigationTests.Run();
         var cases=new (string,Action)[]{
             ("town_snapshot_restores_outer_docks",()=>{
                 var map=Town();var copy=IslandMap.Decode(map.Encode());
@@ -130,6 +133,6 @@ internal static partial class Program
         Console.WriteLine($"{passed}/{cases.Length} geometry passed");
         int gameplayFailures=args.Contains("--geometry-only")?0:TownGameplayTests.Run(!args.Contains("--no-network"));
         int bossFailures=args.Contains("--geometry-only")?0:BossTownTests.Run();
-        return passed==cases.Length && gameplayFailures==0 && bossFailures==0?0:1;
+        return passed==cases.Length && navigationFailures==0 && gameplayFailures==0 && bossFailures==0?0:1;
     }
 }

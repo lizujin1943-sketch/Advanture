@@ -32,6 +32,8 @@ public sealed class CrabNavigation
     private int Spacing=>map.IsTown?1000:500;
     private static readonly Point[] Directions={new Point(0,-1),new Point(1,0),new Point(0,1),new Point(-1,0)};
     public CrabNavigation(IslandMap map){this.map=map;}
+    /// <summary>在开始模拟之前准备派生图；后续敌人实例及预测恢复可复用同一份只读拓扑。</summary>
+    internal void Prepare()=>EnsureGraph();
     public void Refresh(IReadOnlyList<PlatformTile> tiles)
     {
         // A rollback or a destroyed/rebuilt tile can change coordinates without changing the count.
@@ -57,11 +59,14 @@ public sealed class CrabNavigation
             }
         }
         indices.Clear();shores.Clear();
+        // 只在本次建图内复用地面与身体覆盖结果，避免首批敌人寻路时重复扫描整座城镇。
+        // 图仍按相同的节点/方向顺序生成；动态地形变化会创建新的查询缓存。
+        var townTerrain=map.IsTown?new TownNavigationTerrain(confirmedTiles):null;
         var points=new List<Point>();
         if(map.IsTown)
         {
             for(int z=-64000;z<=64000;z+=Spacing)for(int x=-80000;x<=80000;x+=Spacing)
-                if(CanStand(x,z))points.Add(new Point(x,z));
+                if(townTerrain!.CanStand(x,z))points.Add(new Point(x,z));
         }
         else foreach(var t in terrain.OrderBy(t=>t.Z).ThenBy(t=>t.X))
             for(int z=-500;z<=1000;z+=500)for(int x=-500;x<=1000;x+=500)
@@ -73,7 +78,7 @@ public sealed class CrabNavigation
         {
             var p=nodes[i];var adjacent=new List<int>();
             foreach(var d in Directions)
-                if(indices.TryGetValue((p.X+d.X*Spacing,p.Z+d.Z*Spacing),out int n) && Segment(p.X,p.Z,nodes[n].X,nodes[n].Z))adjacent.Add(n);
+                if(indices.TryGetValue((p.X+d.X*Spacing,p.Z+d.Z*Spacing),out int n) && Segment(p.X,p.Z,nodes[n].X,nodes[n].Z,townTerrain))adjacent.Add(n);
             edges[i]=adjacent.ToArray();
         }
         if(map.IsTown)
@@ -120,9 +125,15 @@ public sealed class CrabNavigation
         return true;
     }
     public bool Segment(int x,int z,int toX,int toZ)
+        =>Segment(x,z,toX,toZ,null);
+    private bool Segment(int x,int z,int toX,int toZ,TownNavigationTerrain? townTerrain)
     {
         int length=HookGame.Sqrt(IslandMap.DistanceSquared(x,z,toX,toZ)),steps=Math.Max(1,(length+99)/100);
-        for(int i=0;i<=steps;i++)if(!CanStand(x+(int)((long)(toX-x)*i/steps),z+(int)((long)(toZ-z)*i/steps)))return false;
+        for(int i=0;i<=steps;i++)
+        {
+            int px=x+(int)((long)(toX-x)*i/steps),pz=z+(int)((long)(toZ-z)*i/steps);
+            if(!(townTerrain==null?CanStand(px,pz):townTerrain.CanStand(px,pz)))return false;
+        }
         return true;
     }
     public bool AttackLine(int x,int z,int toX,int toZ)

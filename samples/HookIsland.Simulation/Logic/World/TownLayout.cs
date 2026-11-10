@@ -69,6 +69,7 @@ public static class TownLayout
     private static readonly PlatformTile[][] Shortcuts;
     private static readonly PlatformTile[] ReturnBridge;
     private static readonly HashSet<(int,int)> BridgeCells;
+    private static readonly TownGroundIndex FixedGround;
     public static IReadOnlyList<TownBuilding> Buildings {get;}=Array.AsReadOnly(new[]{
         new TownBuilding(1,"归航码头",TownBuildingKind.Dock,25,111,8,6),new TownBuilding(2,"铁鳞军火铺",TownBuildingKind.Armory,20,85,6,6),
         new TownBuilding(3,"盐灯诊所",TownBuildingKind.Clinic,17,64,8,8,true),new TownBuilding(4,"潜潮船具店",TownBuildingKind.SwimShop,31,31,7,6),
@@ -139,6 +140,7 @@ public static class TownLayout
         Shortcuts=new[]{Bridge((40,52),(58,48)),Bridge((73,35),(78,35),(86,55))};
         ReturnBridge=Bridge((57,91),(54,101),(25,111));
         BridgeCells=new HashSet<(int,int)>(Shortcuts.SelectMany(t=>t).Concat(ReturnBridge).Select(t=>(t.X,t.Z)));
+        FixedGround=new TownGroundIndex();
     }
     public static bool Enabled(IslandMap map)=>map.IsTown;
     public static Point FromDesign(int xMetres,int yMetres)=>new Point((xMetres-80)*1000,(64-yMetres)*1000);
@@ -165,26 +167,34 @@ public static class TownLayout
         return tiles.ToArray();
     }
     public static bool Destructible(int cellX,int cellZ)=>BandForTile(cellX,cellZ)>=0;
-    public static bool Blocked(int x,int z,int margin=0)=>Obstacles.Any(o=>o.Contains(x,z,margin));
+    public static bool Blocked(int x,int z,int margin=0)
+    {
+        // 碰撞查询每帧调用很多次：索引遍历避免 LINQ 闭包及接口枚举器的临时分配。
+        for(int i=0;i<Obstacles.Count;i++)if(Obstacles[i].Contains(x,z,margin))return true;
+        return false;
+    }
     public static bool OnGround(IReadOnlyList<PlatformTile> tiles,int x,int z)
     {
         if(!InBounds(x,z))return false;
         if(ArenaGround(tiles,x,z))return true;
         int cellX=PlatformRules.CellAt(x),cellZ=PlatformRules.CellAt(z);
         if(IsBridgeTile(cellX,cellZ) && PlatformRules.Contains(tiles,cellX,cellZ))return true;
-        foreach(var a in EncounterAreas)if(a.Contains(x,z))return true;
-        foreach(var b in Buildings)if(Math.Abs((long)x-b.X)<=b.Width/2+1500 && Math.Abs((long)z-b.Z)<=b.Depth/2+1500)return true;
-        foreach(var road in Roads)if(DistanceToSegmentSquared(x,z,road.Start,road.End)<=(long)road.HalfWidth*road.HalfWidth)return true;
-        return false;
+        return FixedGround.Contains(x,z);
     }
     public static bool OnGround(int x,int z)=>OnGround(FullWood,x,z);
     public static bool CanStand(IReadOnlyList<PlatformTile> tiles,int x,int z,int radius=PlatformRules.Footprint)
+        =>CanStand(tiles,x,z,radius,null);
+    /// <summary>寻路建图可复用精确地面采样；边界、障碍和身体覆盖规则仍由同一实现负责。</summary>
+    internal static bool CanStand(IReadOnlyList<PlatformTile> tiles,int x,int z,int radius,Func<int,int,bool>? ground)
     {
         if(!InBounds(x,z,radius) || Blocked(x,z,radius))return false;
         // A complete 100mm grid across the body catches small concave corners and destroyed strip seams.
         int steps=Math.Max(1,(radius*2+99)/100);
         for(int iz=0;iz<=steps;iz++)for(int ix=0;ix<=steps;ix++)
-            if(!OnGround(tiles,x-radius+radius*2*ix/steps,z-radius+radius*2*iz/steps))return false;
+        {
+            int px=x-radius+radius*2*ix/steps,pz=z-radius+radius*2*iz/steps;
+            if(!(ground==null?OnGround(tiles,px,pz):ground(px,pz)))return false;
+        }
         return true;
     }
     public static int DistanceToGround(int x,int z)
@@ -216,13 +226,16 @@ public static class TownLayout
     private static bool ArenaGround(IReadOnlyList<PlatformTile> tiles,int x,int z)
     {
         long rx=x-CenterX,rz=z-CenterZ,r2=rx*rx+rz*rz;
+        // 包含 24 米登陆唇及 1 米宽度的保守外界；城镇远处无需检查全部 16 个登陆唇。
+        if(r2>26000L*26000)return false;
         if(r2>=20000L*20000 && r2<=22000L*22000)return true;
         // Fixed southern stone connector: angles 35..145 degrees, radii 9..12m.
         if(r2>=9000L*9000 && r2<=12000L*12000 && -rz*819>=Math.Abs(rx)*574)return true;
         if(r2>=12000L*12000 && r2<20000L*20000)
         {
-            foreach(var s in WoodSegments)
+            for(int i=0;i<WoodSegments.Count;i++)
             {
+                var s=WoodSegments[i];
                 long along=(rx*s.Direction.X+rz*s.Direction.Z)/1000,across=(rx*s.Direction.Z-rz*s.Direction.X)/1000;
                 if(along>=s.InnerRadius && along<s.InnerRadius+2000 && Math.Abs(across)<=1000)
                     return PlatformRules.Contains(tiles,s.CellX,s.CellZ);
@@ -242,6 +255,6 @@ public static class TownLayout
         long dot=len==0?0:Math.Max(0,Math.Min(len,((long)x-a.X)*dx+((long)z-a.Z)*dz));
         return new Point(a.X+(len==0?0:(int)(dx*dot/len)),a.Z+(len==0?0:(int)(dz*dot/len)));
     }
-    private static long DistanceToSegmentSquared(int x,int z,Point a,Point b)
+    internal static long DistanceToSegmentSquared(int x,int z,Point a,Point b)
     {var p=Nearest(x,z,a,b);return IslandMap.DistanceSquared(x,z,p.X,p.Z);}
 }
