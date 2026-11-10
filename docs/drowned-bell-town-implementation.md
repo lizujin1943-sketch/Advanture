@@ -28,6 +28,14 @@ C货场供电、E机房潮闸、F档案三个免费目标完成后，全体在�
 
 帧同步核心未引入Unity或具体玩法依赖，镇区规则位于 `samples/HookIsland.Simulation`，命令交付位于 `samples/HookIsland.Network`。测试构造和自动验证不会作为正式场景常驻组件。
 
+## Blender 场景美术
+
+建筑与环境现使用独立的 Blender 美术资源，源文件、预览图和复建步骤见 [沉钟镇美术说明](../source-assets/environments/drowned-bell-town/README.md)。新增石木街屋、钟塔、测绘亭、机房烟囱、货垛、石砌岸基与远景遗迹；全部建筑占地、入口、掩体和木带坐标来自现有 `TownLayout`。
+
+`TownArtLayoutExporter` 导出布局，Blender 脚本生成 FBX 与清单，`TownArtInstaller` 检查布局指纹和坐标轴后绑定材质并安装 `DrownedBellTownArt.prefab`。正式场景生成器也会安装该预制件。旧方块的 Renderer 隐藏，原始权威地面资源仍可用于几何回归；动态木桥由确认状态独立驱动。地图美术不包含 Unity Collider。
+
+本轮美术验证使用 macOS Unity 2022.3.62f1：编译与导入成功、完成四张 Unity 场景预览，并通过 2 项导入美术测试与 6 项原有镇区表现测试。测试包括真实 FBX 网格的三个门洞、16 个木带缺口、中心水域以及动态桥的移除/恢复。未复跑网络全量验证，也未将静态预览作为多人实机游玩或通关证据。仓库原有 Unity 版本配置保留。
+
 ## 验证边界
 
 专项入口为 `./scripts/verify-hook-town.sh` 与 `./scripts/verify-hook-eldritch.sh`，完整入口为 `./scripts/verify.sh`。镇区测试覆盖无木板可达路线、隐蔽出怪口、价格和去重、有限弹来源、全员准备、零金币重试、真实枪击关底结算、返桥归航，以及四个真实UDP客户端与保存恢复一致性。

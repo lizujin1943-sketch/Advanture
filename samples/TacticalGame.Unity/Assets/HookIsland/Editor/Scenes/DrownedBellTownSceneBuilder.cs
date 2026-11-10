@@ -76,6 +76,8 @@ namespace Advanture.HookIsland.Editor
             entryObject.AddComponent<FishingOverlay>();entryObject.AddComponent<FishingEquipmentController>();entryObject.AddComponent<FishingEquipmentOverlay>();entryObject.AddComponent<RevivalController>();entryObject.AddComponent<RevivalOverlay>();
             game.ConfigurePlatform(settings,camera,Shader.Find("Hook Island/Fishing Line"));
             File.WriteAllBytes(Root+"/Data/TownMap.bytes",settings.CreateMap().Encode());AssetDatabase.ImportAsset(Root+"/Data/TownMap.bytes");
+            // 美术预制件存在时自动安装；首次导出布局、尚未建模时仍可生成基础场景。
+            TownArtInstaller.TryApply(scene);
             EditorUtility.SetDirty(mesh);AssetDatabase.SaveAssets();EditorSceneManager.SaveScene(scene,ScenePath);
             EditorBuildSettings.scenes=new[]{new EditorBuildSettingsScene(ScenePath,true)}.Concat(EditorBuildSettings.scenes.Where(s=>s.path!=ScenePath)).ToArray();
             Selection.activeGameObject=entryObject;Debug.Log("DROWNED_BELL_TOWN_READY: "+ScenePath);

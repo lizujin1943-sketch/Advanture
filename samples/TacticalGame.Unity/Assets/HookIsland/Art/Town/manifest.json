@@ -1,0 +1,1078 @@
+{
+  "version": 1,
+  "layoutHash": "49047c5a9206700486d933f771a7d384b5aa8f123097d0ace29a9ffd5695feba",
+  "materials": [
+    {
+      "name": "Town_Stone",
+      "color": {
+        "r": 0.34,
+        "g": 0.43,
+        "b": 0.43,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_StoneLight",
+      "color": {
+        "r": 0.43,
+        "g": 0.51,
+        "b": 0.49,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_StoneWarm",
+      "color": {
+        "r": 0.43,
+        "g": 0.46,
+        "b": 0.39,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_StoneDark",
+      "color": {
+        "r": 0.19,
+        "g": 0.28,
+        "b": 0.29,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Mortar",
+      "color": {
+        "r": 0.13,
+        "g": 0.21,
+        "b": 0.22,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Limestone",
+      "color": {
+        "r": 0.62,
+        "g": 0.68,
+        "b": 0.57,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Wall",
+      "color": {
+        "r": 0.57,
+        "g": 0.59,
+        "b": 0.46,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_WallBlue",
+      "color": {
+        "r": 0.32,
+        "g": 0.46,
+        "b": 0.46,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_WallRust",
+      "color": {
+        "r": 0.56,
+        "g": 0.35,
+        "b": 0.23,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Wood",
+      "color": {
+        "r": 0.24,
+        "g": 0.16,
+        "b": 0.105,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_WoodLight",
+      "color": {
+        "r": 0.44,
+        "g": 0.3,
+        "b": 0.17,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_WoodDeck",
+      "color": {
+        "r": 0.36,
+        "g": 0.27,
+        "b": 0.17,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Roof",
+      "color": {
+        "r": 0.1,
+        "g": 0.27,
+        "b": 0.27,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_RoofLight",
+      "color": {
+        "r": 0.14,
+        "g": 0.35,
+        "b": 0.33,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_RoofRust",
+      "color": {
+        "r": 0.38,
+        "g": 0.19,
+        "b": 0.13,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_RoofRustLight",
+      "color": {
+        "r": 0.47,
+        "g": 0.26,
+        "b": 0.17,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Metal",
+      "color": {
+        "r": 0.09,
+        "g": 0.16,
+        "b": 0.18,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Brass",
+      "color": {
+        "r": 0.55,
+        "g": 0.36,
+        "b": 0.12,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Window",
+      "color": {
+        "r": 1.0,
+        "g": 0.57,
+        "b": 0.16,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Glass",
+      "color": {
+        "r": 0.16,
+        "g": 0.41,
+        "b": 0.43,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Cloth",
+      "color": {
+        "r": 0.63,
+        "g": 0.38,
+        "b": 0.21,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_ClothCream",
+      "color": {
+        "r": 0.73,
+        "g": 0.68,
+        "b": 0.48,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Jade",
+      "color": {
+        "r": 0.24,
+        "g": 0.64,
+        "b": 0.52,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_DeepJade",
+      "color": {
+        "r": 0.1,
+        "g": 0.31,
+        "b": 0.3,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Moss",
+      "color": {
+        "r": 0.19,
+        "g": 0.32,
+        "b": 0.23,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Water",
+      "color": {
+        "r": 0.06,
+        "g": 0.26,
+        "b": 0.29,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_WaterLight",
+      "color": {
+        "r": 0.075,
+        "g": 0.29,
+        "b": 0.31,
+        "a": 1
+      }
+    },
+    {
+      "name": "Town_Foam",
+      "color": {
+        "r": 0.28,
+        "g": 0.48,
+        "b": 0.45,
+        "a": 1
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Town_Streets",
+      "materials": [
+        "Town_Mortar",
+        "Town_Limestone",
+        "Town_Moss",
+        "Town_Stone",
+        "Town_StoneLight",
+        "Town_StoneWarm",
+        "Town_StoneDark"
+      ],
+      "vertices": 37140,
+      "triangles": 18570
+    },
+    {
+      "name": "Town_InlaidRoutesAndRitual",
+      "materials": [
+        "Town_Brass",
+        "Town_Jade",
+        "Town_Metal",
+        "Town_WoodLight"
+      ],
+      "vertices": 4480,
+      "triangles": 5296
+    },
+    {
+      "name": "Details_01_Dock",
+      "materials": [
+        "Town_WoodLight",
+        "Town_WoodDeck",
+        "Town_Wood",
+        "Town_Brass"
+      ],
+      "vertices": 304,
+      "triangles": 416
+    },
+    {
+      "name": "Building_02_Armory",
+      "materials": [
+        "Town_Wall",
+        "Town_StoneDark"
+      ],
+      "vertices": 16,
+      "triangles": 24
+    },
+    {
+      "name": "Details_02_Armory",
+      "materials": [
+        "Town_Wood",
+        "Town_Window",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Glass",
+        "Town_WoodLight",
+        "Town_Brass",
+        "Town_ClothCream",
+        "Town_Stone",
+        "Town_Moss",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 1648,
+      "triangles": 2396
+    },
+    {
+      "name": "Roof_02_Armory",
+      "materials": [
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_Wood",
+        "Town_WallRust",
+        "Town_Limestone",
+        "Town_Metal"
+      ],
+      "vertices": 342,
+      "triangles": 280
+    },
+    {
+      "name": "Building_03_Clinic",
+      "materials": [
+        "Town_WallBlue",
+        "Town_StoneDark"
+      ],
+      "vertices": 80,
+      "triangles": 120
+    },
+    {
+      "name": "Details_03_Clinic",
+      "materials": [
+        "Town_Wood",
+        "Town_Window",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Glass",
+        "Town_Brass",
+        "Town_Jade",
+        "Town_ClothCream",
+        "Town_Stone",
+        "Town_Moss",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 2352,
+      "triangles": 3356
+    },
+    {
+      "name": "Roof_03_Clinic",
+      "materials": [
+        "Town_Limestone",
+        "Town_Roof",
+        "Town_RoofLight"
+      ],
+      "vertices": 836,
+      "triangles": 588
+    },
+    {
+      "name": "Building_04_SwimShop",
+      "materials": [
+        "Town_WallBlue",
+        "Town_StoneDark"
+      ],
+      "vertices": 16,
+      "triangles": 24
+    },
+    {
+      "name": "Details_04_SwimShop",
+      "materials": [
+        "Town_Wood",
+        "Town_Glass",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Window",
+        "Town_WoodLight",
+        "Town_Brass",
+        "Town_Jade",
+        "Town_ClothCream",
+        "Town_Cloth",
+        "Town_Moss",
+        "Town_Stone",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 1768,
+      "triangles": 2520
+    },
+    {
+      "name": "Roof_04_SwimShop",
+      "materials": [
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_Wood",
+        "Town_WallRust",
+        "Town_Limestone",
+        "Town_Metal"
+      ],
+      "vertices": 342,
+      "triangles": 280
+    },
+    {
+      "name": "Building_05_Workshop",
+      "materials": [
+        "Town_WallRust",
+        "Town_StoneDark"
+      ],
+      "vertices": 16,
+      "triangles": 24
+    },
+    {
+      "name": "Details_05_Workshop",
+      "materials": [
+        "Town_Wood",
+        "Town_Window",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Glass",
+        "Town_WoodLight",
+        "Town_Brass",
+        "Town_Jade",
+        "Town_StoneDark",
+        "Town_Stone",
+        "Town_Moss",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 1896,
+      "triangles": 2676
+    },
+    {
+      "name": "Roof_05_Workshop",
+      "materials": [
+        "Town_RoofRust",
+        "Town_RoofRustLight",
+        "Town_Wood"
+      ],
+      "vertices": 310,
+      "triangles": 228
+    },
+    {
+      "name": "Building_06_Commission",
+      "materials": [
+        "Town_Wall",
+        "Town_StoneDark"
+      ],
+      "vertices": 16,
+      "triangles": 24
+    },
+    {
+      "name": "Details_06_Commission",
+      "materials": [
+        "Town_Wood",
+        "Town_Window",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Glass",
+        "Town_WoodLight",
+        "Town_Brass",
+        "Town_Jade",
+        "Town_ClothCream",
+        "Town_Cloth",
+        "Town_Stone",
+        "Town_Moss",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 1768,
+      "triangles": 2520
+    },
+    {
+      "name": "Roof_06_Commission",
+      "materials": [
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_Wood",
+        "Town_WallRust",
+        "Town_Limestone",
+        "Town_Metal"
+      ],
+      "vertices": 342,
+      "triangles": 280
+    },
+    {
+      "name": "Building_07_Pawnshop",
+      "materials": [
+        "Town_WallRust",
+        "Town_StoneDark"
+      ],
+      "vertices": 16,
+      "triangles": 24
+    },
+    {
+      "name": "Details_07_Pawnshop",
+      "materials": [
+        "Town_Wood",
+        "Town_Window",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Glass",
+        "Town_WoodLight",
+        "Town_Brass",
+        "Town_Jade",
+        "Town_ClothCream",
+        "Town_Cloth",
+        "Town_Stone",
+        "Town_Moss",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 1768,
+      "triangles": 2520
+    },
+    {
+      "name": "Roof_07_Pawnshop",
+      "materials": [
+        "Town_RoofRust",
+        "Town_RoofRustLight",
+        "Town_Wood",
+        "Town_WallRust",
+        "Town_Limestone",
+        "Town_Metal"
+      ],
+      "vertices": 342,
+      "triangles": 280
+    },
+    {
+      "name": "Building_08_Cartography",
+      "materials": [
+        "Town_WallBlue",
+        "Town_StoneDark"
+      ],
+      "vertices": 16,
+      "triangles": 24
+    },
+    {
+      "name": "Details_08_Cartography",
+      "materials": [
+        "Town_Wood",
+        "Town_Glass",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Window",
+        "Town_WoodLight",
+        "Town_Brass",
+        "Town_Jade",
+        "Town_Moss",
+        "Town_Stone",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 1680,
+      "triangles": 2412
+    },
+    {
+      "name": "Roof_08_Cartography",
+      "materials": [
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_Wood",
+        "Town_WallBlue",
+        "Town_Brass"
+      ],
+      "vertices": 362,
+      "triangles": 316
+    },
+    {
+      "name": "Building_09_Engine",
+      "materials": [
+        "Town_WallBlue",
+        "Town_StoneDark"
+      ],
+      "vertices": 16,
+      "triangles": 24
+    },
+    {
+      "name": "Details_09_Engine",
+      "materials": [
+        "Town_Wood",
+        "Town_Window",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Glass",
+        "Town_WoodLight",
+        "Town_Brass",
+        "Town_Jade",
+        "Town_StoneDark",
+        "Town_Stone",
+        "Town_Moss",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 1992,
+      "triangles": 2820
+    },
+    {
+      "name": "Roof_09_Engine",
+      "materials": [
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_Wood"
+      ],
+      "vertices": 406,
+      "triangles": 276
+    },
+    {
+      "name": "Building_10_Outpost",
+      "materials": [
+        "Town_Wall",
+        "Town_StoneDark"
+      ],
+      "vertices": 16,
+      "triangles": 24
+    },
+    {
+      "name": "Details_10_Outpost",
+      "materials": [
+        "Town_Wood",
+        "Town_Window",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Glass",
+        "Town_WoodLight",
+        "Town_Brass",
+        "Town_Jade",
+        "Town_ClothCream",
+        "Town_Cloth",
+        "Town_Stone",
+        "Town_Moss",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 1768,
+      "triangles": 2520
+    },
+    {
+      "name": "Roof_10_Outpost",
+      "materials": [
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_Wood",
+        "Town_WallRust",
+        "Town_Limestone",
+        "Town_Metal"
+      ],
+      "vertices": 342,
+      "triangles": 280
+    },
+    {
+      "name": "Building_11_Archive",
+      "materials": [
+        "Town_Wall",
+        "Town_StoneDark"
+      ],
+      "vertices": 80,
+      "triangles": 120
+    },
+    {
+      "name": "Details_11_Archive",
+      "materials": [
+        "Town_Wood",
+        "Town_Window",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Glass",
+        "Town_Brass",
+        "Town_Jade",
+        "Town_ClothCream",
+        "Town_Stone",
+        "Town_Moss",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 2560,
+      "triangles": 3620
+    },
+    {
+      "name": "Roof_11_Archive",
+      "materials": [
+        "Town_Limestone",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneDark"
+      ],
+      "vertices": 984,
+      "triangles": 724
+    },
+    {
+      "name": "Building_12_Chapel",
+      "materials": [
+        "Town_Wall",
+        "Town_StoneDark"
+      ],
+      "vertices": 80,
+      "triangles": 120
+    },
+    {
+      "name": "Details_12_Chapel",
+      "materials": [
+        "Town_Wood",
+        "Town_Glass",
+        "Town_Limestone",
+        "Town_Metal",
+        "Town_Window",
+        "Town_Brass",
+        "Town_Jade",
+        "Town_ClothCream",
+        "Town_Moss",
+        "Town_Stone",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneWarm"
+      ],
+      "vertices": 2656,
+      "triangles": 3764
+    },
+    {
+      "name": "Roof_12_Chapel",
+      "materials": [
+        "Town_Limestone",
+        "Town_Roof",
+        "Town_RoofLight",
+        "Town_StoneDark",
+        "Town_Brass",
+        "Town_Metal"
+      ],
+      "vertices": 1514,
+      "triangles": 1212
+    },
+    {
+      "name": "Cover_23",
+      "materials": [
+        "Town_WoodLight",
+        "Town_Wood",
+        "Town_Cloth"
+      ],
+      "vertices": 104,
+      "triangles": 160
+    },
+    {
+      "name": "Cover_24",
+      "materials": [
+        "Town_WoodLight",
+        "Town_Wood",
+        "Town_Cloth"
+      ],
+      "vertices": 104,
+      "triangles": 160
+    },
+    {
+      "name": "Cover_25",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_Metal",
+        "Town_Brass"
+      ],
+      "vertices": 336,
+      "triangles": 508
+    },
+    {
+      "name": "Cover_26",
+      "materials": [
+        "Town_Metal",
+        "Town_Brass",
+        "Town_Jade"
+      ],
+      "vertices": 256,
+      "triangles": 276
+    },
+    {
+      "name": "Cover_27",
+      "materials": [
+        "Town_WoodLight",
+        "Town_Wood",
+        "Town_RoofRust",
+        "Town_RoofRustLight"
+      ],
+      "vertices": 326,
+      "triangles": 352
+    },
+    {
+      "name": "Cover_28",
+      "materials": [
+        "Town_WoodLight",
+        "Town_Wood",
+        "Town_RoofRust",
+        "Town_RoofRustLight"
+      ],
+      "vertices": 326,
+      "triangles": 352
+    },
+    {
+      "name": "Cover_29",
+      "materials": [
+        "Town_StoneDark",
+        "Town_Limestone",
+        "Town_Brass",
+        "Town_Jade"
+      ],
+      "vertices": 128,
+      "triangles": 148
+    },
+    {
+      "name": "Cover_30",
+      "materials": [
+        "Town_StoneDark",
+        "Town_Limestone",
+        "Town_StoneLight",
+        "Town_Mortar"
+      ],
+      "vertices": 104,
+      "triangles": 156
+    },
+    {
+      "name": "Cover_31",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Roof"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_32",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Cloth"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_33",
+      "materials": [
+        "Town_StoneDark",
+        "Town_Limestone",
+        "Town_StoneLight",
+        "Town_Mortar"
+      ],
+      "vertices": 104,
+      "triangles": 156
+    },
+    {
+      "name": "Cover_34",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Cloth"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_35",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Roof"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_36",
+      "materials": [
+        "Town_StoneDark",
+        "Town_Limestone",
+        "Town_StoneLight",
+        "Town_Mortar"
+      ],
+      "vertices": 104,
+      "triangles": 156
+    },
+    {
+      "name": "Cover_37",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Roof"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_38",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Cloth"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_39",
+      "materials": [
+        "Town_StoneDark",
+        "Town_Limestone",
+        "Town_StoneLight",
+        "Town_Mortar"
+      ],
+      "vertices": 104,
+      "triangles": 156
+    },
+    {
+      "name": "Cover_40",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Cloth"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_41",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Roof"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_42",
+      "materials": [
+        "Town_StoneDark",
+        "Town_Limestone",
+        "Town_StoneLight",
+        "Town_Mortar"
+      ],
+      "vertices": 104,
+      "triangles": 156
+    },
+    {
+      "name": "Cover_43",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Roof"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_44",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Cloth"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_45",
+      "materials": [
+        "Town_StoneDark",
+        "Town_Limestone",
+        "Town_StoneLight",
+        "Town_Mortar"
+      ],
+      "vertices": 104,
+      "triangles": 156
+    },
+    {
+      "name": "Cover_46",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Cloth"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Cover_47",
+      "materials": [
+        "Town_Wood",
+        "Town_WoodLight",
+        "Town_StoneLight",
+        "Town_Metal",
+        "Town_ClothCream",
+        "Town_Roof"
+      ],
+      "vertices": 160,
+      "triangles": 240
+    },
+    {
+      "name": "Town_QuaysAndPiles",
+      "materials": [
+        "Town_StoneDark",
+        "Town_Limestone",
+        "Town_Moss",
+        "Town_Wood"
+      ],
+      "vertices": 64210,
+      "triangles": 97224
+    },
+    {
+      "name": "Town_DistantRuins",
+      "materials": [
+        "Town_StoneDark",
+        "Town_Stone",
+        "Town_Limestone",
+        "Town_StoneLight",
+        "Town_Moss"
+      ],
+      "vertices": 700,
+      "triangles": 1160
+    }
+  ],
+  "buildingCount": 12,
+  "coverCount": 25,
+  "groundCellCount": 28241
+}
