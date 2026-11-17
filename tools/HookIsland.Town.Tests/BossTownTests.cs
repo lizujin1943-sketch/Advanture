@@ -22,11 +22,30 @@ internal static class BossTownTests
             ("town_boss_beacon_and_pose_anchor",()=>{
                 var b=Combat();var body=BossGeometry.Proxies(b).First();
                 Check(Math.Abs(body.X+8000)<5000 && Math.Abs(body.Z+12000)<5000,"Boss body remained at legacy world center.");
-                foreach(var p in TownLayout.ShootingPlatforms)
+            }),
+            ("town_basic_pistol_reaches_boss_through_idle_cycles_and_severed_arms",()=>{
+                var weapon=FirearmCatalog.Get(0);
+                foreach(bool enraged in new[]{false,true})foreach(bool severed in new[]{false,true})
                 {
-                    var eye=BossGeometry.Proxies(b).Single(v=>v.Eye);int x=eye.X-p.X,y=eye.Y-1480,z=eye.Z-p.Z,len=HookGame.Sqrt((long)x*x+(long)y*y+(long)z*z);
-                    int entry=BossGeometry.RayHit(b,p.X,1480,p.Z,(int)((long)x*1000000/len),(int)((long)y*1000000/len),(int)((long)z*1000000/len),12000,out _,out _);
-                    Check(entry<=10000,"Basic pistol cannot hit boss from a stone platform.");
+                    var limbs=Enumerable.Range(0,8).Select(i=>new BossLimbState(i,severed?0:300,300)).ToArray();
+                    for(int tick=0;tick<180;tick++)
+                    {
+                        var b=new BossState(BossPhase.Combat,2000,2400,1,phaseTicks:tick,limbs:limbs,enraged:enraged,townArena:true);
+                        var eye=BossGeometry.Proxies(b).Single(v=>v.Eye);
+                        foreach(var p in TownLayout.ShootingPlatforms)
+                        {
+                            int x=eye.X-p.X,y=eye.Y-1480,z=eye.Z-p.Z,len=HookGame.Sqrt((long)x*x+(long)y*y+(long)z*z);
+                            // Use the production 12m weapon range and quantized aim, including stationary spread.
+                            // The old 10m assertion was a spare margin for the previous, shorter model.
+                            foreach(int spread in new[]{-weapon.Spread.MinimumHalfAngle,0,weapon.Spread.MinimumHalfAngle})
+                            {
+                                FirearmSpread.Direction(x,z,spread,out int horizontalX,out int horizontalZ);
+                                BossGeometry.Direction3(horizontalX,horizontalZ,(short)((long)y*1000/len),out int dx,out int dy,out int dz);
+                                int entry=BossGeometry.RayHit(b,p.X,1480,p.Z,dx,dy,dz,weapon.Range,out _,out _);
+                                Check(entry<=weapon.Range,$"Pistol range {weapon.Range}mm cannot reach boss: platform=({p.X},{p.Z}), tick={tick}, enraged={enraged}, severed={severed}, spread={spread}, entry={entry}.");
+                            }
+                        }
+                    }
                 }
             }),
             ("town_slam_only_removes_its_four_authored_segments",()=>{

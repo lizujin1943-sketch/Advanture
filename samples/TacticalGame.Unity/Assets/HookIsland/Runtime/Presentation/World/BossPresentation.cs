@@ -71,11 +71,17 @@ namespace Advanture.HookIsland
             if (inkJet.enabled)
             {
                 inkJet.positionCount = 8;
+                Vector3 origin = root.InverseTransformPoint(animation.InkOrigin);
+                var direction = BossGeometry.InkDirection(state.Boss);
+                Vector3 target = new Vector3((state.Boss.CenterX + direction.X * 17) / 1000f, .52f,
+                    (state.Boss.CenterZ + direction.Z * 17) / 1000f);
                 for (int i = 0; i < 8; i++)
                 {
                     float t = i / 7f;
-                    inkJet.SetPosition(i, new Vector3(state.Boss.CenterX/1000f + BossGeometry.InkDirection(state.Boss).X/1000f*(2+t*15)+Mathf.Sin(i * 2 + inkAge) * .22f * t,
-                        Mathf.Lerp(2.6f, .52f, t) + Mathf.Sin(t * Mathf.PI) * 1.6f, state.Boss.CenterZ / 1000f + BossGeometry.InkDirection(state.Boss).Z/1000f*(2+t*15)));
+                    Vector3 point = Vector3.Lerp(origin, target, t);
+                    point.x += Mathf.Sin(i * 2 + inkAge) * .22f * t;
+                    point.y += Mathf.Sin(t * Mathf.PI) * 1.6f;
+                    inkJet.SetPosition(i, point);
                 }
             }
         }

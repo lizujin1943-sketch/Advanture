@@ -13,7 +13,7 @@ namespace Advanture.HookIsland.Editor
     public static class BossChallengeInstaller
     {
         public const string SettingsPath = "Assets/HookIsland/Data/BossSettings.asset";
-        [MenuItem("Tools/Hook Island/Install Abyssal Watcher Challenge")]
+        [MenuItem("Tools/Hook Island/Install Winged Cthulhu Challenge")]
         public static void Install()
         {
             if (Application.isPlaying) throw new InvalidOperationException("请先停止游戏再安装 BOSS。");
@@ -22,12 +22,12 @@ namespace Advanture.HookIsland.Editor
                 throw new InvalidOperationException("请先打开 HookPlatform 场景。");
             var platform = AssetDatabase.LoadAssetAtPath<PlatformSettings>(HookPlatformSceneBuilder.SettingsPath);
             if (platform == null || platform.fishing == null) throw new InvalidOperationException("请先安装现有钓鱼系统。");
-            AbyssalWatcherArtInstaller.Install();
             var settings = AssetDatabase.LoadAssetAtPath<BossSettings>(SettingsPath);
             if (settings == null)
             { settings = ScriptableObject.CreateInstance<BossSettings>(); AssetDatabase.CreateAsset(settings, SettingsPath); }
-            settings.modelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(AbyssalWatcherArtInstaller.PrefabPath);
-            settings.clips = AssetDatabase.FindAssets("t:AnimationClip", new[] { "Assets/HookIsland/Art/AbyssalWatcher/Animations" })
+            WingedCthulhuArtInstaller.Install();
+            settings.modelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(WingedCthulhuArtInstaller.PrefabPath);
+            settings.clips = AssetDatabase.FindAssets("t:AnimationClip", new[] { WingedCthulhuArtInstaller.ClipsPath })
                 .Select(AssetDatabase.GUIDToAssetPath).Select(AssetDatabase.LoadAssetAtPath<AnimationClip>).OrderBy(c => c.name).ToArray();
             if (settings.modelPrefab == null || settings.clips.Length != 24) throw new InvalidOperationException("BOSS 模型或 24 个动作不完整。");
             settings.enableChallenge = true;

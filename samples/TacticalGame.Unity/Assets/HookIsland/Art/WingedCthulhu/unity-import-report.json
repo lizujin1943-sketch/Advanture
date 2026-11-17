@@ -1,0 +1,9 @@
+{
+    "status": "PASS",
+    "clips": 24,
+    "bones": 219,
+    "meshes": 20,
+    "triangles": 155034,
+    "scaleCorrection": 1.0,
+    "maxIdleJointErrorMeters": 0.000792435894254595
+}

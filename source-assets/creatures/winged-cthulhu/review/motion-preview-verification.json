@@ -1,0 +1,33 @@
+{
+  "frames": 327,
+  "fps": 15,
+  "chapters": [
+    {
+      "clip": "AW_Idle",
+      "startSeconds": 0.0
+    },
+    {
+      "clip": "AW_Slam_A02",
+      "startSeconds": 6.0
+    },
+    {
+      "clip": "AW_Sweep_A04",
+      "startSeconds": 9.0
+    },
+    {
+      "clip": "AW_Ink",
+      "startSeconds": 12.6
+    },
+    {
+      "clip": "AW_Death",
+      "startSeconds": 15.8
+    }
+  ],
+  "status": "PASS",
+  "file": "motion-preview.mp4",
+  "resolution": [
+    960,
+    640
+  ],
+  "scope": "Actual skinned workbench frames; final lighting/materials in rendered stills and Unity capture"
+}

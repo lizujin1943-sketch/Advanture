@@ -1,0 +1,107 @@
+{
+  "status": "PASS",
+  "fbxSHA256": "83076b201add59fa42e93c823536694ecb43e094828f88cc455be031d4dbda3a",
+  "sourceSHA256": "432c4e52d0e0cc8633d5799c31d97db54fced9726136ed7d02885611560c3b9a",
+  "clips": [
+    {
+      "clip": "AW_Emerge",
+      "maxJointErrorMm": 0.5018725395202637
+    },
+    {
+      "clip": "AW_Idle",
+      "maxJointErrorMm": 0.6032299995422363
+    },
+    {
+      "clip": "AW_Slam_A01",
+      "maxJointErrorMm": 0.5020828247070312
+    },
+    {
+      "clip": "AW_Sweep_A01",
+      "maxJointErrorMm": 0.5003852844238281
+    },
+    {
+      "clip": "AW_Slam_A02",
+      "maxJointErrorMm": 0.5018768310546875
+    },
+    {
+      "clip": "AW_Sweep_A02",
+      "maxJointErrorMm": 0.54632568359375
+    },
+    {
+      "clip": "AW_Slam_A03",
+      "maxJointErrorMm": 0.5003852844238281
+    },
+    {
+      "clip": "AW_Sweep_A03",
+      "maxJointErrorMm": 0.5003852844238281
+    },
+    {
+      "clip": "AW_Slam_A04",
+      "maxJointErrorMm": 0.5001468658447266
+    },
+    {
+      "clip": "AW_Sweep_A04",
+      "maxJointErrorMm": 0.5001468658447266
+    },
+    {
+      "clip": "AW_Ink",
+      "maxJointErrorMm": 0.6032299995422363
+    },
+    {
+      "clip": "AW_Hit",
+      "maxJointErrorMm": 0.5001468658447266
+    },
+    {
+      "clip": "AW_Enrage",
+      "maxJointErrorMm": 0.5214443206787109
+    },
+    {
+      "clip": "AW_EnragedIdle",
+      "maxJointErrorMm": 0.6104507446289062
+    },
+    {
+      "clip": "AW_Sever_A01",
+      "maxJointErrorMm": 0.5003852844238281
+    },
+    {
+      "clip": "AW_Sever_A02",
+      "maxJointErrorMm": 0.5003852844238281
+    },
+    {
+      "clip": "AW_Sever_A03",
+      "maxJointErrorMm": 0.5003852844238281
+    },
+    {
+      "clip": "AW_Sever_A04",
+      "maxJointErrorMm": 0.5001468658447266
+    },
+    {
+      "clip": "AW_Sever_S01",
+      "maxJointErrorMm": 0.5003852844238281
+    },
+    {
+      "clip": "AW_Sever_S02",
+      "maxJointErrorMm": 0.5003852844238281
+    },
+    {
+      "clip": "AW_Sever_S03",
+      "maxJointErrorMm": 0.5003852844238281
+    },
+    {
+      "clip": "AW_Sever_S04",
+      "maxJointErrorMm": 0.5003852844238281
+    },
+    {
+      "clip": "AW_Death",
+      "maxJointErrorMm": 0.5990028381347656
+    },
+    {
+      "clip": "AW_Combination",
+      "maxJointErrorMm": 0.5214443206787109
+    }
+  ],
+  "maxEyeErrorMm": 0.5299391746520996,
+  "meshCount": 20,
+  "boneCount": 219,
+  "scope": "FBX roundtrip and sampled joints/eye; engine validation is separate"
+}

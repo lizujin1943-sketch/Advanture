@@ -1,0 +1,15 @@
+# Reproducible intermediate Blender files; high radial source and final rig stay tracked.
+/CR_WingedCthulhu_master.blend
+/CR_WingedCthulhu_textured.blend
+/CR_WingedCthulhu_game_mesh.blend
+# Superseded frontal-only reviews are retained locally for comparison.
+/review/clay-*.png
+/review/face-detail*.png
+/review/reference-*.png
+/review/three-quarter.png
+/review/texture-*.png
+/review/silhouette*.png
+/review/silhouette*.json
+/review/full-frame-silhouette.json
+/review/qa-high.json
+/review/qa-textures.json

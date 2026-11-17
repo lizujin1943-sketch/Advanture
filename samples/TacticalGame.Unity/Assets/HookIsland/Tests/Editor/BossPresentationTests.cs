@@ -52,11 +52,39 @@ namespace Advanture.HookIsland.Tests
         private static BossState State(BossLimbState[] limbs) => new BossState(BossPhase.Combat, 2000, 2400, 1,
             phaseTicks: 100, limbs: limbs);
 
-        [Test] public void ImportedAnimationAndAuthoritativeJointSamplesShareCoordinatesAndClocks()
+        [Test] public void ReplacementHasRearArmsAndAnimatedWingsMouthAndInkOrigin()
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<BossSettings>("Assets/HookIsland/Data/BossSettings.asset");
+            Assert.That(settings.modelPrefab.name, Is.EqualTo("WingedCthulhu"));
+            var root = new GameObject("Boss spatial and motion acceptance");
+            var view = new BossAnimationView(root.transform, settings);
+            try
+            {
+                var limbs = Enumerable.Range(0, 8).Select(i => new BossLimbState(i, 300, 300)).ToArray();
+                view.Synchronize(new BossState(BossPhase.Combat, 2000, 2400, 1, limbs: limbs), 1);
+                var joints = root.GetComponentsInChildren<Transform>(true).ToDictionary(t => t.name);
+                Assert.That(joints["DEF_A01_00"].position.z, Is.LessThan(0));
+                Assert.That(joints["DEF_S01_00"].position.z, Is.GreaterThan(0));
+                Assert.That(joints["DEF_S02_00"].position.z, Is.GreaterThan(0));
+                var wing = joints["DEF_Wing_L"].rotation;
+                var mouth = joints["DEF_Mouth_00_06"].position;
+                var origin = view.InkOrigin;
+                view.Synchronize(new BossState(BossPhase.Combat, 2000, 2400, 1, phaseTicks: 45, limbs: limbs), 2);
+                Assert.That(Quaternion.Angle(wing, joints["DEF_Wing_L"].rotation), Is.GreaterThan(1));
+                Assert.That(Vector3.Distance(mouth, joints["DEF_Mouth_00_06"].position), Is.GreaterThan(.02f));
+                Assert.That(Vector3.Distance(origin, view.InkOrigin), Is.GreaterThan(.01f));
+                Assert.That(Vector3.Distance(view.InkOrigin, joints["SOCKET_Ink"].position), Is.LessThan(.0001f));
+            }
+            finally { view.Dispose(); Object.DestroyImmediate(root); }
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void ImportedAnimationAndAuthoritativeJointSamplesShareCoordinatesAndClocks(bool townArena)
         {
             var settings = AssetDatabase.LoadAssetAtPath<BossSettings>("Assets/HookIsland/Data/BossSettings.asset");
             var root = new GameObject("Boss geometry acceptance");
-            root.transform.position = new Vector3(0, 0, BossConfig.CenterZ / 1000f);
+            root.transform.position = new Vector3(townArena ? TownLayout.CenterX : BossConfig.CenterX, 0,
+                townArena ? TownLayout.CenterZ : BossConfig.CenterZ) / 1000f;
             var view = new BossAnimationView(root.transform, settings);
             try
             {
@@ -67,13 +95,15 @@ namespace Advanture.HookIsland.Tests
                     var limbs = Enumerable.Range(0, 8).Select(i => new BossLimbState(i, 300, 300)).ToArray();
                     if (scenario >= 4)
                     {
-                        limbs[0] = new BossLimbState(0, 300, 300, BossAttack.Slam, 36);
-                        limbs[2] = new BossLimbState(2, 300, 300, BossAttack.Sweep, 47);
+                        limbs[0] = new BossLimbState(0, 300, 300, BossAttack.Slam, 36,
+                            attackX: townArena ? 600 : 0, attackZ: townArena ? 800 : 0);
+                        limbs[2] = new BossLimbState(2, 300, 300, BossAttack.Sweep, 47,
+                            attackX: townArena ? -800 : 0, attackZ: townArena ? -600 : 0);
                     }
                     var phase = scenario == 1 ? BossPhase.Emerge : scenario == 2 ? BossPhase.Enrage :
                         scenario == 3 ? BossPhase.Dying : BossPhase.Combat;
                     var state = new BossState(phase, 2000, 2400, 1, phaseTicks: 67, limbs: limbs,
-                        inkWindupTicks: scenario == 5 || scenario == 7 ? 50 : 0, enraged: scenario >= 6);
+                        inkWindupTicks: scenario == 5 || scenario == 7 ? 50 : 0, enraged: scenario >= 6, townArena: townArena);
                     view.Synchronize(state, (ulong)(100 + scenario));
                     var proxies = BossGeometry.Proxies(state);
                     for (int id = 0; id < 8; id++)

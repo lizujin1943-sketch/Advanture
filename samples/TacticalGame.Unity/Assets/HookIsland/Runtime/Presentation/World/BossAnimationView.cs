@@ -27,6 +27,8 @@ namespace Advanture.HookIsland
         private readonly Vector3[] debrisOrigins = new Vector3[8];
         private readonly List<Mesh>[] debrisMeshes = new List<Mesh>[8];
         private readonly Transform parent;
+        private readonly Transform inkOrigin;
+        public Vector3 InkOrigin => inkOrigin != null ? inkOrigin.position : parent.TransformPoint(new Vector3(0, 2.6f, -2));
         private ulong lastStep = ulong.MaxValue;
         private BossState lastBoss;
         private static readonly string[] LimbNames = { "A01", "A02", "A03", "A04", "S01", "S02", "S03", "S04" };
@@ -35,13 +37,14 @@ namespace Advanture.HookIsland
         {
             this.parent = parent;
             model = Object.Instantiate(settings.modelPrefab, parent, false);
-            model.name = "AbyssalWatcher (confirmed animation)";
+            model.name = settings.modelPrefab.name + " (confirmed animation)";
             var animator = model.GetComponentInChildren<Animator>(true);
             if (animator == null) throw new InvalidOperationException("BOSS 模型缺少 Animator 骨架入口。");
             animationRoot = animator.gameObject;
             animator.applyRootMotion = false;
             animator.enabled = false; // 时间完全由确认帧决定，Animator 不再自行推进一次。
             joints = animationRoot.GetComponentsInChildren<Transform>(true);
+            inkOrigin = joints.FirstOrDefault(t => t.name == "SOCKET_Ink");
             composed = new Pose[joints.Length];
             clips = settings.clips.Where(c => c != null).ToDictionary(c => ClipKey(c.name), c => c);
             foreach (var key in new[] { "AW_Idle", "AW_Emerge", "AW_Death", "AW_Enrage", "AW_EnragedIdle", "AW_Ink" })
@@ -119,11 +122,16 @@ namespace Advanture.HookIsland
                 var from=BossGeometry.AttackDirection(limb.Id);var to=BossGeometry.AttackDirection(boss,limb.Id);
                 float angle=Vector3.SignedAngle(new Vector3(from.X,0,from.Z),new Vector3(to.X,0,to.Z),Vector3.up);
                 var turn=Quaternion.AngleAxis(angle,Vector3.up);
+                // Quantized directions are not exactly unit length. Keep the same
+                // coefficients as BossPoseData instead of normalizing position offsets.
+                float cosine=((long)from.X*to.X+(long)from.Z*to.Z)/1000000f;
+                float sine=((long)from.X*to.Z-(long)from.Z*to.X)/1000000f;
                 foreach(var joint in joints)
                 {
                     if(!joint.name.StartsWith(prefix,StringComparison.Ordinal) || joint.parent!=null && joint.parent.name.StartsWith(prefix,StringComparison.Ordinal))continue;
                     Vector3 local=model.transform.InverseTransformPoint(joint.position);
-                    joint.position=model.transform.TransformPoint(turn*local);
+                    joint.position=model.transform.TransformPoint(new Vector3(local.x*cosine-local.z*sine,
+                        local.y,local.x*sine+local.z*cosine));
                     joint.rotation=model.transform.rotation*turn*Quaternion.Inverse(model.transform.rotation)*joint.rotation;
                 }
             }

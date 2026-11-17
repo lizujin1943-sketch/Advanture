@@ -254,7 +254,7 @@ namespace Advanture.HookIsland.Editor
             }
         }
 
-        private static AnimationCurve ReduceCurve(AnimationCurve input, float duration, float tolerance)
+        internal static AnimationCurve ReduceCurve(AnimationCurve input, float duration, float tolerance)
         {
             // 保留 30 Hz 原采样的数值精度，仅消除常量和线性冗余点；误差不会进入玩法状态。
             int count = Mathf.RoundToInt(duration * 30) + 1;

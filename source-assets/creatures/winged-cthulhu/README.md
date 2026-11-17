@@ -1,0 +1,47 @@
+# 带翼克苏鲁：空间重建、动画和游戏资源
+
+原始概念图见 `ref/user-reference.png`；推断的正、侧、后、俯视设计见 `ref/inferred-turnaround-v1.png`。背面、体厚和遮挡下连接属于推断，不是原图给出的准确结构。
+
+## 可编辑文件
+
+- `CR_WingedCthulhu_radial.blend`：带程序材质和参考色素纹理的高模，八条主触腕围绕身体分布。
+- `CR_WingedCthulhu_animated.blend`：游戏网格、唯一 UV、打包贴图、完整骨架和 24 个动作。Blender 5.3.0，米制，Z 向上、-Y 向前。
+- `textures/`：高模绘制纹理；`runtime-textures/`：Unity 所用的烘焙 BaseColor / Roughness / Normal。
+- `exports/unity/`：FBX、动作/碰撞清单、毫米整数采样与导出回读报告。
+- `review/`：当前多角度实模、动作极端姿态、游戏网格检查及 Unity 场景截图。`silhouette-fit-field.npz` 是早期正面比例校正场，绑定口须时仍使用。
+
+主触腕为 A01–A04（四条前侧攻击腕）与 S01–S04（四条后侧支撑腕）；角度依次为 -65、-24、24、65、-115、-158、158、115 度。八条口须是独立的面部结构，不计入八条主腕。吸盘沿连续腹面布置；背面有真实腕根、触腕和吸盘。
+
+游戏可见主体 149,274 三角面，加八个隐藏断腕残端共 155,034 三角面；219 骨，20 个独立蒙皮对象。头身与腕各用 4K 贴图组，双翼用 2K 贴图组。眼睛及残端使用常量材质。运行时不依赖 Blender 程序节点；近共面接触在烘焙前通过最多约毫米级的局部几何错层修正，记录在 `runtime-geometry.json`。
+
+## 动作和游戏接口
+
+24 个动作保留现有 AW_ 名称：出现、待机、四路下砸、四路横扫、喷墨、受击、狂暴、狂暴待机、八路断肢、死亡和组合预览。翅膀和口须有延迟次级运动，待机与狂暴待机循环端点一致。`SOCKET_Ink` 随头部移动。
+
+Unity 使用确认帧按 30 Hz 直接采样，Animator 不自主推进。各攻击腕只覆盖自己的骨链，断肢网格可单独关闭。碰撞采样与同一骨架同一动作一起生成，发布时校验源文件、FBX、检查报告的哈希；替换 `BossCollisions.bin.gz` 后同步内容哈希，防止旧新资产的客户端混合联机。
+
+Unity 编辑器入口：`Tools → Hook Island → Install Winged Cthulhu Boss Art`。替换已有 `BossSettings` 的模型和动作，保留玩法参数。`Capture Winged Cthulhu In Town` 在临时表现对象上采样并截图，不写权威状态、不保存场景改动。最终验证记录见仓库 `docs/winged-cthulhu-boss-replacement.md`。
+
+## 重建
+
+从仓库根目录，用独立后台 Blender 运行；每步输入都是上一步输出：
+
+```sh
+BLENDER=/Applications/Blender.app/Contents/MacOS/Blender
+ASSET=source-assets/creatures/winged-cthulhu
+"$BLENDER" --background "$ASSET/CR_WingedCthulhu_radial.blend" --python-exit-code 1 --python scripts/blender/prepare_winged_cthulhu_game.py
+"$BLENDER" --background "$ASSET/CR_WingedCthulhu_game_mesh.blend" --python-exit-code 1 --python scripts/blender/animate_winged_cthulhu.py
+"$BLENDER" --background "$ASSET/CR_WingedCthulhu_animated.blend" --python-exit-code 1 --python scripts/blender/verify_winged_cthulhu_game.py
+"$BLENDER" --background "$ASSET/CR_WingedCthulhu_animated.blend" --python-exit-code 1 --python scripts/blender/export_winged_cthulhu.py -- export
+"$BLENDER" --background --factory-startup --python-exit-code 1 --python scripts/blender/export_winged_cthulhu.py -- verify
+"$BLENDER" --background --factory-startup --python-exit-code 1 --python scripts/blender/export_winged_cthulhu.py -- publish
+./scripts/sync-hook-island.sh
+```
+
+检查脚本使用本机安装的 `blender-asset-qa` 技能；发布须先有匹配当前文件哈希的网格检查和 FBX 回读报告。更换工作站时调整该技能路径。建模、动画、烘焙和导出不需要付费生成服务。
+
+早期来源链仍保留脚本：`create_winged_cthulhu.py` → `apply_winged_cthulhu_fit.py` → `paint_winged_cthulhu.py` → `rebuild_winged_cthulhu_radial.py`。早期 master/textured 与无骨架 game_mesh 是可再生成的本地中间文件，不提交；最终高模和动画源文件提交。旧正面图没有作为当前还原度证据。
+
+## 保留的边界
+
+这是从单张绘画推断的三维版本，不声称像素级一致；背面斑纹、腕部卷曲、翼膜细节与原图仍有差异。减面使用轮廓误差约束，不是人工全四边面重拓扑；暂无 LOD 和移动端性能验收。头部使用简化代理，触腕使用保守胶囊采样，双眼沿用现有的一个整体弱点接口。工作台动作视频用于检查变形；最终材质以真实渲染和 Unity 截图为准。

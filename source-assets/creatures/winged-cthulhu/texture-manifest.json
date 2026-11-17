@@ -1,0 +1,114 @@
+{
+  "method": "Reference-derived pigment masks and high-frequency paint; no full photograph/emission projection",
+  "source_resolution": [
+    1536,
+    1024
+  ],
+  "resolution_note": "4096 maps are storage/interpolation resolution, not 4096 pixels of source evidence",
+  "color_management": "Albedo sRGB, coverage/height/roughness Non-Color",
+  "coverage": "Fixed front mesh UVs; inferred side/back 3D pigment; no runtime UV bake",
+  "geometry_changed": false,
+  "textures": [
+    {
+      "file": "T_WingedCthulhu_Skin_Albedo.png",
+      "size": [
+        4096,
+        4096
+      ],
+      "color_space": "sRGB",
+      "packed": true
+    },
+    {
+      "file": "T_WingedCthulhu_Head_Albedo.png",
+      "size": [
+        4096,
+        4096
+      ],
+      "color_space": "sRGB",
+      "packed": true
+    },
+    {
+      "file": "T_WingedCthulhu_Skin_Coverage.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "color_space": "Non-Color",
+      "packed": true
+    },
+    {
+      "file": "T_WingedCthulhu_Head_Coverage.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "color_space": "Non-Color",
+      "packed": true
+    },
+    {
+      "file": "T_WingedCthulhu_Skin_Height.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "color_space": "Non-Color",
+      "packed": true
+    },
+    {
+      "file": "T_WingedCthulhu_Head_Height.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "color_space": "Non-Color",
+      "packed": true
+    },
+    {
+      "file": "T_WingedCthulhu_Skin_Roughness.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "color_space": "Non-Color",
+      "packed": true
+    },
+    {
+      "file": "T_WingedCthulhu_Cup_Albedo.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "color_space": "sRGB",
+      "packed": true
+    },
+    {
+      "file": "T_WingedCthulhu_Cup_Roughness.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "color_space": "Non-Color",
+      "packed": true
+    },
+    {
+      "file": "T_WingedCthulhu_Wing_Albedo.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "color_space": "sRGB",
+      "packed": true
+    },
+    {
+      "file": "T_WingedCthulhu_Wing_Roughness.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "color_space": "Non-Color",
+      "packed": true
+    }
+  ],
+  "source_sha256": "2a4599915bbe27f24643ddb0b9ce0fd7b906c46ed3611dffcf5bdd769c2397ec",
+  "stage": "High-source paint stage; final baked runtime maps are listed in exports/unity/unity-manifest.json"
+}

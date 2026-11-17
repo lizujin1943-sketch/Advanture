@@ -1,0 +1,210 @@
+{
+  "triangles": 149274,
+  "reduction": [
+    {
+      "name": "CR_WingedCthulhu_OrganicCore",
+      "sourceVertices": 295910,
+      "vertices": 25145,
+      "maxSurfaceErrorMeters": 0.004105385392904282
+    },
+    {
+      "name": "CR_WingedCthulhu_WingMembrane_L",
+      "sourceVertices": 7044,
+      "vertices": 3950,
+      "maxSurfaceErrorMeters": 0.022517401725053787
+    },
+    {
+      "name": "CR_WingedCthulhu_WingVeins_L",
+      "sourceVertices": 1512,
+      "vertices": 612,
+      "maxSurfaceErrorMeters": 0.0018076170235872269
+    },
+    {
+      "name": "CR_WingedCthulhu_WingMembrane_R",
+      "sourceVertices": 7044,
+      "vertices": 3950,
+      "maxSurfaceErrorMeters": 0.008709350600838661
+    },
+    {
+      "name": "CR_WingedCthulhu_WingVeins_R",
+      "sourceVertices": 1512,
+      "vertices": 612,
+      "maxSurfaceErrorMeters": 0.0018752629403024912
+    },
+    {
+      "name": "CR_WingedCthulhu_CheekFin_L",
+      "sourceVertices": 3202,
+      "vertices": 1282,
+      "maxSurfaceErrorMeters": 0.0009507176582701504
+    },
+    {
+      "name": "CR_WingedCthulhu_CheekFin_R",
+      "sourceVertices": 2402,
+      "vertices": 962,
+      "maxSurfaceErrorMeters": 0.0014040860114619136
+    },
+    {
+      "name": "CR_WingedCthulhu_Socket_L",
+      "sourceVertices": 1402,
+      "vertices": 562,
+      "maxSurfaceErrorMeters": 0.0005167807685211301
+    },
+    {
+      "name": "CR_WingedCthulhu_Socket_R",
+      "sourceVertices": 1402,
+      "vertices": 562,
+      "maxSurfaceErrorMeters": 0.0005036621587350965
+    },
+    {
+      "name": "CR_WingedCthulhu_Eye_L",
+      "sourceVertices": 1402,
+      "vertices": 562,
+      "maxSurfaceErrorMeters": 0.00016327621415257454
+    },
+    {
+      "name": "CR_WingedCthulhu_Eye_R",
+      "sourceVertices": 1202,
+      "vertices": 482,
+      "maxSurfaceErrorMeters": 0.00016254762886092067
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_A01",
+      "sourceVertices": 23142,
+      "vertices": 4742,
+      "maxSurfaceErrorMeters": 0.006475948262959719
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_A02",
+      "sourceVertices": 21206,
+      "vertices": 4342,
+      "maxSurfaceErrorMeters": 0.007368743885308504
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_A03",
+      "sourceVertices": 21690,
+      "vertices": 4442,
+      "maxSurfaceErrorMeters": 0.010711594484746456
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_A04",
+      "sourceVertices": 24110,
+      "vertices": 4942,
+      "maxSurfaceErrorMeters": 0.01216665469110012
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_S01",
+      "sourceVertices": 22098,
+      "vertices": 4530,
+      "maxSurfaceErrorMeters": 0.00572167569771409
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_S02",
+      "sourceVertices": 23142,
+      "vertices": 4742,
+      "maxSurfaceErrorMeters": 0.008768619038164616
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_S03",
+      "sourceVertices": 23626,
+      "vertices": 4842,
+      "maxSurfaceErrorMeters": 0.006529086269438267
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_S04",
+      "sourceVertices": 22098,
+      "vertices": 4530,
+      "maxSurfaceErrorMeters": 0.00572127103805542
+    }
+  ],
+  "surfaceRelief": [
+    {
+      "object": "AW_Head",
+      "contactCounts": [
+        1,
+        0
+      ],
+      "maxReliefMeters": 0.003000089809838839
+    },
+    {
+      "object": "WC_Wing_L",
+      "contactCounts": [
+        12,
+        3,
+        0
+      ],
+      "maxReliefMeters": 0.0059999140824568715
+    },
+    {
+      "object": "WC_Wing_R",
+      "contactCounts": [
+        12,
+        0
+      ],
+      "maxReliefMeters": 0.0030001008915848232
+    },
+    {
+      "object": "AW_Arm_A01",
+      "contactCounts": [
+        0
+      ],
+      "maxReliefMeters": 0.0
+    },
+    {
+      "object": "AW_Arm_A02",
+      "contactCounts": [
+        0
+      ],
+      "maxReliefMeters": 0.0
+    },
+    {
+      "object": "AW_Arm_A03",
+      "contactCounts": [
+        0
+      ],
+      "maxReliefMeters": 0.0
+    },
+    {
+      "object": "AW_Arm_A04",
+      "contactCounts": [
+        2,
+        0
+      ],
+      "maxReliefMeters": 0.0030001161250700916
+    },
+    {
+      "object": "AW_Arm_S01",
+      "contactCounts": [
+        1,
+        0
+      ],
+      "maxReliefMeters": 0.0029998174759162982
+    },
+    {
+      "object": "AW_Arm_S02",
+      "contactCounts": [
+        0
+      ],
+      "maxReliefMeters": 0.0
+    },
+    {
+      "object": "AW_Arm_S03",
+      "contactCounts": [
+        0
+      ],
+      "maxReliefMeters": 0.0
+    },
+    {
+      "object": "AW_Arm_S04",
+      "contactCounts": [
+        0
+      ],
+      "maxReliefMeters": 0.0
+    }
+  ],
+  "textureGroups": [
+    "Body4096",
+    "Arms4096",
+    "Wings2048"
+  ],
+  "uv": "Unique atlas RuntimeUV; no procedural Blender nodes required in engine"
+}

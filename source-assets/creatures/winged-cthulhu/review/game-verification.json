@@ -1,0 +1,71 @@
+{
+  "recordedUtc": "2026-11-17T13:23:26.157372+00:00",
+  "status": "PASS_AFTER_TARGETED_RETEST",
+  "fullEntry": {
+    "command": "./scripts/verify.sh",
+    "exitCode": 1,
+    "explicitPassLines": 928,
+    "failures": [
+      "FAIL town_boss_beacon_and_pose_anchor: Basic pistol cannot hit boss from a stone platform."
+    ],
+    "logSHA256": "9781809755da7ea0bd6ae2b1e16174559bb99269a685063c868e65ebe2338a93"
+  },
+  "resolution": {
+    "cause": "Old test used a 10m spare margin instead of the production pistol range of 12m; revised model hit distances are at most 10.374m across normal/enraged idle cycles. No production weapon/collision change was needed.",
+    "changedFile": "tools/HookIsland.Town.Tests/BossTownTests.cs",
+    "coverage": "All three stone platforms; 180 ticks each; normal/enraged; intact/severed limbs; quantized vertical aim and stationary spread endpoints. 6480 rays."
+  },
+  "targetedRetest": {
+    "command": "./scripts/verify-hook-town.sh",
+    "exitCode": 0,
+    "explicitPassLines": 74,
+    "failures": [],
+    "includes": [
+      "navigation cold start",
+      "geometry",
+      "gameplay",
+      "four UDP clients and restore",
+      "boss",
+      "network adapter"
+    ],
+    "logSHA256": "bea9d277b749da11dac99a7c610e181ad3fc4516bd2f2c1aca2906f69dba6c0e"
+  },
+  "unity": {
+    "version": "2022.3.62f1",
+    "mode": "EditMode via explicit project CLI",
+    "result": "Passed",
+    "passed": "5",
+    "failed": "0",
+    "cases": [
+      {
+        "name": "Advanture.HookIsland.Tests.BossPresentationTests.ConcurrentArmClipsDoNotOverwriteEachOtherAndSeveredArmStaysGoneDuringDeath",
+        "result": "Passed"
+      },
+      {
+        "name": "Advanture.HookIsland.Tests.BossPresentationTests.ImportedAnimationAndAuthoritativeJointSamplesShareCoordinatesAndClocks(False)",
+        "result": "Passed"
+      },
+      {
+        "name": "Advanture.HookIsland.Tests.BossPresentationTests.ImportedAnimationAndAuthoritativeJointSamplesShareCoordinatesAndClocks(True)",
+        "result": "Passed"
+      },
+      {
+        "name": "Advanture.HookIsland.Tests.BossPresentationTests.ReplacementHasRearArmsAndAnimatedWingsMouthAndInkOrigin",
+        "result": "Passed"
+      },
+      {
+        "name": "Advanture.HookIsland.Tests.BossPresentationTests.VerticalAimPreservesDirectionAndBounds",
+        "result": "Passed"
+      }
+    ]
+  },
+  "artifactIdentity": {
+    "sourceSHA256": "432c4e52d0e0cc8633d5799c31d97db54fced9726136ed7d02885611560c3b9a",
+    "fbxSHA256": "83076b201add59fa42e93c823536694ecb43e094828f88cc455be031d4dbda3a",
+    "collisionRawSHA256": "c103f344a4599dff531e3ff0e6a15e5544ca0344b2c659540e0ed87833eaa066"
+  },
+  "limits": [
+    "Full entry was not rerun after a test-only correction; earlier successful modules are retained, and the complete final Town module including the initially skipped adapter was rerun.",
+    "Scene captures sample the production presentation in the real scene; not a manual full playthrough or device performance certification."
+  ]
+}
