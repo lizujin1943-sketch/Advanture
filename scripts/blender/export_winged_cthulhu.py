@@ -76,6 +76,10 @@ def publish():
     assert m['sourceSHA256']==digest(OUT/'CR_WingedCthulhu_animated.blend')
     meshqa=json.loads((OUT/'review/qa-game.json').read_text())
     assert meshqa['pass'] and meshqa['sourceSHA256']==m['sourceSHA256']
+    seams=json.loads((OUT/'review/crown-seams.json').read_text())
+    assert seams['sourceSHA256']==m['sourceSHA256'] and seams['matchedVertices']==320
+    assert set(seams['maximumGapMmByClip'])=={clip['name'] for clip in m['clips']}
+    assert max(seams['maximumGapMmByClip'].values())<.10
     ART.mkdir(parents=True,exist_ok=True);(ART/'Textures').mkdir(exist_ok=True)
     for p in [EXPORT/'WingedCthulhu.fbx',EXPORT/'unity-manifest.json']:shutil.copy2(p,ART/p.name)
     for p in (OUT/'runtime-textures').glob('*.png'):shutil.copy2(p,ART/'Textures'/p.name)

@@ -85,7 +85,7 @@ def main():
     e.rotation_euler=(math.pi/2,0,0);e.location=(0,4,5.12);e.hide_render=True;e.hide_viewport=True
     bpy.data.collections['REF'].objects.link(e)
     root=bpy.data.objects.new('CR_WingedCthulhu',None);high.objects.link(root)
-    root['anatomy_revision']=2
+    root['anatomy_revision']=3
     root['asset_status']='Static high-resolution reference reconstruction; not runtime optimized'
     root['reference']='ref/user-reference.png';root['inferred']='Back anatomy, thickness, obscured arm roots'
     for ob in high.objects:

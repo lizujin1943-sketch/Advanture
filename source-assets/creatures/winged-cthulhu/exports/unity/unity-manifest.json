@@ -4,7 +4,7 @@
   "fps": 30,
   "boneCount": 219,
   "meshCount": 20,
-  "meshTriangles": 154116,
+  "meshTriangles": 148332,
   "clips": [
     {
       "name": "AW_Emerge",
@@ -2402,17 +2402,17 @@
     "AW_EnragedIdle": 0.0
   },
   "contract": "30 Hz confirmed-state sampling; independent severable limbs and per-limb ownership; no root motion animator",
-  "sourceSHA256": "49f17df57e21488cbf9621142a3d1570c1ec3b8c60827c72f73fc0dd90aba6bf",
-  "fbxSHA256": "4a7c1e9faa8a3885807b3c53e50291368e302b7dd5e45df51f48a48cd20a4ddd",
+  "sourceSHA256": "506aa03baf606e581c0d29129339ad819d147e25ca57c1b6a866c0f005893ac8",
+  "fbxSHA256": "79ae7745e454aaa7c4453b975a8525bb5e93355230d8aab6a5f06e7be3d69763",
   "textureSHA256": {
-    "T_WC_Arms_Roughness.png": "b2770d5698d90393180cfcaf6b4bd743ac11896e327be09f4001a8c451255bcd",
+    "T_WC_Arms_Roughness.png": "e2fe527c6cbae6e70e1cae69bcb4c18ee7a664d3b111d3a118efdbe03c2c8ebc",
     "T_WC_Wings_BaseColor.png": "0ca76edba31e07144a5f210120b82948591153ed1bba1db01ac5e25f38678406",
-    "T_WC_Arms_Normal.png": "f6154ed1933a90daa83d494fba473e12fa8ab840596abc19cf79f813949bf7d9",
-    "T_WC_Body_BaseColor.png": "b8148dd8d6dba341058b07fed3cfe221d939a619c956936f4bb1dfb400509c17",
-    "T_WC_Wings_Normal.png": "0a2dcaea775e303652a8c830057f410e3f5cbe0b3f59f32247016dbc5cd78ff0",
-    "T_WC_Body_Normal.png": "e57ba9c42222eb5097cff6a9951e7e796810bd74fdacfe30f988d27860b22382",
-    "T_WC_Body_Roughness.png": "60b8c7da71837c57ef0c1e5a8b9301660508efcd783669437ece9f437b9d0fdc",
+    "T_WC_Arms_Normal.png": "467d709928c7bc2c4a9bc805b4ed9a42bfc71b98c634a6177e821c4bd8be3af4",
+    "T_WC_Body_BaseColor.png": "0b4605af6fce11f92ae9e8744576aab781578208db763f95fd4dd902cd37f019",
+    "T_WC_Wings_Normal.png": "3b5418b58c980ceb8d30d591fb4161a6ba0317dffe7b0aec8b3dcb62f54cebbb",
+    "T_WC_Body_Normal.png": "9f4d75520aa1f0b3899c803394c2cbc8eecf2137652bf459adc2e5c57ed75ac3",
+    "T_WC_Body_Roughness.png": "b0e5ff3fe5ded83885910fd29e07e8b139ab6034b91a81766581bb25873849e8",
     "T_WC_Wings_Roughness.png": "7c7becf5d8b428fbd70ff694ce6f16133e9dc7a1bacee2f52eb0abadd20e2c31",
-    "T_WC_Arms_BaseColor.png": "90932d118802972e91723da311d672817f3479396528a9424a8aed69db821072"
+    "T_WC_Arms_BaseColor.png": "73eb3cad7868766d118444647c591ad15a0f2b7e2e62070a49c947d7e994b547"
   }
 }

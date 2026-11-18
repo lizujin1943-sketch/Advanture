@@ -24,22 +24,17 @@ def build_body(col,m):
         (8.18,2.22,1.77,.53),(8.78,1.99,1.65,.54),(9.32,1.56,1.38,.53),
         (9.69,1.06,1.02,.52),(9.91,.58,.63,.51),(10.00,.21,.25,.50),
         (10.014,.04,.05,.50)]
-    from .radial_arms import ANGLES
-    axes=[math.radians(a) for a in ANGLES.values()];n=128;previous=None
+    from .crown import trunk_angles
+    angles=list(trunk_angles());n=len(angles);previous=None
     for z,rx,ry,cy in spline([Vector(row) for row in profile],7):
-        row=[]
-        for i in range(n):
-            a=math.tau*i/n
-            lobe=max(max(0,math.cos(a-axis))**48 for axis in axes)
-            weight=math.exp(-((z-4.49)/.66)**2)
-            ridge=.22*lobe*weight
-            row.append(g.vert(((rx+ridge)*math.sin(a),cy-(ry+ridge)*math.cos(a),z-.09*lobe*weight)))
+
+        row=[g.vert((rx*math.sin(a),cy-ry*math.cos(a),z)) for a in angles]
         if previous is None:
             pole=g.vert((0,cy,z-.005))
             for i in range(n):g.face((pole,row[i],row[(i+1)%n]),1)
         else:
             for i in range(n):
-                j=(i+1)%n;a=math.tau*(i+.5)/n
+                j=(i+1)%n;a=angles[i]
                 # Pigment boundary follows the temples rather than an equatorial belt.
                 mi=0 if z>6.65+.34*math.cos(2*a)+.13*math.sin(3*a) else 1
                 g.face((previous[i],previous[j],row[j],row[i]),mi)

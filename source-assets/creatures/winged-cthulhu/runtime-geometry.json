@@ -1,11 +1,11 @@
 {
-  "triangles": 148356,
+  "triangles": 140652,
   "reduction": [
     {
       "name": "CR_WingedCthulhu_OrganicCore",
-      "sourceVertices": 272256,
-      "vertices": 23136,
-      "maxSurfaceErrorMeters": 0.015364214777946472
+      "sourceVertices": 244953,
+      "vertices": 20815,
+      "maxSurfaceErrorMeters": 0.024258440360426903
     },
     {
       "name": "CR_WingedCthulhu_WingMembrane_L",
@@ -69,51 +69,51 @@
     },
     {
       "name": "CR_WingedCthulhu_Arm_A01",
-      "sourceVertices": 24110,
-      "vertices": 4942,
-      "maxSurfaceErrorMeters": 0.006333853118121624
+      "sourceVertices": 22238,
+      "vertices": 4561,
+      "maxSurfaceErrorMeters": 0.006513433065265417
     },
     {
       "name": "CR_WingedCthulhu_Arm_A02",
-      "sourceVertices": 21690,
-      "vertices": 4442,
-      "maxSurfaceErrorMeters": 0.007417852059006691
+      "sourceVertices": 20285,
+      "vertices": 4157,
+      "maxSurfaceErrorMeters": 0.007182393688708544
     },
     {
       "name": "CR_WingedCthulhu_Arm_A03",
-      "sourceVertices": 22174,
-      "vertices": 4542,
+      "sourceVertices": 20279,
+      "vertices": 4156,
       "maxSurfaceErrorMeters": 0.008737170137465
     },
     {
       "name": "CR_WingedCthulhu_Arm_A04",
-      "sourceVertices": 24594,
-      "vertices": 5042,
+      "sourceVertices": 22724,
+      "vertices": 4661,
       "maxSurfaceErrorMeters": 0.010958652012050152
     },
     {
       "name": "CR_WingedCthulhu_Arm_S01",
-      "sourceVertices": 23066,
-      "vertices": 4730,
-      "maxSurfaceErrorMeters": 0.005518678575754166
+      "sourceVertices": 21172,
+      "vertices": 4344,
+      "maxSurfaceErrorMeters": 0.005462483502924442
     },
     {
       "name": "CR_WingedCthulhu_Arm_S02",
-      "sourceVertices": 23626,
-      "vertices": 4842,
+      "sourceVertices": 21755,
+      "vertices": 4461,
       "maxSurfaceErrorMeters": 0.006724353414028883
     },
     {
       "name": "CR_WingedCthulhu_Arm_S03",
-      "sourceVertices": 24594,
-      "vertices": 5042,
-      "maxSurfaceErrorMeters": 0.006211976055055857
+      "sourceVertices": 22721,
+      "vertices": 4661,
+      "maxSurfaceErrorMeters": 0.006248933263123035
     },
     {
       "name": "CR_WingedCthulhu_Arm_S04",
-      "sourceVertices": 23066,
-      "vertices": 4730,
-      "maxSurfaceErrorMeters": 0.005518515594303608
+      "sourceVertices": 21170,
+      "vertices": 4344,
+      "maxSurfaceErrorMeters": 0.0052836560644209385
     }
   ],
   "surfaceRelief": [
@@ -166,10 +166,9 @@
     {
       "object": "AW_Arm_A04",
       "contactCounts": [
-        1,
         0
       ],
-      "maxReliefMeters": 0.0030001161250700916
+      "maxReliefMeters": 0.0
     },
     {
       "object": "AW_Arm_S01",

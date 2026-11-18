@@ -1,78 +1,11 @@
 {
-  "recordedUtc": "2026-11-18T03:22:47.413555+00:00",
-  "status": "PASS_AFTER_MODULE_RETEST",
-  "fullEntry": {
-    "command": "./scripts/verify.sh",
-    "exitCode": 1,
-    "explicitPassLines": 715,
-    "failures": [
-      "System.Exception: Network piranha kill did not settle: damage=35, respawn=0, pos=5488,-9736; slot=0 shots=18 inventory=3/Success health=100 water=False pos=-2505,91;slot=1 shots=1 inventory=2/Success health=0 water=True pos=5956,-10192;slot=2 shots=1 inventory=2/Success health=0 water=False pos=-839,-1977;slot=3 shots=1 inventory=2/Success health=0 water=False pos=-1666,-1366"
-    ],
-    "logSHA256": "3d11bdc2ef75b716913c1ec3fd13662dfc35def3ac94ae8991ae9a05a9771f12"
-  },
-  "moduleRetests": [
-    {
-      "command": "./scripts/verify-hook-crabs.sh",
-      "exitCode": 0,
-      "explicitPassLines": 26,
-      "failures": [],
-      "logSHA256": "886de0e9cc8c30ff73755683bb3b12fbf331ca0f8b27b8e3765cd99c587862d1"
-    },
-    {
-      "command": "./scripts/verify-hook-revival.sh",
-      "exitCode": 0,
-      "explicitPassLines": 36,
-      "failures": [],
-      "logSHA256": "ff8c9e1a281ed5ff2309bf5bdb4012cf270006ed2cb6e41aba2f3311560e7ed1"
-    },
-    {
-      "command": "./scripts/verify-hook-restart.sh",
-      "exitCode": 0,
-      "explicitPassLines": 19,
-      "failures": [],
-      "logSHA256": "4f6dc75b4cff5b1cdeabed6da763eb1a15d53e87da18be7a1de2ace4316dffe6"
-    },
-    {
-      "command": "./scripts/verify-hook-boss.sh",
-      "exitCode": 0,
-      "explicitPassLines": 27,
-      "failures": [],
-      "logSHA256": "564e91bdb0a2e54542ec0729addecb9c64f9ed2191a0d2498368584ce8771e8d"
-    },
-    {
-      "command": "./scripts/verify-hook-grenades.sh",
-      "exitCode": 0,
-      "explicitPassLines": 15,
-      "failures": [],
-      "logSHA256": "771b6548215a1be58fcc1d4d1843522cdb6d582ee0f216806e737b222e212f18"
-    },
-    {
-      "command": "./scripts/verify-hook-combat-spacing.sh",
-      "exitCode": 0,
-      "explicitPassLines": 19,
-      "failures": [],
-      "logSHA256": "e00b210461880f8139f02d58e5e3629396284f33ffd8a16e385ee41bd3852067"
-    },
-    {
-      "command": "./scripts/verify-hook-eldritch.sh",
-      "exitCode": 0,
-      "explicitPassLines": 27,
-      "failures": [],
-      "logSHA256": "d8488b9d3f8b71472492f58409b81e9a72cefe6b12cd9d01d443c90b478d8658"
-    },
-    {
-      "command": "./scripts/verify-hook-town.sh",
-      "exitCode": 0,
-      "explicitPassLines": 74,
-      "failures": [],
-      "logSHA256": "5aece5e63301fcd44951218bdc4c3387bd4dfeb49287ecd571f43ea21a287e8d"
-    }
-  ],
+  "recordedUtc": "2026-11-18T04:00:15.993376+00:00",
+  "status": "PASS",
+  "scope": "Wrist mesh/skin revision. No change to authoritative geometry, timing or simulation.",
   "unity": {
     "version": "2022.3.62f1",
-    "mode": "EditMode via explicit project CLI",
-    "result": "Passed",
-    "passed": 5,
+    "mode": "TacticalGame.Unity EditMode",
+    "passed": 6,
     "failed": 0,
     "cases": [
       {
@@ -94,16 +27,20 @@
       {
         "name": "Advanture.HookIsland.Tests.BossPresentationTests.VerticalAimPreservesDirectionAndBounds",
         "result": "Passed"
+      },
+      {
+        "name": "Advanture.HookIsland.Tests.BossPresentationTests.WristSeamsStayClosedWhenTownAttacksAimInDifferentDirections",
+        "result": "Passed"
       }
     ]
   },
   "artifactIdentity": {
-    "sourceSHA256": "49f17df57e21488cbf9621142a3d1570c1ec3b8c60827c72f73fc0dd90aba6bf",
-    "fbxSHA256": "4a7c1e9faa8a3885807b3c53e50291368e302b7dd5e45df51f48a48cd20a4ddd",
+    "sourceSHA256": "506aa03baf606e581c0d29129339ad819d147e25ca57c1b6a866c0f005893ac8",
+    "fbxSHA256": "79ae7745e454aaa7c4453b975a8525bb5e93355230d8aab6a5f06e7be3d69763",
     "collisionRawSHA256": "d044bdaa972cff8773883b655142a865c551337030b8ba4d63e3564ede83a448"
   },
+  "maxSampledWristGapMm": 0.00095367431640625,
   "limits": [
-    "The first full run stopped in the four-client crab/piranha test. The complete crab module and each subsequent verify.sh module were run separately on the same build; this was not a single uninterrupted passing run.",
-    "The town scene captures record the production presentation, not a full manual playthrough."
+    "The Unity captures use the production presentation in the town scene. No manual multiplayer playthrough or full simulation regression was run for this art revision."
   ]
 }

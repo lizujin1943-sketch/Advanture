@@ -1,0 +1,31 @@
+{
+  "sourceSHA256": "506aa03baf606e581c0d29129339ad819d147e25ca57c1b6a866c0f005893ac8",
+  "matchedVertices": 320,
+  "sampling": "First, last and every eighth interior frame of each authored clip",
+  "maximumGapMmByClip": {
+    "AW_Combination": 0,
+    "AW_Death": 0.00095367431640625,
+    "AW_Emerge": 0,
+    "AW_Enrage": 0,
+    "AW_EnragedIdle": 0,
+    "AW_Hit": 0,
+    "AW_Idle": 0,
+    "AW_Ink": 0,
+    "AW_Sever_A01": 0,
+    "AW_Sever_A02": 0,
+    "AW_Sever_A03": 0,
+    "AW_Sever_A04": 0,
+    "AW_Sever_S01": 0,
+    "AW_Sever_S02": 0,
+    "AW_Sever_S03": 0,
+    "AW_Sever_S04": 0,
+    "AW_Slam_A01": 0,
+    "AW_Slam_A02": 0,
+    "AW_Slam_A03": 0,
+    "AW_Slam_A04": 0,
+    "AW_Sweep_A01": 0,
+    "AW_Sweep_A02": 0,
+    "AW_Sweep_A03": 0,
+    "AW_Sweep_A04": 0
+  }
+}

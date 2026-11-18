@@ -1,6 +1,6 @@
 {
   "main_arm_count": 8,
-  "anatomy_revision": 2,
+  "anatomy_revision": 3,
   "mirror_error_m": {
     "Eye": 0.0,
     "Socket": 0.0,

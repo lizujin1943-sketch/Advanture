@@ -88,7 +88,7 @@ def tube_with_frames(g,controls,sides,steps,twist=0,ventral_out=None):
         for k in range(sides):
             f=(ix,ring[k],ring[(k+1)%sides]);g.face(f[::-1] if rev else f)
     # Staggered twin rows. Each cup inherits its parent tissue's local frame.
-    walked=0;next_at=1.4
+    walked=0;next_at=2.05
     for j,(p,t,n,b,r) in enumerate(frames):
         if j:walked+=(p-frames[j-1][0]).length
         if walked<next_at or r<.035 or j>len(frames)-3:continue

@@ -68,12 +68,23 @@ def build():
     bone('DEF_Eye_Center',c,c+Vector((0,0,.35)),'DEF_Head')
     bpy.ops.object.mode_set(mode='OBJECT')
     for pb in rig.pose.bones:pb.rotation_mode='QUATERNION'
+    from .crown_weights import field,smooth
+    tissue=field(arms,count,name,interval_weights)
     # Eight independent skin meshes preserve authoritative limb severing.
     for key in KEYS:
         ob=bpy.data.objects['AW_Arm_'+key];dense=np.array(ob['centerline']);dist=np.r_[0,np.cumsum(np.linalg.norm(np.diff(dense,axis=0),axis=1))]
         attr=ob.data.attributes['ArmParameter'];params=np.empty(len(ob.data.vertices),np.float32);attr.data.foreach_get('value',params)
         f=np.interp(params,np.linspace(0,1,len(dist)),dist)/dist[-1]
-        weights(ob,[interval_weights(float(t),count(key),lambda i:name(key,i)) for t in f]);bind(ob,rig)
+        values=[]
+        for v,portion in zip(ob.data.vertices,f):
+            raw=interval_weights(float(portion),count(key),lambda i:name(key,i))
+            # Keep cut rings identical even after independent arm attacks.
+            distal=smooth((float(portion)*dist[-1]-1.70)/.60)
+            if distal<1:
+                loc=tissue(v.co)
+                raw={k:raw.get(k,0)*distal+loc.get(k,0)*(1-distal) for k in set(raw)|set(loc)}
+            values.append(raw)
+        weights(ob,values);bind(ob,rig)
     # Nearest authored oral centre lines transfer smoothly onto the fused sculpt.
     samples=[]
     for idx,pts in oral.items():
@@ -89,7 +100,9 @@ def build():
     body=bpy.data.objects['AW_Head'];values=[]
     for v in body.data.vertices:
         p=v.co
-        if abs(p.x)>2.05 and p.y>.48 and p.z>5.3:
+        if body.data.attributes['CrownTissue'].data[v.index].value>.5:
+            entry=tissue(p)
+        elif abs(p.x)>2.05 and p.y>.48 and p.z>5.3:
             entry=wing_weight(p,'L' if p.x<0 else 'R')
             w=max(0,min(1,(abs(p.x)-2.05)/.75));entry={k:val*w for k,val in entry.items()};entry['DEF_Head']=1-w
         else:
@@ -106,10 +119,14 @@ def build():
     stumpmat=bpy.data.materials.new('WC_Stump');p=next(n for n in stumpmat.node_tree.nodes if n.type=='BSDF_PRINCIPLED')
     p.inputs['Base Color'].default_value=(.21,.07,.12,1);p.inputs['Roughness'].default_value=.43
     for key in KEYS:
-        base,outer=control_points(key)[:2]
-        p=base[0].lerp(outer[0],.68);r=(base[1]*.32+outer[1]*.68)*.82
-        g=Mesh();g.ellipsoid(p,(r,r,r),24,16)
-        ob=g.finish('AW_Stump_'+key,scene.collection,[stumpmat]);weights(ob,[{'DEF_Body':1} for v in ob.data.vertices]);bind(ob,rig);ob.hide_render=True
+        from .crown import seat
+        p,t,n,b,r=seat(key)
+        # Shallow wound disk sits in the recessed cut plane, skin-bound to
+        # the remaining wrist rather than floating on the body bone.
+        g=Mesh();g.ellipsoid((0,0,0),(r*.94,r*.94,.105),32,16)
+        g.v=[tuple(p-t*.043+n*x+b*y+t*z) for x,y,z in g.v]
+        ob=g.finish('AW_Stump_'+key,scene.collection,[stumpmat])
+        weights(ob,[tissue(v.co) for v in ob.data.vertices]);bind(ob,rig);ob.hide_render=True
     rig['arm_reference']={k:[list(p) for p in pts] for k,pts in arms.items()}
     rig['arm_radii']=radii;rig['oral_reference']={str(k):[list(p) for p in pts] for k,pts in oral.items()}
     rig['coordinate_system']='metres, Z up, -Y front; game is (x,z,y)'

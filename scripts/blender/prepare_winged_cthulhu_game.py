@@ -116,6 +116,11 @@ def main():
     eye_parts=[o for o in obs if '_Eye_' in o.name]
     wing_parts={side:[o for o in obs if o.name.endswith('_'+side) and ('WingMembrane' in o.name or 'WingVeins' in o.name)] for side in ('L','R')}
     arms=sorted([o for o in obs if '_Arm_' in o.name],key=lambda o:o['limb_id'])
+    from winged_cthulhu.crown_seams import close_junctions
+    from paint_winged_cthulhu import uv_and_coverage
+    core=next(o for o in body_parts if 'OrganicCore' in o.name)
+    close_junctions(core,arms)
+    for ob in [core]+arms:uv_and_coverage(ob)
     body=join(body_parts,'AW_Head');eyes=join(eye_parts,'AW_Eye_Center')
     wings=[join(wing_parts[side],'WC_Wing_'+side) for side in ('L','R')]
     for ob in arms:ob.name='AW_Arm_'+ob['limb_id']

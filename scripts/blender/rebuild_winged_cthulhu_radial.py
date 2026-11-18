@@ -73,13 +73,17 @@ def main():
     old=[o for o in high.objects if o.type=='MESH' and '_Arm_' in o.name]
     assert len(old)==10,len(old)
     for ob in old:bpy.data.objects.remove(ob,do_unlink=True)
-    if root.get('anatomy_revision')!=2:raise ValueError('Rebuild the continuous mantle master and its painted source first')
+    if root.get('anatomy_revision')!=3:raise ValueError('Rebuild the continuous mantle master and its painted source first')
     mats=[bpy.data.materials[n] for n in ['PAINT_Skin_TealAndOlive','PAINT_Ventral_DustyMauve','PAINT_Suckers_RoseLip','PAINT_Suckers_MauveBowl']]
     soften_dorsal_pattern()
     arms=[]
     for key in radial_arms.ANGLES:
         ob=radial_arms.create(key,high,mats);ob.parent=root;uv_and_coverage(ob);arms.append(ob)
         print('RADIAL_ARM',key,len(ob.data.vertices),flush=True)
+    from winged_cthulhu.crown_seams import close_junctions
+    core=high.objects['CR_WingedCthulhu_OrganicCore']
+    close_junctions(core,arms)
+    for ob in [core]+arms:uv_and_coverage(ob)
     root['radial_revision']='Eight circumferential arms; four front / four back; oral beard separate'
     root['inferred']='Posterior arm anatomy, mantle web, hidden suckers and wing attachment inferred from multi-view design'
     bpy.data.objects['STUDIO_Backdrop'].hide_render=True
@@ -98,7 +102,7 @@ def main():
     for screen in bpy.data.screens:
         for a in screen.areas:
             if a.type=='VIEW_3D':a.spaces.active.region_3d.view_camera_zoom=15
-    manifest={'main_arm_count':8,'anatomy_revision':2,'mirror_error_m':check_facial_symmetry(high),'facial_tendrils':'Separate front-only oral anatomy, excluded from count',
+    manifest={'main_arm_count':8,'anatomy_revision':3,'mirror_error_m':check_facial_symmetry(high),'facial_tendrils':'Separate front-only oral anatomy, excluded from count',
         'design':'ref/inferred-turnaround-v1.png','view_note':'Generated design is inferred; orthographic mesh renders and numeric paths govern spatial verification',
         'arms':[{'id':o['limb_id'],'azimuth':o['azimuth_degrees'],'root':o['centerline'][0][:],
                  'distal':o['centerline'][-1][:],'controls':[list(p) for p in o['control_points']]} for o in arms],

@@ -39,5 +39,7 @@ def fuse_core(collection,include=()):
         _,_,idx,_=bvh.find_nearest(p.center)
         if idx is not None:p.material_index=oldmats[idx]
         p.use_smooth=True
+    from .crown_seams import replace_lower_mantle
+    replace_lower_mantle(ob)
     ob['process']='Closed voxel union of cranial, orbital, mantle, brow and wing-girdle volumes; relaxed seams'
     return ob

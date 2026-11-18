@@ -11,3 +11,7 @@ report['sourceSHA256']=hashlib.sha256(Path(bpy.data.filepath).read_bytes()).hexd
 (ROOT/'source-assets/creatures/winged-cthulhu/review/qa-game.json').write_text(json.dumps(report,indent=2))
 print(json.dumps({'pass':report['pass'],'errors':report['errors'],'warnings':report['warnings']},ensure_ascii=False),flush=True)
 assert report['pass'],report['errors']
+
+# Arm-severable skins must meet through motion, not just in bind pose.
+import runpy
+runpy.run_path(str(Path(__file__).with_name('verify_winged_cthulhu_crown.py')))

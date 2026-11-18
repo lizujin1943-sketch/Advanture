@@ -49,6 +49,48 @@ namespace Advanture.HookIsland.Tests
             finally { view.Dispose(); Object.DestroyImmediate(root); }
         }
 
+        [Test] public void WristSeamsStayClosedWhenTownAttacksAimInDifferentDirections()
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<BossSettings>("Assets/HookIsland/Data/BossSettings.asset");
+            var root = new GameObject("Crown seam acceptance");
+            var view = new BossAnimationView(root.transform, settings);
+            var buffer = new Mesh();
+            Vector3[] Positions(SkinnedMeshRenderer renderer)
+            {
+                renderer.BakeMesh(buffer);
+                return buffer.vertices.Select(p => renderer.transform.TransformPoint(p)).ToArray();
+            }
+            Vector3Int Quantize(Vector3 p) => Vector3Int.RoundToInt(p * 1000f);
+            try
+            {
+                var limbs = Enumerable.Range(0, 8).Select(i => new BossLimbState(i, 300, 300)).ToArray();
+                var skins = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                var head = skins.Single(r => r.name == "AW_Head");
+                var arms = skins.Where(r => r.name.StartsWith("AW_Arm_")).ToArray();
+                view.Synchronize(new BossState(BossPhase.Combat, 2000, 2400, 1, limbs: limbs, townArena: true), 0);
+                // Import may split a vertex at a UV seam. Compare distinct exterior positions.
+                var headAtRest = Positions(head).Select((p, i) => new { p, i })
+                    .GroupBy(x => Quantize(x.p)).ToDictionary(g => g.Key, g => g.First().i);
+                var rings = arms.Select(arm => Positions(arm).Select((p, i) => new { key = Quantize(p), i })
+                    .Where(v => headAtRest.ContainsKey(v.key)).GroupBy(v => v.key)
+                    .Select(g => new { headIndex = headAtRest[g.Key], armIndex = g.First().i }).ToArray()).ToArray();
+                Assert.That(rings.Length, Is.EqualTo(8));
+                foreach (var ring in rings) Assert.That(ring.Length, Is.GreaterThanOrEqualTo(39));
+                limbs[0] = new BossLimbState(0, 300, 300, BossAttack.Slam, 36, attackX: 600, attackZ: 800);
+                limbs[2] = new BossLimbState(2, 300, 300, BossAttack.Sweep, 47, attackX: -800, attackZ: -600);
+                view.Synchronize(new BossState(BossPhase.Combat, 2000, 2400, 1, phaseTicks: 57,
+                    limbs: limbs, enraged: true, townArena: true), 1);
+                var movedHead = Positions(head);
+                for (int i = 0; i < arms.Length; i++)
+                {
+                    var movedArm = Positions(arms[i]);
+                    var gap = rings[i].Max(v => Vector3.Distance(movedHead[v.headIndex], movedArm[v.armIndex]));
+                    Assert.That(gap, Is.LessThan(.002f), arms[i].name + " parted from mantle");
+                }
+            }
+            finally { Object.DestroyImmediate(buffer); view.Dispose(); Object.DestroyImmediate(root); }
+        }
+
         private static BossState State(BossLimbState[] limbs) => new BossState(BossPhase.Combat, 2000, 2400, 1,
             phaseTicks: 100, limbs: limbs);
 

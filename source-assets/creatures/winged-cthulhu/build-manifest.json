@@ -2,8 +2,8 @@
   "asset": "CR_WingedCthulhu",
   "blender": "5.3.0",
   "objects": 21,
-  "vertices": 452614,
-  "triangles_base": 903116,
+  "vertices": 426873,
+  "triangles_base": 851634,
   "status": "HIGH sculpt source; no runtime/animation claim",
   "inferred": [
     "back anatomy",
