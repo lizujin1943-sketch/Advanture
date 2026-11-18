@@ -4,11 +4,14 @@
 
 ## 可编辑文件
 
+- `CR_WingedCthulhu_clay_review.blend` 是本轮供选型的独立静态灰模。以原画及用户提供的 Tripo 正、侧、背、俯视截图为参考，重做了中央卷腕与邻腕的遮挡、后垂收尖的头壳，以及眉弓到额头和口须的过渡。打开后从肖像机位开始，可切换 `Clay_side`、`Clay_top`、`Clay_roots` 等相机。正反对照和眉眼近景在 [灰模审图目录](review/clay-revision/)。以后台 Blender 打开同目录的 `CR_WingedCthulhu_radial.blend`，运行 `scripts/blender/sculpt_winged_cthulhu_review.py` 可重建这份灰模和各视角。游戏使用的绑定和碰撞仍对应此前的动画版。
 - `CR_WingedCthulhu_radial.blend`：带程序材质和参考色素纹理的高模，八条主触腕围绕身体分布。
 - `CR_WingedCthulhu_animated.blend`：游戏网格、唯一 UV、打包贴图、完整骨架和 24 个动作。Blender 5.3.0，米制，Z 向上、-Y 向前。
 - `textures/`：高模绘制纹理；`runtime-textures/`：Unity 所用的烘焙 BaseColor / Roughness / Normal。
 - `exports/unity/`：FBX、动作/碰撞清单、毫米整数采样与导出回读报告。
 - `review/`：当前多角度实模、动作极端姿态、游戏网格检查及 Unity 场景截图。`silhouette-fit-field.npz` 是早期正面比例校正场，只用于翼部的轮廓校正，头身和口须保留三维空间的真实中线。
+
+本轮灰模的主视角对照使用相同的相机、灯光与灰色材质。八条主腕仍按四前四后连接，闭合处的 320 对边缘点和双眼镜像在重读文件后复查。检查范围是静态高模，用户截图用于比对可见轮廓，遮挡下的腕路仍有推断。全模超出自动共面与悬空扫描的三角面预算，这两项采用多视角人工审图。
 
 主触腕为 A01–A04（四条前侧攻击腕）与 S01–S04（四条后侧支撑腕）；角度依次为 -65、-24、24、65、-115、-158、158、115 度。腕根半径比旧版缩小 35%，逐渐过渡到未改动的腕尖。头壳到腕冠由同一张连续表面构成，左右眼和眼眶共用中线镜像。修改前后的同机位对比见 `review/anatomy-revision.jpg`。八条口须是独立的面部结构，不计入八条主腕。吸盘沿连续腹面布置；背面有真实腕根、触腕和吸盘。
 
