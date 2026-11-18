@@ -1,0 +1,558 @@
+{
+  "schema": 1,
+  "revision": "deep-sea-2026-11-11",
+  "fps": 30,
+  "species": [
+    {
+      "kind": 0,
+      "name": "DeepOne",
+      "label": "鳃民拾骨者",
+      "triangles": 29772,
+      "vertices": 16798,
+      "bones": 32,
+      "color": [
+        0.12,
+        0.24,
+        0.2
+      ],
+      "clips": [
+        {
+          "name": "Idle",
+          "frames": 90,
+          "seconds": 3.0
+        },
+        {
+          "name": "Move",
+          "frames": 36,
+          "seconds": 1.2
+        },
+        {
+          "name": "Windup",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Attack",
+          "frames": 18,
+          "seconds": 0.6
+        },
+        {
+          "name": "Recover",
+          "frames": 30,
+          "seconds": 1.0
+        },
+        {
+          "name": "Hit",
+          "frames": 12,
+          "seconds": 0.4
+        },
+        {
+          "name": "Emerge",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Death",
+          "frames": 36,
+          "seconds": 1.2
+        }
+      ]
+    },
+    {
+      "kind": 1,
+      "name": "ReefRam",
+      "label": "礁角奔袭兽",
+      "triangles": 20860,
+      "vertices": 11679,
+      "bones": 19,
+      "color": [
+        0.2,
+        0.18,
+        0.13
+      ],
+      "clips": [
+        {
+          "name": "Idle",
+          "frames": 90,
+          "seconds": 3.0
+        },
+        {
+          "name": "Move",
+          "frames": 36,
+          "seconds": 1.2
+        },
+        {
+          "name": "Windup",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Attack",
+          "frames": 18,
+          "seconds": 0.6
+        },
+        {
+          "name": "Recover",
+          "frames": 30,
+          "seconds": 1.0
+        },
+        {
+          "name": "Hit",
+          "frames": 12,
+          "seconds": 0.4
+        },
+        {
+          "name": "Emerge",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Death",
+          "frames": 36,
+          "seconds": 1.2
+        }
+      ]
+    },
+    {
+      "kind": 2,
+      "name": "ShellWarden",
+      "label": "圣螺守卫",
+      "triangles": 18994,
+      "vertices": 10554,
+      "bones": 16,
+      "color": [
+        0.16,
+        0.22,
+        0.22
+      ],
+      "clips": [
+        {
+          "name": "Idle",
+          "frames": 90,
+          "seconds": 3.0
+        },
+        {
+          "name": "Move",
+          "frames": 36,
+          "seconds": 1.2
+        },
+        {
+          "name": "Windup",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Attack",
+          "frames": 18,
+          "seconds": 0.6
+        },
+        {
+          "name": "Recover",
+          "frames": 30,
+          "seconds": 1.0
+        },
+        {
+          "name": "Hit",
+          "frames": 12,
+          "seconds": 0.4
+        },
+        {
+          "name": "Emerge",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Death",
+          "frames": 36,
+          "seconds": 1.2
+        }
+      ]
+    },
+    {
+      "kind": 3,
+      "name": "RiftEye",
+      "label": "裂瞳观测者",
+      "triangles": 15564,
+      "vertices": 8844,
+      "bones": 32,
+      "color": [
+        0.21,
+        0.12,
+        0.2
+      ],
+      "clips": [
+        {
+          "name": "Idle",
+          "frames": 90,
+          "seconds": 3.0
+        },
+        {
+          "name": "Move",
+          "frames": 36,
+          "seconds": 1.2
+        },
+        {
+          "name": "Windup",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Attack",
+          "frames": 18,
+          "seconds": 0.6
+        },
+        {
+          "name": "Recover",
+          "frames": 30,
+          "seconds": 1.0
+        },
+        {
+          "name": "Hit",
+          "frames": 12,
+          "seconds": 0.4
+        },
+        {
+          "name": "Emerge",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Death",
+          "frames": 36,
+          "seconds": 1.2
+        }
+      ]
+    },
+    {
+      "kind": 4,
+      "name": "DrownedBell",
+      "label": "溺钟引路者",
+      "triangles": 23892,
+      "vertices": 13520,
+      "bones": 44,
+      "color": [
+        0.1,
+        0.22,
+        0.24
+      ],
+      "clips": [
+        {
+          "name": "Idle",
+          "frames": 90,
+          "seconds": 3.0
+        },
+        {
+          "name": "Move",
+          "frames": 36,
+          "seconds": 1.2
+        },
+        {
+          "name": "Windup",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Attack",
+          "frames": 18,
+          "seconds": 0.6
+        },
+        {
+          "name": "Recover",
+          "frames": 30,
+          "seconds": 1.0
+        },
+        {
+          "name": "Hit",
+          "frames": 12,
+          "seconds": 0.4
+        },
+        {
+          "name": "Emerge",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Death",
+          "frames": 36,
+          "seconds": 1.2
+        }
+      ]
+    },
+    {
+      "kind": 5,
+      "name": "BlightSac",
+      "label": "腐潮囊",
+      "triangles": 20404,
+      "vertices": 11559,
+      "bones": 12,
+      "color": [
+        0.24,
+        0.25,
+        0.12
+      ],
+      "clips": [
+        {
+          "name": "Idle",
+          "frames": 90,
+          "seconds": 3.0
+        },
+        {
+          "name": "Move",
+          "frames": 36,
+          "seconds": 1.2
+        },
+        {
+          "name": "Windup",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Attack",
+          "frames": 18,
+          "seconds": 0.6
+        },
+        {
+          "name": "Recover",
+          "frames": 30,
+          "seconds": 1.0
+        },
+        {
+          "name": "Hit",
+          "frames": 12,
+          "seconds": 0.4
+        },
+        {
+          "name": "Emerge",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Death",
+          "frames": 36,
+          "seconds": 1.2
+        }
+      ]
+    },
+    {
+      "kind": 6,
+      "name": "ChoirPriest",
+      "label": "无面唱诗者",
+      "triangles": 16068,
+      "vertices": 8928,
+      "bones": 35,
+      "color": [
+        0.18,
+        0.16,
+        0.2
+      ],
+      "clips": [
+        {
+          "name": "Idle",
+          "frames": 90,
+          "seconds": 3.0
+        },
+        {
+          "name": "Move",
+          "frames": 36,
+          "seconds": 1.2
+        },
+        {
+          "name": "Windup",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Attack",
+          "frames": 18,
+          "seconds": 0.6
+        },
+        {
+          "name": "Recover",
+          "frames": 30,
+          "seconds": 1.0
+        },
+        {
+          "name": "Hit",
+          "frames": 12,
+          "seconds": 0.4
+        },
+        {
+          "name": "Emerge",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Death",
+          "frames": 36,
+          "seconds": 1.2
+        }
+      ]
+    },
+    {
+      "kind": 7,
+      "name": "BroodMother",
+      "label": "千嗣母巢",
+      "triangles": 32652,
+      "vertices": 18395,
+      "bones": 22,
+      "color": [
+        0.22,
+        0.12,
+        0.14
+      ],
+      "clips": [
+        {
+          "name": "Idle",
+          "frames": 90,
+          "seconds": 3.0
+        },
+        {
+          "name": "Move",
+          "frames": 36,
+          "seconds": 1.2
+        },
+        {
+          "name": "Windup",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Attack",
+          "frames": 18,
+          "seconds": 0.6
+        },
+        {
+          "name": "Recover",
+          "frames": 30,
+          "seconds": 1.0
+        },
+        {
+          "name": "Hit",
+          "frames": 12,
+          "seconds": 0.4
+        },
+        {
+          "name": "Emerge",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Death",
+          "frames": 36,
+          "seconds": 1.2
+        }
+      ]
+    },
+    {
+      "kind": 8,
+      "name": "RiftStalker",
+      "label": "折影行者",
+      "triangles": 23956,
+      "vertices": 13480,
+      "bones": 28,
+      "color": [
+        0.1,
+        0.16,
+        0.2
+      ],
+      "clips": [
+        {
+          "name": "Idle",
+          "frames": 90,
+          "seconds": 3.0
+        },
+        {
+          "name": "Move",
+          "frames": 36,
+          "seconds": 1.2
+        },
+        {
+          "name": "Windup",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Attack",
+          "frames": 18,
+          "seconds": 0.6
+        },
+        {
+          "name": "Recover",
+          "frames": 30,
+          "seconds": 1.0
+        },
+        {
+          "name": "Hit",
+          "frames": 12,
+          "seconds": 0.4
+        },
+        {
+          "name": "Emerge",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Death",
+          "frames": 36,
+          "seconds": 1.2
+        }
+      ]
+    },
+    {
+      "kind": 9,
+      "name": "StarHerald",
+      "label": "星骸执钟者",
+      "triangles": 17320,
+      "vertices": 9813,
+      "bones": 47,
+      "color": [
+        0.2,
+        0.18,
+        0.24
+      ],
+      "clips": [
+        {
+          "name": "Idle",
+          "frames": 90,
+          "seconds": 3.0
+        },
+        {
+          "name": "Move",
+          "frames": 36,
+          "seconds": 1.2
+        },
+        {
+          "name": "Windup",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Attack",
+          "frames": 18,
+          "seconds": 0.6
+        },
+        {
+          "name": "Recover",
+          "frames": 30,
+          "seconds": 1.0
+        },
+        {
+          "name": "Hit",
+          "frames": 12,
+          "seconds": 0.4
+        },
+        {
+          "name": "Emerge",
+          "frames": 45,
+          "seconds": 1.5
+        },
+        {
+          "name": "Death",
+          "frames": 36,
+          "seconds": 1.2
+        }
+      ]
+    }
+  ],
+  "animationAuthority": "visual only, in-place, phase sampled by confirmed combat state"
+}

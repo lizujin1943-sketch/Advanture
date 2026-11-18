@@ -11,25 +11,30 @@ namespace Advanture.HookIsland
         public EldritchPresentation(Transform parent,Shader lineShader,EldritchConfig config,bool town=false)
         {
             views=new View[config.Enabled?(town?TownEncounters.Population:EldritchCatalog.Population):0];
-            for(int i=0;i<views.Length;i++)views[i]=new View(parent,lineShader,config,town?TownEncounters.Kind(i):i<10?(EldritchKind)i:EldritchKind.DeepOne,i);
+            for(int i=0;i<views.Length;i++)views[i]=new View(parent,lineShader,town?TownEncounters.Kind(i):i<10?(EldritchKind)i:EldritchKind.DeepOne,i);
         }
-        public void Synchronize(HookState state)
-        {for(int i=0;i<views.Length;i++){if(i<state.Eldritch.Creatures.Count)views[i].Sync(state.Eldritch.Creatures[i],state);else views[i].Clear();}}
+        public void Synchronize(HookState state)=>Synchronize(state,Application.isPlaying?Time.deltaTime:0);
+        public void Synchronize(HookState state,float deltaTime)
+        {for(int i=0;i<views.Length;i++){if(i<state.Eldritch.Creatures.Count)views[i].Sync(state.Eldritch.Creatures[i],state,deltaTime);else views[i].Clear();}}
         public void Clear(){foreach(var view in views)view.Clear();}
         public void Dispose(){foreach(var view in views)view.Dispose();}
         private sealed class View : IDisposable
         {
             private readonly Transform root;
-            private readonly EldritchModel model;
-            private readonly EldritchConfig config;
+            private EldritchModel model;
             private readonly EldritchDefinition definition;
             private readonly LineRenderer warning,inner,effect,health;
             private readonly Material line;
-            public View(Transform parent,Shader shader,EldritchConfig config,EldritchKind kind,int id)
+            private const float DeathDuration=1.2f;
+            private bool observed,wasAlive;
+            private uint generation;
+            private ulong lastStep;
+            private float deathAge=DeathDuration;
+            public View(Transform parent,Shader shader,EldritchKind kind,int id)
             {
-                this.config=config;definition=EldritchCatalog.Get(kind);
+                definition=EldritchCatalog.Get(kind);
                 root=new GameObject($"Eldritch {id:00} — {definition.Name} (confirmed)").transform;root.SetParent(parent,false);
-                model=new EldritchModel(root,kind);line=new Material(shader??Shader.Find("Sprites/Default")){name="Eldritch telegraphs"};
+                line=new Material(shader??Shader.Find("Sprites/Default")){name="Eldritch telegraphs"};
                 warning=Line("Attack warning",.045f,new Color(1,.37f,.14f));inner=Line("Safe inner ring",.055f,new Color(.3f,1,.72f));
                 effect=Line("Ability effect",.1f,new Color(.45f,1,.87f));health=Line("Enemy health",.045f,new Color(.58f,.91f,.79f));
                 root.gameObject.SetActive(false);
@@ -40,17 +45,24 @@ namespace Advanture.HookIsland
                 l.useWorldSpace=true;l.startWidth=l.endWidth=width;l.startColor=l.endColor=color;l.positionCount=0;
                 l.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;return l;
             }
-            public void Sync(EldritchCreature c,HookState state)
+            public void Sync(EldritchCreature c,HookState state,float deltaTime)
             {
-                float death=c.Phase==EldritchPhase.Dead?Mathf.Clamp01((config.RespawnTicks-c.Timer)/24f):0;
-                // 城镇尸体立即隐藏，奖励回执和再生冷却仍由模拟层保留；下一代出场时复用同一表现对象。
-                bool visible=c.Visible && (c.Phase!=EldritchPhase.Dead || !state.Town.Enabled && death<1);root.gameObject.SetActive(visible);if(!visible)return;
+                bool reset=!observed || c.Generation!=generation || state.Steps<lastStep;
+                if(reset){deathAge=DeathDuration;model?.ResetObservation();}
+                else if(wasAlive && c.Phase==EldritchPhase.Dead)deathAge=0;
+                else if(c.Phase==EldritchPhase.Dead)deathAge+=Mathf.Max(0,deltaTime);
+                observed=true;wasAlive=c.Alive;generation=c.Generation;lastStep=state.Steps;
+                float death=c.Phase==EldritchPhase.Dead?Mathf.Clamp01(deathAge/DeathDuration):0;
+                // Only an observed kill plays a short cosmetic death. Restored corpses stay hidden,
+                // and a frozen encounter clock cannot prevent the model from being reclaimed.
+                bool visible=c.Visible && (c.Phase!=EldritchPhase.Dead || death<1);root.gameObject.SetActive(visible);if(!visible)return;
+                if(model==null)model=new EldritchModel(root,c.Kind);
                 float floor=(state.Town.Enabled?TownLayout.OnGround(state.Tiles,c.X,c.Z):PlatformRules.OnPlatform(state.Tiles,c.X,c.Z)) ? .45f : 0;
                 float height=definition.Habitat==EldritchHabitat.Ground?floor:definition.Habitat==EldritchHabitat.Hover?floor+.35f:.02f;
                 if(c.Phase==EldritchPhase.Emerging)height-=.8f*c.Timer/EldritchCatalog.EmergenceTicks;
                 // Keep root and telegraphs on the same confirmed position; cosmetic joint motion is separate.
                 root.position=new Vector3(c.X/1000f,height,c.Z/1000f);
-                root.rotation=Quaternion.LookRotation(new Vector3(c.DirectionX,0,c.DirectionZ));model.Animate(c,state.Steps,death);
+                root.rotation=Quaternion.LookRotation(new Vector3(c.DirectionX,0,c.DirectionZ));model.Animate(c,state.Steps,death,deltaTime);
                 bool windup=c.Phase==EldritchPhase.Windup,active=c.Phase==EldritchPhase.Active;
                 warning.enabled=windup;effect.enabled=active;inner.enabled=(windup || active) && definition.Ability==EldritchAbility.Ring;
                 health.enabled=c.Damageable;health.positionCount=2;health.SetPosition(0,root.position+new Vector3(-.35f,2.15f,0));health.SetPosition(1,root.position+new Vector3(-.35f+.7f*c.Health/EldritchCatalog.MaxHealth(c),2.15f,0));
@@ -85,8 +97,8 @@ namespace Advanture.HookIsland
                 Vector3 forward=(to-from).normalized,side=new Vector3(forward.z,0,-forward.x);line.loop=true;line.positionCount=34;
                 for(int i=0;i<=16;i++){float a=i*Mathf.PI/16;line.SetPosition(i,to+side*Mathf.Cos(a)*radius+forward*Mathf.Sin(a)*radius);line.SetPosition(i+17,from-side*Mathf.Cos(a)*radius-forward*Mathf.Sin(a)*radius);}
             }
-            public void Clear()=>root.gameObject.SetActive(false);
-            public void Dispose(){model.Dispose();EldritchModel.Release(root.gameObject);EldritchModel.Release(line);}
+            public void Clear(){root.gameObject.SetActive(false);observed=false;wasAlive=false;deathAge=DeathDuration;model?.ResetObservation();}
+            public void Dispose(){model?.Dispose();EldritchModel.Release(root.gameObject);EldritchModel.Release(line);}
         }
     }
 }

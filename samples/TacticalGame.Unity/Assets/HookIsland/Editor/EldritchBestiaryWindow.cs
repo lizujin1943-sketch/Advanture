@@ -73,5 +73,25 @@ namespace Advanture.HookIsland.Editor
             AssetDatabase.ImportAsset("Assets/HookIsland/Data/PlatformMap.bytes",ImportAssetOptions.ForceSynchronousImport);
             Debug.Log("ELDRITCH_UNITY_OK species=10 portraits=10 formal_map=true map_round_trip=true");
         }
+
+        [MenuItem("Tools/Hook Island/Export Animated Enemy Portraits")]
+        public static void ExportAnimatedPortraits()
+        {
+            string folder=Path.GetFullPath(Path.Combine(Application.dataPath,"../../../artifacts/eldritch-rework"));
+            Directory.CreateDirectory(folder);
+            var sheet=new Texture2D(2000,800,TextureFormat.RGB24,false);
+            try
+            {
+                foreach(var d in EldritchCatalog.All)
+                {
+                    var image=RenderPortrait(d.Kind,400);
+                    try{sheet.SetPixels((int)d.Kind%5*400,(1-(int)d.Kind/5)*400,400,400,image.GetPixels());}
+                    finally{DestroyImmediate(image);}
+                }
+                sheet.Apply();File.WriteAllBytes(Path.Combine(folder,"unity-roster.png"),sheet.EncodeToPNG());
+            }
+            finally{DestroyImmediate(sheet);}
+            Debug.Log("ELDRITCH_UNITY_PREVIEW_OK "+folder);
+        }
     }
 }

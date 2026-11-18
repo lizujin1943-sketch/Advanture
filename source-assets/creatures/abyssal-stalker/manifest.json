@@ -1,0 +1,44 @@
+{
+  "name": "潮壳猎手",
+  "source": "AbyssalStalker.blend",
+  "reference": "approved-concept.png",
+  "vertices": 255347,
+  "triangles": 486122,
+  "bones": 42,
+  "plates": 75,
+  "clips": [
+    {
+      "name": "Idle",
+      "frames": 90
+    },
+    {
+      "name": "Move",
+      "frames": 48
+    },
+    {
+      "name": "Windup",
+      "frames": 40
+    },
+    {
+      "name": "Attack",
+      "frames": 22
+    },
+    {
+      "name": "Recover",
+      "frames": 34
+    },
+    {
+      "name": "Hit",
+      "frames": 15
+    },
+    {
+      "name": "Emerge",
+      "frames": 50
+    },
+    {
+      "name": "Death",
+      "frames": 50
+    }
+  ],
+  "status": "source built; render review pending; not installed into Unity"
+}
