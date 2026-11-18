@@ -38,6 +38,7 @@ MCP 2.3.0 包内保留了七份指南，但此版本没有注册 `get_guide` 或
 2026-11-17 从 GitHub 原仓库安装到 `~/.codex/skills/`，来源和验证记录见仓库 `docs/blender-skills.md`。在当前环境发现相应技能后，按任务使用，不一次加载全部：
 
 - 按已确认的设定图还原：`blender-image-to-3d`，用于同角度对照、轮廓测量和导出回读；单幅透视图的遮挡部位仍需明确标注推断。
+- 对照原画修造型、贴图和变形时，使用[模型还原与造型优化](../blender-reference-fidelity/SKILL.md)，按同机位灰模、材质和游戏画面定位差距。
 - 生物造型与甲壳：`blender-sculpting`、`blender-hardsurface-modeling`、`blender-geometry-nodes`。
 - 可变形拓扑与贴图：`blender-retopology-uv`、`blender-pbr-materials`、`blender-texturing`、`blender-texture-baking`。
 - 骨架与动作：`blender-character-rigging`、`blender-animation`。

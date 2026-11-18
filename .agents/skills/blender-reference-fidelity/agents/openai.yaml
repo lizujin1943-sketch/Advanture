@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blender 模型还原与造型优化"
+  short_description: "对照原画和实模，逐步校正多视角造型、肢体衔接、纹理与变形"
+  default_prompt: "用 $blender-reference-fidelity 对照原画和当前模型，找出最影响辨识度的造型差距，并从灰模开始修正。"
