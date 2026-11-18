@@ -45,6 +45,12 @@
 - Unity 2022.3.62f1 在正式沉钟镇工程成功导入。6 项表现测试通过，涵盖并发腕部动作、断肢、死亡和弱点坐标。实际待机关节最大偏差为 0.793 mm。[镇中正面](../source-assets/creatures/winged-cthulhu/review/unity-town-front.png)和[动画预览](../source-assets/creatures/winged-cthulhu/review/motion-preview.mp4)均由此次最终资源生成。
 - 单独运行的 10 项沉钟镇 Boss 检查、21 项海上 Boss 检查及 6 项输入适配检查通过，海上 Boss 用例包含四客户端的完整战斗和存档一致性。
 
+## 翼指、吸盘带与皮肤近景
+
+双翼各有四根可独立屈伸的末节，翼膜跟随两侧翼指。八条主腕的双排吸盘与腕身连续，正面前腕的腹面随卷曲逐渐转向镜头。中性灰模也能看到杯底与边缘之间的高差。额头色斑参照原画的位置复绘，皮肤细纹、色素和粗糙度都烘焙进游戏贴图。[原画、上一版、本次同机位局部](../source-assets/creatures/winged-cthulhu/review/wing-sucker-detail.jpg)与[吸盘灰模](../source-assets/creatures/winged-cthulhu/review/ventral-clay-detail.png)。
+
+本次 Unity 导入 227 根骨骼、24 个动作，20 个蒙皮对象合计 202,998 个三角面，包含隐藏的断腕残端。可见网格共 195,318 个三角面。网格检查通过，320 对腕缘在全部动作的采样帧中间隙为零。右边翼根有一对藏在内部的背向贴合面，模型静止时最低点离原点 0.234 m。沉钟镇的 6 项 Unity 表现测试通过，FBX 的后脑中线截面在 Y = 3.5 m 处实测 3.648 m。权威碰撞采样与改动前逐字节相同。
+
 ## 文件和边界
 
 源文件说明及重建命令见 `source-assets/creatures/winged-cthulhu/README.md`；烘焙、动作、导出、验收脚本位于 `scripts/blender/`。游戏资源位于 `samples/TacticalGame.Unity/Assets/HookIsland/Art/WingedCthulhu/`。本机日志、渲染序列、备份在 `artifacts/winged-cthulhu/`，不提交。

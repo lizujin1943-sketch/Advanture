@@ -6,6 +6,7 @@ from mathutils import Vector
 from mathutils.kdtree import KDTree
 from .radial_arms import ANGLES,control_points
 from .anatomy import beard_strands
+from .wings import digit_knots
 from .geometry import P,spline,Mesh
 
 KEYS=list(ANGLES)
@@ -60,10 +61,18 @@ def build():
     for index,(_,knots) in enumerate(beard_strands()):
         pts=spline([P(*k[:3]) for k in knots],14);pts,_=resample(pts,8);oral[index]=pts
         for i,(a,b) in enumerate(zip(pts,pts[1:])):bone(f'DEF_Mouth_{index:02d}_{i:02d}',a,b,'DEF_Head')
+    fingers={}
     for side,sign in [('L',-1),('R',1)]:
         wrist=Vector((sign*3.2,1.05,9.5));shoulder=Vector((sign*1.8,.9,6.4))
         bone('DEF_Wing_'+side,shoulder,wrist,'DEF_Body')
         bone('DEF_WingTip_'+side,wrist,(sign*6.7,1.2,6.2),'DEF_Wing_'+side)
+        fingers[side]=[]
+        for index,knuckle in enumerate((5,7,9,8)):
+            path=digit_knots(side,index)
+            start,end=P(*path[knuckle][:3]),P(*path[-1][:3])
+            group=f'DEF_WingDigit_{side}_{index}'
+            bone(group,start,end,'DEF_WingTip_'+side)
+            fingers[side].append((group,start,end-start))
     eye=bpy.data.objects['AW_Eye_Center'];c=sum((v.co for v in eye.data.vertices),Vector())/len(eye.data.vertices)
     bone('DEF_Eye_Center',c,c+Vector((0,0,.35)),'DEF_Head')
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -96,7 +105,24 @@ def build():
     def wing_weight(p,side):
         sign=-1 if side=='L' else 1;wrist=Vector((sign*3.2,1.05,9.5))
         t=max(0,min(1,(p-wrist).length/3.5))*.72
-        return {'DEF_Wing_'+side:1-t,'DEF_WingTip_'+side:t}
+        entry={'DEF_Wing_'+side:1-t,'DEF_WingTip_'+side:t}
+        # Weight the web from the same finger field as its supporting struts.
+        # A shared wrist is rigid proximally; neighbouring fingers share the
+        # membrane between them and gain influence beyond their own knuckles.
+        controls=[]
+        for group,start,direction in fingers[side]:
+            along=(p-start).dot(direction)/direction.length_squared
+            foot=start+direction*min(1,max(0,along))
+            distance=(p-foot).length
+            weight=smooth((along+.08)/.43)*smooth((1.5-distance)/1.22)
+            controls.append((group,weight,distance))
+        amount=max(w for _,w,_ in controls)
+        if amount>0:
+            shares={g:w/(.045+d*d) for g,w,d in controls if w>0}
+            total=sum(shares.values())
+            entry={g:w*(1-amount) for g,w in entry.items()}
+            entry.update({g:amount*w/total for g,w in shares.items()})
+        return entry
     body=bpy.data.objects['AW_Head'];values=[]
     for v in body.data.vertices:
         p=v.co

@@ -193,9 +193,9 @@ def paint_dorsal_marks():
     nodes,links=mat.node_tree.nodes,mat.node_tree.links
     shader=next(n for n in nodes if n.type=='BSDF_PRINCIPLED')
     previous=shader.inputs['Base Color'].links[0].from_socket
-    y,x=np.mgrid[0:1024,0:512].astype(np.float32)
-    u=x/511
-    v=y/1023
+    y,x=np.mgrid[0:2048,0:1024].astype(np.float32)
+    u=x/1023
+    v=y/2047
     mask=np.zeros_like(u)
     for i,f in enumerate((.29,.39,.51,.62,.74,.84,.91)):
         for row,azimuth in enumerate((.34,.64)):
@@ -204,11 +204,11 @@ def paint_dorsal_marks():
             width=.054-.021*f
             length=.028-.012*f+.005*np.cos(i*1.6+row)
             edge=((u-center-distance*.7)/width)**2+(distance/length)**2
-            edge+=.13*np.sin(u*93+v*127)*np.cos(v*79-u*47)
-            mask=np.maximum(mask,(1-smooth(edge,.69,1.12))*(.74+.13*np.sin(i+row)))
-    rgba=np.ones((1024,512,4),np.float32)
+            edge+=.18*np.sin(u*93+v*127)*np.cos(v*79-u*47)+.070*np.sin(279*u-361*v)
+            mask=np.maximum(mask,(1-smooth(edge,.87,1.045))*(.74+.13*np.sin(i+row)))
+    rgba=np.ones((2048,1024,4),np.float32)
     rgba[:,:,:3]=mask[:,:,None]
-    paint=bpy.data.images.new('Longitudinal olive markings',512,1024,is_data=True)
+    paint=bpy.data.images.new('Longitudinal olive markings',1024,2048,is_data=True)
     paint.pixels.foreach_set(rgba.ravel())
     paint.pack()
     uv=nodes.new('ShaderNodeUVMap')
@@ -231,9 +231,79 @@ def paint_dorsal_marks():
     links.new(mix.outputs[0],shader.inputs['Base Color'])
 
 
+def forehead_plates(material):
+    # Pixel landmarks on the original 1536 x 1024 concept. The varying outlines
+    # carry forward onto the temples via the fixed reference UV and face normal.
+    polygons=[
+        (197,40,14,3,-21),(226,35,17,4,-17),(265,31,23,5,-5),(177,67,26,11,-32),
+        (229,54,17,7,-13),(231,80,24,14,-18),(126,111,26,16,-44),(184,110,26,21,-48),
+        (245,120,24,21,15),(86,151,23,14,-62),(144,155,23,21,-66),(215,167,32,26,30),
+        (275,172,25,15,63),(109,191,19,12,-52),(300,224,22,9,72),(395,175,19,9,82),
+        (378,118,17,7,56),(421,164,22,6,62)]
+    olive=[(277,51,21,6,0),(319,76,26,13,18),(338,120,23,15,54),(347,158,11,9,50),(352,180,8,5,80)]
+    y,x=np.mgrid[0:286,0:476].astype(np.float32)
+    mask=np.zeros((1024,1536,4),np.float32)
+    mask[:,:,3]=1
+    for component,marks in enumerate((polygons,olive)):
+        region=np.zeros_like(x)
+        for cx,cy,rx,ry,degrees in marks:
+            theta=np.deg2rad(degrees)
+            dx,dy=x-cx,y-cy
+            u=(dx*np.cos(theta)+dy*np.sin(theta))/rx
+            v=(-dx*np.sin(theta)+dy*np.cos(theta))/ry
+            angle=np.arctan2(v,u)
+            edge=np.sqrt(u*u+v*v)+.045*np.sin(3*angle+.17*cx)+.032*np.sin(7*angle-.2*cy)+.018*np.cos(11*angle)
+            region=np.maximum(region,1-smooth(edge,.93,1.045))
+        mask[-286:,570:1046,component]=region[::-1]
+    im=bpy.data.images.new('Reference forehead plate shapes',1536,1024,is_data=True)
+    im.pixels.foreach_set(mask.ravel())
+    im.pack()
+    ns,ln=material.nodes,material.links
+    shader=next(n for n in ns if n.type=='BSDF_PRINCIPLED')
+    uv=ns.new('ShaderNodeUVMap');uv.uv_map='ReferencePaintUV'
+    tex=image_node(ns,ln,im,uv,'Slate plates and olive forehead markings')
+    channels=ns.new('ShaderNodeSeparateColor')
+    ln.new(tex.outputs['Color'],channels.inputs[0])
+    coverage=ns.new('ShaderNodeAttribute');coverage.attribute_name='ReferencePaintCoverage'
+    pigment=shader.inputs['Base Color'].links[0].from_socket
+    relief=[]
+    for output,col,strength in zip(('Red','Green'),('35404c','a2b18a'),(.87,.68)):
+        gate=ns.new('ShaderNodeMath');gate.operation='MULTIPLY'
+        ln.new(coverage.outputs['Fac'],gate.inputs[0]);ln.new(channels.outputs[output],gate.inputs[1])
+        relief.append(gate.outputs[0])
+        opacity=ns.new('ShaderNodeMath');opacity.operation='MULTIPLY'
+        ln.new(gate.outputs[0],opacity.inputs[0]);opacity.inputs[1].default_value=strength
+        mix=ns.new('ShaderNodeMixRGB')
+        ln.new(opacity.outputs[0],mix.inputs[0]);ln.new(pigment,mix.inputs[1])
+        mix.inputs[2].default_value=rgb(col);pigment=mix.outputs[0]
+    ln.new(pigment,shader.inputs['Base Color'])
+    high=ns.new('ShaderNodeMath');high.operation='MAXIMUM'
+    for i,val in enumerate(relief):ln.new(val,high.inputs[i])
+    bump=ns.new('ShaderNodeBump');bump.inputs['Distance'].default_value=.026
+    bump.inputs['Strength'].default_value=.43
+    ln.new(shader.inputs['Normal'].links[0].from_socket,bump.inputs['Normal'])
+    ln.new(high.outputs[0],bump.inputs['Height']);ln.new(bump.outputs[0],shader.inputs['Normal'])
+
+
+def paint_ventral_rails():
+    # Violet muscle grades back into green skin towards each shoulder.
+    tree=bpy.data.materials['PAINT_Ventral_DustyMauve'].node_tree
+    ns,ln=tree.nodes,tree.links
+    shader=next(n for n in ns if n.type=='BSDF_PRINCIPLED')
+    uv=ns.new('ShaderNodeUVMap');uv.uv_map='ArmBakeLayout'
+    axes=ns.new('ShaderNodeSeparateXYZ');ln.new(uv.outputs[0],axes.inputs[0])
+    dist=ns.new('ShaderNodeMath');dist.operation='PINGPONG'
+    ln.new(axes.outputs['X'],dist.inputs[0]);dist.inputs[1].default_value=.5
+    tones=ramp(ns,[(.31,'556c61'),(.345,'655c60'),(.388,'806779'),(.46,'765b6c'),(.50,'705665')])
+    ln.new(dist.outputs[0],tones.inputs[0])
+    ln.new(tones.outputs[0],shader.inputs['Base Color'])
+
+
 def paint_mantle_and_cups():
     """Carry the forehead pattern into the darker lateral and rear mantle seen in profile."""
     head=bpy.data.materials['PAINT_Cranium_SlateChromatophores'].node_tree
+    forehead_plates(head)
+    paint_ventral_rails()
     nodes,links=head.nodes,head.links
     shader=next(n for n in nodes if n.type=='BSDF_PRINCIPLED')
     previous=shader.inputs['Base Color'].links[0].from_socket
@@ -242,7 +312,7 @@ def paint_mantle_and_cups():
     links.new(position,axis.inputs[0])
     posterior=nodes.new('ShaderNodeMapRange')
     posterior.interpolation_type='SMOOTHSTEP'
-    for socket,value in [('From Min',-.7),('From Max',2.6),('To Min',0.),('To Max',.87)]:
+    for socket,value in [('From Min',-.7),('From Max',2.6),('To Min',0.),('To Max',.65)]:
         posterior.inputs[socket].default_value=value
     links.new(axis.outputs['Y'],posterior.inputs['Value'])
     grain=nodes.new('ShaderNodeTexNoise')
@@ -267,6 +337,79 @@ def paint_mantle_and_cups():
     tint.inputs[2].default_value=(.75,.65,.74,1.)
     bowl.links.new(previous,tint.inputs[1])
     bowl.links.new(tint.outputs[0],shader.inputs['Base Color'])
+
+
+def paint_surface_detail():
+    """Spatial pigment and relief baked at atlas resolution on the actual sculpt."""
+    tissues = [
+        ('PAINT_Cranium_SlateChromatophores', (1.06,.82,1.10), 13.0, .064, .0015),
+        ('PAINT_Skin_TealAndOlive', (1.72,.88,.84), 16.0, .065, .0012),
+        ('PAINT_Cartilage_Green', (1.17,.76,1.62), 12.0, .115, .0023),
+        ('PAINT_Membrane_PlumGradient', (2.10,1.00,.51), 10.0, .050, .0009),
+    ]
+    for name, directions, scale, contrast, relief in tissues:
+        material=bpy.data.materials[name]
+        nodes,links=material.node_tree.nodes,material.node_tree.links
+        shader=next(n for n in nodes if n.type=='BSDF_PRINCIPLED')
+        position=nodes.new('ShaderNodeNewGeometry').outputs['Position']
+        stretch=nodes.new('ShaderNodeVectorMath')
+        stretch.operation='MULTIPLY'
+        links.new(position,stretch.inputs[0])
+        stretch.inputs[1].default_value=directions
+        warp=nodes.new('ShaderNodeTexNoise')
+        warp.inputs['Scale'].default_value=scale*.63
+        warp.inputs['Detail'].default_value=3
+        links.new(stretch.outputs[0],warp.inputs['Vector'])
+        offset=nodes.new('ShaderNodeVectorMath')
+        offset.operation='SCALE'
+        links.new(warp.outputs['Color'],offset.inputs[0])
+        offset.inputs['Scale'].default_value=.9/scale
+        coords=nodes.new('ShaderNodeVectorMath')
+        coords.operation='ADD'
+        links.new(stretch.outputs[0],coords.inputs[0])
+        links.new(offset.outputs[0],coords.inputs[1])
+        cells=nodes.new('ShaderNodeTexVoronoi')
+        cells.feature='DISTANCE_TO_EDGE'
+        cells.inputs['Scale'].default_value=scale
+        links.new(coords.outputs[0],cells.inputs['Vector'])
+        bevel=nodes.new('ShaderNodeValToRGB')
+        bevel.color_ramp.interpolation='EASE'
+        for stop,where,value in zip(bevel.color_ramp.elements,(.014,.105),(.16,.94)):
+            stop.position=where
+            stop.color=(value,value,value,1.)
+        links.new(cells.outputs['Distance'],bevel.inputs[0])
+        existing=shader.inputs['Base Color'].links[0].from_socket
+        glaze=nodes.new('ShaderNodeMixRGB')
+        glaze.blend_type='MULTIPLY'
+        glaze.inputs[0].default_value=contrast
+        links.new(existing,glaze.inputs[1])
+        links.new(bevel.outputs[0],glaze.inputs[2])
+        links.new(glaze.outputs[0],shader.inputs['Base Color'])
+        pebble=nodes.new('ShaderNodeBump')
+        pebble.inputs['Distance'].default_value=relief
+        pebble.inputs['Strength'].default_value=.47
+        if shader.inputs['Normal'].is_linked:
+            links.new(shader.inputs['Normal'].links[0].from_socket,pebble.inputs['Normal'])
+        links.new(bevel.outputs[0],pebble.inputs['Height'])
+        links.new(pebble.outputs[0],shader.inputs['Normal'])
+        # Preserve the reference pigment at portrait distance. A subtle sheen
+        # difference follows its edges on the forehead and major olive spots.
+        luminance=nodes.new('ShaderNodeRGBToBW')
+        links.new(existing,luminance.inputs[0])
+        tone=nodes.new('ShaderNodeMapRange')
+        tone.interpolation_type='SMOOTHSTEP'
+        for socket,value in [('From Min',.064),('From Max',.18),('To Min',.57),('To Max',.42)]:
+            tone.inputs[socket].default_value=value
+        links.new(luminance.outputs[0],tone.inputs['Value'])
+        links.new(tone.outputs[0],shader.inputs['Roughness'])
+        if 'Cranium' in name or 'Skin' in name:
+            pigment_edge=nodes.new('ShaderNodeBump')
+            pigment_edge.inputs['Distance'].default_value=.028 if 'Cranium' in name else .012
+            pigment_edge.inputs['Strength'].default_value=.38
+            links.new(tone.outputs[0],pigment_edge.inputs['Height'])
+            links.new(pebble.outputs[0],pigment_edge.inputs['Normal'])
+            links.new(pigment_edge.outputs[0],shader.inputs['Normal'])
+
 
 
 def image_node(ns,ln,im,uv,label):

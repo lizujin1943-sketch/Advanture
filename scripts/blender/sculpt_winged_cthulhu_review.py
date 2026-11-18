@@ -50,7 +50,7 @@ POSE = {
 }
 # Centres of the distal curls in the frontal plane, used to orient the sucker bed.
 CURL = {'A01': (-6.04,3.42), 'A03': (-.19,1.22), 'A02': (-3.52,1.46), 'A04': (5.84,2.22),
-        'S01': (-3.16,5.95), 'S03': (1.83,4.65), 'S04': (4.65,5.88)}
+        'S01': (-3.16,5.95), 'S02': (-2.65,1.80), 'S03': (1.83,4.65), 'S04': (4.65,5.88)}
 
 
 def smooth(lo, hi, x):
@@ -74,9 +74,6 @@ def rebuilt_sleeve(key, points, radii, collection, materials):
     # Unwrapped axial roll prevents a sudden half-turn on tightly curled tips.
     start = 21
     origin, tangent, normal, lateral, radius = seat(key)
-    mesh = Mesh()
-    params = []
-    previous = None
     frames = []
     roll = 0.0
     curl_x, curl_z = CURL[key]
@@ -96,7 +93,7 @@ def rebuilt_sleeve(key, points, radii, collection, materials):
                 inward.normalize()
             # The upper arch shows skin; the cup bed rotates toward the viewer inside the coil.
             view=-1 if key[0]=='A' else 1
-            inward.y=view*(.24+.72*float(smooth(.42,.72,f)))
+            inward.y=view*(.30+2.25*float(smooth(.22,.53,f)))
             desired=inward-t*inward.dot(t)
             if desired.length>.09:
                 angle=math.atan2(desired.dot(side),desired.dot(normal))
@@ -106,74 +103,36 @@ def rebuilt_sleeve(key, points, radii, collection, materials):
             n=normal*math.cos(angle)+side*math.sin(angle)
             b=t.cross(n).normalized()
         tangent=t
-        ring=[]
-        for k in range(SIDES):
-            a=math.tau*k/SIDES
-            muscle=1+.014*float(smooth(.17,.28,f))*math.cos(3*a+.6*f)
-            ring.append(mesh.vert(p+r*muscle*(math.cos(a)*n+math.sin(a)*b),(k/SIDES,f)))
-            params.append(f)
-        if previous:
-            for k in range(SIDES):
-                q=(k+1)%SIDES
-                underside = math.cos(math.tau*(k+.5)/SIDES)>.73
-                mesh.face((previous[k],ring[k],ring[q],previous[q]),int(underside))
-        else:
-            cap=mesh.vert(origin+t*.145)
-            params.append(f)
-            for k in range(SIDES):
-                mesh.face((ring[k],ring[(k+1)%SIDES],cap))
-        previous=ring
         frames.append((p,t,n,b,r))
-    cap=mesh.vert(points[-1])
-    params.append(1.)
-    for k in range(SIDES):
-        mesh.face((previous[k],previous[(k+1)%SIDES],cap))
-    # Each row advances independently by tissue distance, staggering the larger cups.
-    traveled=0
-    next_distance=[.55,.79]
-    for j,(p,t,n,b,r) in enumerate(frames):
-        if j:
-            traveled+=(p-frames[j-1][0]).length
-        if r<.048 or j>len(frames)-3:
-            continue
-        for row in range(2):
-            if traveled<next_distance[row]:
-                continue
-            angle=(-.54,.54)[row]
-            local=(n*math.cos(angle)+b*math.sin(angle)).normalized()
-            before=len(mesh.v)
-            lip=r*(.53 if key.startswith('A') else .48)
-            mesh.cup(p+local*r*.99,local,t,lip,aspect=.94,segments=32)
-            params.extend([(j+start)/(len(points)-1)]*(len(mesh.v)-before))
-            next_distance[row]=traveled+max(.075,lip*2.02)
-    result=mesh.finish(PREFIX+'ReviewArm_'+key,collection,materials)
-    param=result.data.attributes.new('ArmParameter','FLOAT','POINT')
-    param.data.foreach_set('value',np.asarray(params,dtype=np.float32))
-    for poly in list(result.data.polygons)[:SIDES]:
-        poly.use_smooth=False
-    return result
+    from winged_cthulhu.ventral_skin import sleeve
+    return sleeve(frames,start,len(points),PREFIX+'ReviewArm_'+key,collection,materials)
+
 
 
 def pose_arm(ob):
     key=ob['limb_id']
     source=[Vector(p) for p in ob['centerline']]
     source_r=np.array(ob['centerline_radii'])
-    controls=[tuple(p) for p in ob['control_points'][:2]]+POSE[key]
-    points=spline([Vector(p[:3]) for p in controls],14)
-    radii=np.array(spline([p[3] for p in controls],14))
-    assert len(points)==len(source)
-    start,end=21,42
-    origin,tangent,_,_,radius=seat(key)
-    length=(origin-points[end]).length
-    endpoint=points[end].copy()
-    end_tangent=(points[end+1]-points[end-1]).normalized()
-    points[:start]=source[:start]
-    radii[:start]=source_r[:start]
-    for j in range(start,end):
-        u=(j-start)/(end-start)
-        points[j]=((2*u**3-3*u*u+1)*origin+(u**3-2*u*u+u)*length*tangent+
-                   (-2*u**3+3*u*u)*endpoint+(u**3-u*u)*length*end_tangent)
-        radii[j]=radius+(radii[end]-radius)*float(smooth(0,1,u))
+    controls=[tuple(p) for p in ob['control_points']]
+    if key in POSE:
+        controls=controls[:2]+POSE[key]
+        points=spline([Vector(p[:3]) for p in controls],14)
+        radii=np.array(spline([p[3] for p in controls],14))
+        assert len(points)==len(source)
+        start,end=21,42
+        origin,tangent,_,_,radius=seat(key)
+        length=(origin-points[end]).length
+        endpoint=points[end].copy()
+        end_tangent=(points[end+1]-points[end-1]).normalized()
+        points[:start]=source[:start]
+        radii[:start]=source_r[:start]
+        for j in range(start,end):
+            u=(j-start)/(end-start)
+            points[j]=((2*u**3-3*u*u+1)*origin+(u**3-2*u*u+u)*length*tangent+
+                       (-2*u**3+3*u*u)*endpoint+(u**3-u*u)*length*end_tangent)
+            radii[j]=radius+(radii[end]-radius)*float(smooth(0,1,u))
+    else:
+        points,radii=source,source_r
     result=rebuilt_sleeve(key,points,radii,ob.users_collection[0],list(ob.data.materials))
     for tag in ('limb_id','azimuth_degrees'):
         result[tag]=ob[tag]
@@ -553,7 +512,7 @@ def main():
     scene=bpy.context.scene
     high=bpy.data.collections['HIGH']
     if '--production' in sys.argv:
-        for key in POSE:
+        for key in CURL:
             pose_arm(high.objects[PREFIX+'Arm_'+key])
         sculpt_orbits(high,painted=True)
         check_roots(high)
@@ -582,7 +541,7 @@ def main():
     clay_scene(scene)
     assign_clay(high)
     render_views([('previous-'+n,c,w,h) for n,c,w,h in views if n in ('portrait','eyes')],out,draft)
-    for key in POSE:
+    for key in CURL:
         pose_arm(high.objects[PREFIX+'Arm_'+key])
     sculpt_orbits(high)
     clay_scene(scene)

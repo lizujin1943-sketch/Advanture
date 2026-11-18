@@ -1,12 +1,12 @@
 {
   "arm_count": 8,
   "root_azimuths": {
-    "S02": -158,
     "A01": -65,
     "A03": 24,
     "A02": -24,
     "A04": 65,
     "S01": -115,
+    "S02": -158,
     "S03": 158,
     "S04": 115
   },
@@ -19,19 +19,19 @@
     "pass": true,
     "errors": [],
     "warnings": [
-      "1238136 tris > max_tris 300000: z-fighting/floating checks skipped",
-      "asset lowest point z=0.2309 (not resting on ground plane z=0)"
+      "1132026 tris > max_tris 300000: z-fighting/floating checks skipped",
+      "asset lowest point z=0.2339 (not resting on ground plane z=0)"
     ],
-    "ground_z": 0.2309,
+    "ground_z": 0.2339,
     "zfighting": [],
     "floating": [],
     "back_to_back": [],
     "enclosed": [],
     "objects": {
       "CR_WingedCthulhu_OrganicCore": {
-        "verts": 447147,
-        "faces": 448388,
-        "tris": 894342,
+        "verts": 443845,
+        "faces": 445086,
+        "tris": 887738,
         "ngons": 379,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -51,9 +51,9 @@
         "materials": 1
       },
       "CR_WingedCthulhu_WingMembrane_L": {
-        "verts": 14088,
-        "faces": 14296,
-        "tris": 28160,
+        "verts": 14522,
+        "faces": 14640,
+        "tris": 29040,
         "ngons": 0,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -63,29 +63,7 @@
         "zero_length_edges": 0,
         "inconsistent_normals_edges": 0,
         "duplicate_verts": 0,
-        "islands": 4,
-        "inside_out_islands": 0,
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "materials": 1
-      },
-      "CR_WingedCthulhu_WingVeins_L": {
-        "verts": 1512,
-        "faces": 1572,
-        "tris": 3000,
-        "ngons": 0,
-        "boundary_edges": 0,
-        "nonmanifold_edges": 0,
-        "wire_edges": 0,
-        "loose_verts": 0,
-        "degenerate_faces": 0,
-        "zero_length_edges": 0,
-        "inconsistent_normals_edges": 0,
-        "duplicate_verts": 0,
-        "islands": 6,
+        "islands": 1,
         "inside_out_islands": 0,
         "scale": [
           1.0,
@@ -95,9 +73,9 @@
         "materials": 1
       },
       "CR_WingedCthulhu_WingMembrane_R": {
-        "verts": 14088,
-        "faces": 14296,
-        "tris": 28160,
+        "verts": 14522,
+        "faces": 14640,
+        "tris": 29040,
         "ngons": 0,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -107,29 +85,7 @@
         "zero_length_edges": 0,
         "inconsistent_normals_edges": 0,
         "duplicate_verts": 0,
-        "islands": 4,
-        "inside_out_islands": 0,
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "materials": 1
-      },
-      "CR_WingedCthulhu_WingVeins_R": {
-        "verts": 1512,
-        "faces": 1572,
-        "tris": 3000,
-        "ngons": 0,
-        "boundary_edges": 0,
-        "nonmanifold_edges": 0,
-        "wire_edges": 0,
-        "loose_verts": 0,
-        "degenerate_faces": 0,
-        "zero_length_edges": 0,
-        "inconsistent_normals_edges": 0,
-        "duplicate_verts": 0,
-        "islands": 6,
+        "islands": 1,
         "inside_out_islands": 0,
         "scale": [
           1.0,
@@ -226,32 +182,10 @@
         ],
         "materials": 1
       },
-      "CR_WingedCthulhu_Arm_S02": {
-        "verts": 21755,
-        "faces": 23338,
-        "tris": 43234,
-        "ngons": 0,
-        "boundary_edges": 0,
-        "nonmanifold_edges": 0,
-        "wire_edges": 0,
-        "loose_verts": 0,
-        "degenerate_faces": 0,
-        "zero_length_edges": 0,
-        "inconsistent_normals_edges": 0,
-        "duplicate_verts": 0,
-        "islands": 69,
-        "inside_out_islands": 0,
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "materials": 1
-      },
       "CR_WingedCthulhu_Arm_A01": {
-        "verts": 17920,
-        "faces": 19128,
-        "tris": 35680,
+        "verts": 11783,
+        "faces": 12223,
+        "tris": 23562,
         "ngons": 0,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -261,7 +195,7 @@
         "zero_length_edges": 0,
         "inconsistent_normals_edges": 0,
         "duplicate_verts": 0,
-        "islands": 40,
+        "islands": 1,
         "inside_out_islands": 0,
         "scale": [
           1.0,
@@ -271,9 +205,9 @@
         "materials": 1
       },
       "CR_WingedCthulhu_Arm_A03": {
-        "verts": 16632,
-        "faces": 17720,
-        "tris": 33120,
+        "verts": 11041,
+        "faces": 11438,
+        "tris": 22078,
         "ngons": 0,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -283,7 +217,7 @@
         "zero_length_edges": 0,
         "inconsistent_normals_edges": 0,
         "duplicate_verts": 0,
-        "islands": 36,
+        "islands": 1,
         "inside_out_islands": 0,
         "scale": [
           1.0,
@@ -293,9 +227,9 @@
         "materials": 1
       },
       "CR_WingedCthulhu_Arm_A02": {
-        "verts": 14378,
-        "faces": 15256,
-        "tris": 28640,
+        "verts": 10551,
+        "faces": 10926,
+        "tris": 21098,
         "ngons": 0,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -305,7 +239,7 @@
         "zero_length_edges": 0,
         "inconsistent_normals_edges": 0,
         "duplicate_verts": 0,
-        "islands": 29,
+        "islands": 1,
         "inside_out_islands": 0,
         "scale": [
           1.0,
@@ -315,9 +249,9 @@
         "materials": 1
       },
       "CR_WingedCthulhu_Arm_A04": {
-        "verts": 16310,
-        "faces": 17368,
-        "tris": 32480,
+        "verts": 11056,
+        "faces": 11458,
+        "tris": 22108,
         "ngons": 0,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -327,7 +261,7 @@
         "zero_length_edges": 0,
         "inconsistent_normals_edges": 0,
         "duplicate_verts": 0,
-        "islands": 35,
+        "islands": 1,
         "inside_out_islands": 0,
         "scale": [
           1.0,
@@ -337,9 +271,9 @@
         "materials": 1
       },
       "CR_WingedCthulhu_Arm_S01": {
-        "verts": 16072,
-        "faces": 17160,
-        "tris": 32000,
+        "verts": 10034,
+        "faces": 10402,
+        "tris": 20064,
         "ngons": 0,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -349,7 +283,29 @@
         "zero_length_edges": 0,
         "inconsistent_normals_edges": 0,
         "duplicate_verts": 0,
-        "islands": 36,
+        "islands": 1,
+        "inside_out_islands": 0,
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "materials": 1
+      },
+      "CR_WingedCthulhu_Arm_S02": {
+        "verts": 11780,
+        "faces": 12213,
+        "tris": 23556,
+        "ngons": 0,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "wire_edges": 0,
+        "loose_verts": 0,
+        "degenerate_faces": 0,
+        "zero_length_edges": 0,
+        "inconsistent_normals_edges": 0,
+        "duplicate_verts": 0,
+        "islands": 1,
         "inside_out_islands": 0,
         "scale": [
           1.0,
@@ -359,9 +315,9 @@
         "materials": 1
       },
       "CR_WingedCthulhu_Arm_S03": {
-        "verts": 15988,
-        "faces": 17016,
-        "tris": 31840,
+        "verts": 10958,
+        "faces": 11355,
+        "tris": 21912,
         "ngons": 0,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -371,7 +327,7 @@
         "zero_length_edges": 0,
         "inconsistent_normals_edges": 0,
         "duplicate_verts": 0,
-        "islands": 34,
+        "islands": 1,
         "inside_out_islands": 0,
         "scale": [
           1.0,
@@ -381,9 +337,9 @@
         "materials": 1
       },
       "CR_WingedCthulhu_Arm_S04": {
-        "verts": 16716,
-        "faces": 17864,
-        "tris": 33280,
+        "verts": 10317,
+        "faces": 10701,
+        "tris": 20630,
         "ngons": 0,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -393,7 +349,7 @@
         "zero_length_edges": 0,
         "inconsistent_normals_edges": 0,
         "duplicate_verts": 0,
-        "islands": 38,
+        "islands": 1,
         "inside_out_islands": 0,
         "scale": [
           1.0,

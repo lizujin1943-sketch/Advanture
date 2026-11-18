@@ -1,7 +1,7 @@
 """Close each independently severable sleeve on one common, tangent-matched ring.
 
 Recut after decimation: independent reducers cannot preserve vertex coincidence.
-Only the local skin tube is opened; lips, cups, and facial tendrils are separate.
+The cut is confined to the proximal sleeve and the corresponding crown tissue.
 """
 import math,bmesh
 from collections import deque
@@ -89,9 +89,10 @@ def trim_and_loft(bm,key,arm,material,params):
     # cross the infinite plane elsewhere in the sculpt.
     crown=bm.verts.layers.float.get('CrownTissue') if not arm else None
     if arm:
-        # Reduced triangles may span most of the first bend. Include the
-        # full skin surface, leaving separate sucker shells out of the cut.
-        fs={f for f in bm.faces if f.material_index<2}
+        # The floor and lips of each sucker are continuous with the arm.
+        # Material boundaries can cross this oblique plane on curved wrists.
+        axial=bm.verts.layers.float['ArmParameter']
+        fs={f for f in bm.faces if min(v[axial] for v in f.verts)<params+.23}
         es={e for f in fs for e in f.edges}
         near={v for f in fs for v in f.verts}
     else:

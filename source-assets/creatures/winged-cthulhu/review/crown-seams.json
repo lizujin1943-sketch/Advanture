@@ -1,5 +1,5 @@
 {
-  "sourceSHA256": "9095d0d0b504d2b054b5c174adb1feac0ec128930d6f4308b3bcd39476d5e95b",
+  "sourceSHA256": "d206b6eaa5fe7c7de285468189625f81044453aefb3f649a335735e5051b68b2",
   "matchedVertices": 320,
   "sampling": "First, last and every eighth interior frame of each authored clip",
   "maximumGapMmByClip": {

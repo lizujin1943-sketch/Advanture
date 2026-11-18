@@ -1,35 +1,23 @@
 {
-  "triangles": 155006,
+  "triangles": 195318,
   "reduction": [
     {
       "name": "CR_WingedCthulhu_OrganicCore",
-      "sourceVertices": 447147,
-      "vertices": 37985,
-      "maxSurfaceErrorMeters": 0.003485082183033228
+      "sourceVertices": 443845,
+      "vertices": 37704,
+      "maxSurfaceErrorMeters": 0.0036948462948203087
     },
     {
       "name": "CR_WingedCthulhu_WingMembrane_L",
-      "sourceVertices": 7044,
-      "vertices": 3950,
-      "maxSurfaceErrorMeters": 0.022517401725053787
-    },
-    {
-      "name": "CR_WingedCthulhu_WingVeins_L",
-      "sourceVertices": 1512,
-      "vertices": 612,
-      "maxSurfaceErrorMeters": 0.0018076170235872269
+      "sourceVertices": 7261,
+      "vertices": 4067,
+      "maxSurfaceErrorMeters": 0.006585807539522648
     },
     {
       "name": "CR_WingedCthulhu_WingMembrane_R",
-      "sourceVertices": 7044,
-      "vertices": 3950,
-      "maxSurfaceErrorMeters": 0.008709350600838661
-    },
-    {
-      "name": "CR_WingedCthulhu_WingVeins_R",
-      "sourceVertices": 1512,
-      "vertices": 612,
-      "maxSurfaceErrorMeters": 0.0018752629403024912
+      "sourceVertices": 7261,
+      "vertices": 4067,
+      "maxSurfaceErrorMeters": 0.010740973986685276
     },
     {
       "name": "CR_WingedCthulhu_Socket_L",
@@ -56,52 +44,52 @@
       "maxSurfaceErrorMeters": 0.0002526617026887834
     },
     {
-      "name": "CR_WingedCthulhu_Arm_S02",
-      "sourceVertices": 21755,
-      "vertices": 4461,
-      "maxSurfaceErrorMeters": 0.006724353414028883
-    },
-    {
       "name": "CR_WingedCthulhu_Arm_A01",
-      "sourceVertices": 17920,
-      "vertices": 3648,
-      "maxSurfaceErrorMeters": 0.006633713375777006
+      "sourceVertices": 11783,
+      "vertices": 6599,
+      "maxSurfaceErrorMeters": 0.0018916248809546232
     },
     {
       "name": "CR_WingedCthulhu_Arm_A03",
-      "sourceVertices": 16632,
-      "vertices": 3384,
-      "maxSurfaceErrorMeters": 0.0074087935499846935
+      "sourceVertices": 11041,
+      "vertices": 6183,
+      "maxSurfaceErrorMeters": 0.001695942715741694
     },
     {
       "name": "CR_WingedCthulhu_Arm_A02",
-      "sourceVertices": 14378,
-      "vertices": 2922,
-      "maxSurfaceErrorMeters": 0.008072832599282265
+      "sourceVertices": 10551,
+      "vertices": 5909,
+      "maxSurfaceErrorMeters": 0.0034135926980525255
     },
     {
       "name": "CR_WingedCthulhu_Arm_A04",
-      "sourceVertices": 16310,
-      "vertices": 3318,
-      "maxSurfaceErrorMeters": 0.008798440918326378
+      "sourceVertices": 11056,
+      "vertices": 6192,
+      "maxSurfaceErrorMeters": 0.003462781198322773
     },
     {
       "name": "CR_WingedCthulhu_Arm_S01",
-      "sourceVertices": 16072,
-      "vertices": 3272,
-      "maxSurfaceErrorMeters": 0.005525958724319935
+      "sourceVertices": 10034,
+      "vertices": 5619,
+      "maxSurfaceErrorMeters": 0.002043166197836399
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_S02",
+      "sourceVertices": 11780,
+      "vertices": 6597,
+      "maxSurfaceErrorMeters": 0.001837047515437007
     },
     {
       "name": "CR_WingedCthulhu_Arm_S03",
-      "sourceVertices": 15988,
-      "vertices": 3252,
-      "maxSurfaceErrorMeters": 0.007965236902236938
+      "sourceVertices": 10958,
+      "vertices": 6137,
+      "maxSurfaceErrorMeters": 0.002142792334780097
     },
     {
       "name": "CR_WingedCthulhu_Arm_S04",
-      "sourceVertices": 16716,
-      "vertices": 3404,
-      "maxSurfaceErrorMeters": 0.007628489285707474
+      "sourceVertices": 10317,
+      "vertices": 5778,
+      "maxSurfaceErrorMeters": 0.0028597626369446516
     }
   ],
   "surfaceRelief": [
@@ -115,27 +103,23 @@
     {
       "object": "WC_Wing_L",
       "contactCounts": [
-        12,
-        3,
         0
       ],
-      "maxReliefMeters": 0.0059999140824568715
+      "maxReliefMeters": 0.0
     },
     {
       "object": "WC_Wing_R",
       "contactCounts": [
-        10,
         0
       ],
-      "maxReliefMeters": 0.0030001008915848232
+      "maxReliefMeters": 0.0
     },
     {
       "object": "AW_Arm_A01",
       "contactCounts": [
-        1,
         0
       ],
-      "maxReliefMeters": 0.0030001551557863283
+      "maxReliefMeters": 0.0
     },
     {
       "object": "AW_Arm_A02",
@@ -147,10 +131,9 @@
     {
       "object": "AW_Arm_A03",
       "contactCounts": [
-        1,
         0
       ],
-      "maxReliefMeters": 0.0030000150975764855
+      "maxReliefMeters": 0.0
     },
     {
       "object": "AW_Arm_A04",
@@ -162,10 +145,9 @@
     {
       "object": "AW_Arm_S01",
       "contactCounts": [
-        1,
         0
       ],
-      "maxReliefMeters": 0.0029999690258635885
+      "maxReliefMeters": 0.0
     },
     {
       "object": "AW_Arm_S02",

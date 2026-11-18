@@ -41,11 +41,16 @@ def reduce(ob,ratio):
 def unwrap(ob,tile,cols,rows):
     active([ob]);me=ob.data
     uv=me.uv_layers.new(name='RuntimeUV');me.uv_layers.active=uv;uv.active_render=True
-    bpy.ops.object.mode_set(mode='EDIT')
-    try:
-        bpy.ops.mesh.select_all(action='SELECT')
-        bpy.ops.uv.smart_project(angle_limit=math.radians(66),island_margin=.008,area_weight=.2,correct_aspect=True,scale_to_bounds=True)
-    finally:bpy.ops.object.mode_set(mode='OBJECT')
+    layout=me.uv_layers.get('ArmBakeLayout')
+    if layout:
+        from winged_cthulhu.ventral_skin import transfer_layout
+        transfer_layout(ob,layout,uv)
+    else:
+        bpy.ops.object.mode_set(mode='EDIT')
+        try:
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.uv.smart_project(angle_limit=math.radians(66),island_margin=.008,area_weight=.2,correct_aspect=True,scale_to_bounds=True)
+        finally:bpy.ops.object.mode_set(mode='OBJECT')
     # Edit-mode unwrap reallocates loop custom data; reacquire the RNA layer.
     me=ob.data;uv=me.uv_layers['RuntimeUV']
     arr=np.empty(len(me.loops)*2,np.float32);uv.uv.foreach_get('vector',arr);arr=arr.reshape(-1,2)
@@ -109,7 +114,7 @@ def main():
     obs=[o for o in bpy.data.collections['HIGH'].objects if o.type=='MESH']
     report=[]
     for ob in obs:
-        ratio=.085 if 'OrganicCore' in ob.name else .20 if '_Arm_' in ob.name else .28 if 'Membrane' in ob.name else .4
+        ratio=.085 if 'OrganicCore' in ob.name else .56 if ob.get('sucker_count') else .28 if 'Membrane' in ob.name else .4
         report.append(reduce(ob,ratio))
     # Collect memberships before joins invalidate their source RNA objects.
     body_parts=[o for o in obs if any(s in o.name for s in ('OrganicCore','CheekFin','Socket_'))]
@@ -117,11 +122,12 @@ def main():
     wing_parts={side:[o for o in obs if o.name.endswith('_'+side) and ('WingMembrane' in o.name or 'WingVeins' in o.name)] for side in ('L','R')}
     arms=sorted([o for o in obs if '_Arm_' in o.name],key=lambda o:o['limb_id'])
     from winged_cthulhu.crown_seams import close_junctions
-    from paint_winged_cthulhu import uv_and_coverage,paint_dorsal_marks,paint_mantle_and_cups
+    from paint_winged_cthulhu import uv_and_coverage,paint_dorsal_marks,paint_mantle_and_cups,paint_surface_detail
     core=next(o for o in body_parts if 'OrganicCore' in o.name)
     if core.get('portrait_paint'):
         paint_dorsal_marks()
         paint_mantle_and_cups()
+        paint_surface_detail()
     close_junctions(core,arms)
     for ob in [core]+arms:uv_and_coverage(ob)
     body=join([core]+[o for o in body_parts if o!=core],'AW_Head');eyes=join(eye_parts,'AW_Eye_Center')

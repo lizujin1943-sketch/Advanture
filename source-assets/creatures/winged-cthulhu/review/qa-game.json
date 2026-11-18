@@ -3,40 +3,24 @@
   "pass": true,
   "errors": [],
   "warnings": [
-    "hidden back-to-back faces: AW_Head<->WC_Wing_L (2 pairs) - delete to save tris",
-    "hidden back-to-back faces: WC_Wing_L (1 pairs) - delete to save tris",
-    "1 parts fully enclosed, not touching (eyes/internals?): ['WC_Wing_R']",
-    "asset lowest point z=0.231 (not resting on ground plane z=0)"
+    "hidden back-to-back faces: AW_Head<->WC_Wing_R (1 pairs) - delete to save tris",
+    "asset lowest point z=0.2339 (not resting on ground plane z=0)"
   ],
-  "ground_z": 0.231,
+  "ground_z": 0.2339,
   "zfighting": [],
   "floating": [],
   "back_to_back": [
     {
-      "where": "AW_Head<->WC_Wing_L",
-      "tri_pairs": 2
-    },
-    {
-      "where": "WC_Wing_L",
+      "where": "AW_Head<->WC_Wing_R",
       "tri_pairs": 1
     }
   ],
-  "enclosed": [
-    {
-      "object": "WC_Wing_R",
-      "island_verts": 110,
-      "center": [
-        3.277,
-        1.125,
-        7.916
-      ]
-    }
-  ],
+  "enclosed": [],
   "objects": {
     "AW_Arm_A01": {
-      "verts": 3751,
-      "faces": 7265,
-      "tris": 7342,
+      "verts": 6640,
+      "faces": 13194,
+      "tris": 13276,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -46,7 +30,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 40,
+      "islands": 1,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -60,12 +44,12 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 3.9
+      "uv_coverage_pct": 10.1
     },
     "AW_Arm_A02": {
-      "verts": 3009,
-      "faces": 5823,
-      "tris": 5902,
+      "verts": 5893,
+      "faces": 11699,
+      "tris": 11782,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -75,7 +59,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 29,
+      "islands": 1,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -89,12 +73,12 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 5.1
+      "uv_coverage_pct": 10.0
     },
     "AW_Arm_A03": {
-      "verts": 3450,
-      "faces": 6675,
-      "tris": 6756,
+      "verts": 6140,
+      "faces": 12188,
+      "tris": 12276,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -104,7 +88,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 36,
+      "islands": 1,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -118,12 +102,12 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 4.8
+      "uv_coverage_pct": 9.9
     },
     "AW_Arm_A04": {
-      "verts": 3389,
-      "faces": 6566,
-      "tris": 6638,
+      "verts": 6160,
+      "faces": 12224,
+      "tris": 12316,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -133,7 +117,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 35,
+      "islands": 1,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -146,13 +130,13 @@
       "uv_maps": 1,
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 0.14,
-      "uv_coverage_pct": 4.4
+      "uv_overlap_pct": 0.06,
+      "uv_coverage_pct": 10.0
     },
     "AW_Arm_S01": {
-      "verts": 3376,
-      "faces": 6529,
-      "tris": 6608,
+      "verts": 5657,
+      "faces": 11230,
+      "tris": 11310,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -162,7 +146,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 36,
+      "islands": 1,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -176,12 +160,12 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 4.2
+      "uv_coverage_pct": 10.0
     },
     "AW_Arm_S02": {
-      "verts": 4565,
-      "faces": 8779,
-      "tris": 8854,
+      "verts": 6653,
+      "faces": 13223,
+      "tris": 13302,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -191,7 +175,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 69,
+      "islands": 1,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -205,12 +189,12 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 3.6
+      "uv_coverage_pct": 10.1
     },
     "AW_Arm_S03": {
-      "verts": 3342,
-      "faces": 6471,
-      "tris": 6548,
+      "verts": 6174,
+      "faces": 12264,
+      "tris": 12344,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -220,7 +204,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 34,
+      "islands": 1,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -234,12 +218,12 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 4.7
+      "uv_coverage_pct": 10.0
     },
     "AW_Arm_S04": {
-      "verts": 3511,
-      "faces": 6790,
-      "tris": 6870,
+      "verts": 5839,
+      "faces": 11593,
+      "tris": 11674,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -249,7 +233,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 38,
+      "islands": 1,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -263,7 +247,7 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 4.6
+      "uv_coverage_pct": 10.0
     },
     "AW_Eye_Center": {
       "verts": 1124,
@@ -295,9 +279,9 @@
       "uv_coverage_pct": 38.2
     },
     "AW_Head": {
-      "verts": 39520,
-      "faces": 78536,
-      "tris": 79080,
+      "verts": 39249,
+      "faces": 77995,
+      "tris": 78538,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -320,13 +304,13 @@
       "uv_maps": 1,
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 0.38,
-      "uv_coverage_pct": 8.1
+      "uv_overlap_pct": 0.17,
+      "uv_coverage_pct": 7.3
     },
     "WC_Wing_L": {
-      "verts": 4562,
-      "faces": 9084,
-      "tris": 9084,
+      "verts": 4067,
+      "faces": 8130,
+      "tris": 8130,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -336,7 +320,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 10,
+      "islands": 1,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -349,13 +333,13 @@
       "uv_maps": 1,
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 0.17,
-      "uv_coverage_pct": 11.0
+      "uv_overlap_pct": 0.0,
+      "uv_coverage_pct": 14.1
     },
     "WC_Wing_R": {
-      "verts": 4562,
-      "faces": 9084,
-      "tris": 9084,
+      "verts": 4067,
+      "faces": 8130,
+      "tris": 8130,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -365,7 +349,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 10,
+      "islands": 1,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -378,9 +362,29 @@
       "uv_maps": 1,
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 2.73,
-      "uv_coverage_pct": 13.2
+      "uv_overlap_pct": 0.28,
+      "uv_coverage_pct": 15.4
     }
   },
-  "sourceSHA256": "9095d0d0b504d2b054b5c174adb1feac0ec128930d6f4308b3bcd39476d5e95b"
+  "wingDigitFlexRadiansAtEnragedIdle36": {
+    "DEF_WingDigit_L_0": 0.05865,
+    "DEF_WingDigit_L_1": 0.06183,
+    "DEF_WingDigit_L_2": 0.06363,
+    "DEF_WingDigit_L_3": 0.06399,
+    "DEF_WingDigit_R_0": 0.05865,
+    "DEF_WingDigit_R_1": 0.06183,
+    "DEF_WingDigit_R_2": 0.06363,
+    "DEF_WingDigit_R_3": 0.06399
+  },
+  "integratedSuckers": {
+    "A01": 34,
+    "A02": 24,
+    "A03": 29,
+    "A04": 28,
+    "S01": 27,
+    "S02": 36,
+    "S03": 27,
+    "S04": 29
+  },
+  "sourceSHA256": "d206b6eaa5fe7c7de285468189625f81044453aefb3f649a335735e5051b68b2"
 }

@@ -93,6 +93,13 @@ def apply(rig,kind,t,key,ref,oral):
         if kind=='Death':angle+=.75*ease(t/3);tip+=.25*ease(t/3)
         rig.pose.bones['DEF_Wing_'+side].rotation_quaternion=Quaternion((0,1,0),angle*sign)
         rig.pose.bones['DEF_WingTip_'+side].rotation_quaternion=Quaternion((0,1,0),tip*sign)
+        for digit in range(4):
+            lag=.32+.15*digit
+            flex=.029*power*(math.sin(phase-lag)-math.sin(-lag))
+            if kind=='Death':flex+=.17*ease(t/3.4)
+            if kind=='Enrage':flex-=.09*envelope
+            local=rig.pose.bones[f'DEF_WingDigit_{side}_{digit}']
+            local.rotation_quaternion=Quaternion((1,0,0),sign*flex)
     for idx,pts in oral.items():
         moved=[]
         for i,p in enumerate(pts):
