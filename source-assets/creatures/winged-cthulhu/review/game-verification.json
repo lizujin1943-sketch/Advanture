@@ -1,5 +1,5 @@
 {
-  "recordedUtc": "2026-11-18T06:29:54.389572+00:00",
+  "recordedUtc": "2026-11-18T07:08:57.226862+00:00",
   "status": "PASS",
   "scope": "Reference sculpt, baked materials, 24 clips, authoritative joint and head volumes, Unity town presentation.",
   "unity": {
@@ -36,8 +36,8 @@
     "maxIdleJointErrorMm": 0.792435894254595
   },
   "artifactIdentity": {
-    "sourceSHA256": "562bf0facb9e7b4af325dd0798c8d692f44bf93983dfdc7a1e37f78a953a1fa8",
-    "fbxSHA256": "7812d8883a33209f561673c6d877be1e55abe6f3a4efc41e3125a387cf81e1c8",
+    "sourceSHA256": "9095d0d0b504d2b054b5c174adb1feac0ec128930d6f4308b3bcd39476d5e95b",
+    "fbxSHA256": "9f2a926c59effbdffe18a3f61bce77f06114f5128a5a846042c5231495c0f817",
     "collisionRawSHA256": "e63cf4e49143b6153289614ed8e73b2eabf8113f0a4791e99960814cfcbf08ac"
   },
   "maxSampledWristGapMm": 0,

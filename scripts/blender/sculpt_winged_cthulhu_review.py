@@ -289,7 +289,22 @@ def sculpt_orbits(high, painted=False):
         xyz[:,1]-=.13
         write_coordinates(fin,xyz)
         folds.append(fin)
-    fuse_face(high.objects[PREFIX+'OrganicCore'],folds,painted)
+    core = high.objects[PREFIX+'OrganicCore']
+    fuse_face(core,folds,painted)
+    round_posterior_mantle(core)
+
+
+def round_posterior_mantle(core):
+    """Carry the dome behind the wing root, fading into the pointed rear tip."""
+    xyz = coordinates(core)
+    x, y, z = xyz.T.copy()
+    # The reference has a high convex back above a nearly level ventral shelf.
+    # Lift the roof of each cross-section without lowering it onto the rear arms.
+    along = smooth(.25, 3.65, y) * (1 - smooth(4.05, 5.68, y))
+    medial = 1 - smooth(1.40, 2.08, np.abs(x))
+    roof = smooth(-.65, .72, z - (7.85 - .37*y))
+    xyz[:, 2] += .86 * along * medial * roof
+    write_coordinates(core, xyz)
 
 
 def fuse_face(core, folds, painted):

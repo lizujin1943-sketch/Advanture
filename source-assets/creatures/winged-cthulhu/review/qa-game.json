@@ -295,9 +295,9 @@
       "uv_coverage_pct": 38.2
     },
     "AW_Head": {
-      "verts": 39517,
-      "faces": 78530,
-      "tris": 79074,
+      "verts": 39520,
+      "faces": 78536,
+      "tris": 79080,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -320,8 +320,8 @@
       "uv_maps": 1,
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 0.23,
-      "uv_coverage_pct": 7.8
+      "uv_overlap_pct": 0.38,
+      "uv_coverage_pct": 8.1
     },
     "WC_Wing_L": {
       "verts": 4562,
@@ -382,5 +382,5 @@
       "uv_coverage_pct": 13.2
     }
   },
-  "sourceSHA256": "562bf0facb9e7b4af325dd0798c8d692f44bf93983dfdc7a1e37f78a953a1fa8"
+  "sourceSHA256": "9095d0d0b504d2b054b5c174adb1feac0ec128930d6f4308b3bcd39476d5e95b"
 }

@@ -1,7 +1,7 @@
 {
   "status": "PASS",
-  "fbxSHA256": "7812d8883a33209f561673c6d877be1e55abe6f3a4efc41e3125a387cf81e1c8",
-  "sourceSHA256": "562bf0facb9e7b4af325dd0798c8d692f44bf93983dfdc7a1e37f78a953a1fa8",
+  "fbxSHA256": "9f2a926c59effbdffe18a3f61bce77f06114f5128a5a846042c5231495c0f817",
+  "sourceSHA256": "9095d0d0b504d2b054b5c174adb1feac0ec128930d6f4308b3bcd39476d5e95b",
   "clips": [
     {
       "clip": "AW_Emerge",
