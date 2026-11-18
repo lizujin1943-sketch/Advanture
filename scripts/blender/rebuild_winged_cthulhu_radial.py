@@ -1,61 +1,19 @@
 """Replace the frontal fan with a complete eight-arm crown. Saved source only."""
 from pathlib import Path
 import sys
-import math
 import json
 import shutil
 import bpy
 import numpy as np
-from mathutils import Vector
 
 HERE=Path(__file__).resolve().parent
 sys.path.insert(0,str(HERE))
-from winged_cthulhu import radial_arms,sculpt
-from winged_cthulhu.geometry import Mesh
+from winged_cthulhu import radial_arms
 from paint_winged_cthulhu import uv_and_coverage
 from create_winged_cthulhu import camera
 
 ROOT=HERE.parents[1];OUT=ROOT/'source-assets/creatures/winged-cthulhu'
 ART=ROOT/'artifacts/winged-cthulhu'
-
-
-def shorten_mantle(core):
-    """Remove the hanging posterior stump while keeping front facial tendrils."""
-    me=core.data;v=np.empty(len(me.vertices)*3,np.float32);me.vertices.foreach_get('co',v);v=v.reshape(-1,3)
-    rear=np.clip((v[:,1]+.85)/.75,0,1);rear=rear*rear*(3-2*rear)
-    height=np.clip((5.2-v[:,2])/1.5,0,1);height=height*height*(3-2*height)
-    lateral=np.clip((2.6-np.abs(v[:,0]-.45))/.8,0,1)
-    weight=rear*height*lateral
-    v[:,2]+=np.maximum(0,4.02-v[:,2])*.88*weight
-    me.vertices.foreach_set('co',v.ravel());me.update()
-    uv_and_coverage(core)
-
-
-def crown(col,skin,root):
-    # Smooth saddle web between the eight arm bases, entirely surrounding the body.
-    g=Mesh();nu=128;nv=28;rings=[]
-    # The dorsal mantle is a continuous muscular saddle, not a straight collar.
-    g.ellipsoid((.1,.2,5.55),(1.88,1.94,1.75),nu=96,nv=64,
-        deform=lambda q,ph,a:q*(1+.018*math.cos(a*8)*math.sin(ph)**3))
-    for j in range(nv+1):
-        f=j/nv;row=[]
-        for k in range(nu):
-            a=math.tau*k/nu
-            # Eight shallow lobes, not separate sphere-like root lumps.
-            lobe=.5+.5*math.cos(8*a)
-            r=(1.38+.26*math.sin(math.pi*f)+.52*f*f+.15*lobe*f*f)
-            z=5.1-1.18*f-.12*(1-lobe)*f*f
-            row.append(g.vert((r*math.sin(a),-r*math.cos(a),z),(k/nu,f)))
-        rings.append(row)
-    for a,b in zip(rings,rings[1:]):
-        for k in range(nu):g.face((a[k],b[k],b[(k+1)%nu],a[(k+1)%nu]))
-    for ring,z,rev in [(rings[0],5.1,True),(rings[-1],3.85,False)]:
-        ix=g.vert((0,0,z))
-        for k in range(nu):
-            f=(ix,ring[k],ring[(k+1)%nu]);g.face(f[::-1] if rev else f)
-    ob=g.finish('CR_WingedCthulhu_ArmCrown',col,[skin]);ob.parent=root;uv_and_coverage(ob)
-    ob['inferred']='Circumferential webbed arm crown from multi-view design'
-    return ob
 
 
 def soften_dorsal_pattern():
@@ -87,6 +45,24 @@ def soften_dorsal_pattern():
         for link in consumers:ln.new(multiply.outputs[0],link.to_socket)
 
 
+def check_facial_symmetry(high):
+    """Check the final fitted world-space surfaces, including eye depth and tilt."""
+    errors={}
+    for part in ('Eye','Socket','CheekFin'):
+        points=[]
+        for side in ('L','R'):
+            ob=high.objects['CR_WingedCthulhu_'+part+'_'+side]
+            v=np.empty(len(ob.data.vertices)*3,np.float32);ob.data.vertices.foreach_get('co',v)
+            transform=np.array(ob.matrix_world)
+            points.append(v.reshape(-1,3)@transform[:3,:3].T+transform[:3,3])
+        left,right=points
+        if left[:,0].mean()>-.2 or right[:,0].mean()<.2:raise ValueError(part+' orbital axis misplaced')
+        left[:,0]*=-1
+        errors[part]=float(np.linalg.norm(left-right,axis=1).max())
+        if errors[part]>.00002:raise ValueError(f'{part} mirror error {errors[part]} m')
+    return errors
+
+
 def main():
     if not bpy.app.background:raise RuntimeError('Isolated source edit only')
     root=bpy.data.objects['CR_WingedCthulhu']
@@ -97,13 +73,8 @@ def main():
     old=[o for o in high.objects if o.type=='MESH' and '_Arm_' in o.name]
     assert len(old)==10,len(old)
     for ob in old:bpy.data.objects.remove(ob,do_unlink=True)
-    shorten_mantle(bpy.data.objects['CR_WingedCthulhu_OrganicCore'])
+    if root.get('anatomy_revision')!=2:raise ValueError('Rebuild the continuous mantle master and its painted source first')
     mats=[bpy.data.materials[n] for n in ['PAINT_Skin_TealAndOlive','PAINT_Ventral_DustyMauve','PAINT_Suckers_RoseLip','PAINT_Suckers_MauveBowl']]
-    web=crown(high,mats[0],root)
-    # Fuse the new web into the existing mantle before attaching distinct limbs.
-    # The resulting surface is continuous instead of a visible cylindrical collar.
-    fused=sculpt.fuse_core(high,include=('CR_WingedCthulhu_OrganicCore',web.name))
-    fused.parent=root;uv_and_coverage(fused)
     soften_dorsal_pattern()
     arms=[]
     for key in radial_arms.ANGLES:
@@ -127,11 +98,11 @@ def main():
     for screen in bpy.data.screens:
         for a in screen.areas:
             if a.type=='VIEW_3D':a.spaces.active.region_3d.view_camera_zoom=15
-    manifest={'main_arm_count':8,'facial_tendrils':'Separate front-only oral anatomy, excluded from count',
+    manifest={'main_arm_count':8,'anatomy_revision':2,'mirror_error_m':check_facial_symmetry(high),'facial_tendrils':'Separate front-only oral anatomy, excluded from count',
         'design':'ref/inferred-turnaround-v1.png','view_note':'Generated design is inferred; orthographic mesh renders and numeric paths govern spatial verification',
         'arms':[{'id':o['limb_id'],'azimuth':o['azimuth_degrees'],'root':o['centerline'][0][:],
                  'distal':o['centerline'][-1][:],'controls':[list(p) for p in o['control_points']]} for o in arms],
-        'status':'Spatial model revision; rigging, animation, Unity replacement and push pending'}
+        'status':'High sculpt; see exports/unity and review for runtime verification'}
     (OUT/'radial-manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf8')
     bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'CR_WingedCthulhu_radial.blend'))
     s.render.engine='BLENDER_WORKBENCH';s.render.resolution_x=960;s.render.resolution_y=960

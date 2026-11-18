@@ -29,5 +29,7 @@
     960,
     640
   ],
-  "scope": "Actual skinned workbench frames; final lighting/materials in rendered stills and Unity capture"
+  "scope": "Actual skinned workbench frames; final lighting/materials in rendered stills and Unity capture",
+  "fileSHA256": "736e2cf35f9aa7e5f4ee4d79198a3f953ef0fa38b1c8be15792debc25f983a96",
+  "sourceSHA256": "49f17df57e21488cbf9621142a3d1570c1ec3b8c60827c72f73fc0dd90aba6bf"
 }

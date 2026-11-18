@@ -1,7 +1,7 @@
 {
   "status": "PASS",
-  "fbxSHA256": "83076b201add59fa42e93c823536694ecb43e094828f88cc455be031d4dbda3a",
-  "sourceSHA256": "432c4e52d0e0cc8633d5799c31d97db54fced9726136ed7d02885611560c3b9a",
+  "fbxSHA256": "4a7c1e9faa8a3885807b3c53e50291368e302b7dd5e45df51f48a48cd20a4ddd",
+  "sourceSHA256": "49f17df57e21488cbf9621142a3d1570c1ec3b8c60827c72f73fc0dd90aba6bf",
   "clips": [
     {
       "clip": "AW_Emerge",
@@ -100,7 +100,7 @@
       "maxJointErrorMm": 0.5214443206787109
     }
   ],
-  "maxEyeErrorMm": 0.5299391746520996,
+  "maxEyeErrorMm": 0.49872589111328125,
   "meshCount": 20,
   "boneCount": 219,
   "scope": "FBX roundtrip and sampled joints/eye; engine validation is separate"

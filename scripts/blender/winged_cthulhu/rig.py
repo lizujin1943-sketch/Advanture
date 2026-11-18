@@ -1,11 +1,10 @@
 """Game skeleton and normalized skinning for eight arms, oral tendrils and wings."""
-from pathlib import Path
-import math,bisect
+import bisect
 import bpy
 import numpy as np
-from mathutils import Vector,Matrix
+from mathutils import Vector
 from mathutils.kdtree import KDTree
-from .radial_arms import ANGLES
+from .radial_arms import ANGLES,control_points
 from .anatomy import beard_strands
 from .geometry import P,spline,Mesh
 
@@ -20,17 +19,6 @@ def resample(points,n):
         j=min(len(ds)-2,max(0,bisect.bisect_right(ds,t)-1))
         result.append(points[j].lerp(points[j+1],float((t-ds[j])/max(1e-8,ds[j+1]-ds[j]))))
     return result,ds
-
-def fitted(points):
-    path=Path(__file__).resolve().parents[3]/'source-assets/creatures/winged-cthulhu/review/silhouette-fit-field.npz'
-    data=np.load(path)
-    out=[]
-    for p in points:
-        x=np.clip((p.x/15.6+.5)*768,0,766.999);y=np.clip((.5-(p.z-5.12)/10.4)*512,0,510.999)
-        ix=int(x);iy=int(y);fx=x-ix;fy=y-iy
-        def at(a):return a[iy,ix]*(1-fx)*(1-fy)+a[iy,ix+1]*fx*(1-fy)+a[iy+1,ix]*(1-fx)*fy+a[iy+1,ix+1]*fx*fy
-        out.append(p+Vector((at(data['u'])*15.6/1536,0,-at(data['v'])*10.4/1024)))
-    return out
 
 def bind(ob,rig):
     ob.parent=rig;mod=ob.modifiers.new('Game skin','ARMATURE');mod.object=rig;mod.use_deform_preserve_volume=False
@@ -58,8 +46,8 @@ def build():
         return eb
     bone('ROOT',(0,0,0),(0,0,1),deform=False)
     bone('DEF_Body',(0,0,4.4),(0,0,6),'ROOT')
-    bone('DEF_Head',(.45,.2,5.8),(.45,.2,8),'DEF_Body')
-    bone('SOCKET_Ink',(.45,-1.8,6.25),(.45,-2.1,6.25),'DEF_Head',False)
+    bone('DEF_Head',(0,.2,5.8),(0,.2,8),'DEF_Body')
+    bone('SOCKET_Ink',(0,-1.8,6.25),(0,-2.1,6.25),'DEF_Head',False)
     bone('SOCKET_Center',(0,0,5),(0,0,5.3),'ROOT',False)
     bone('SOCKET_Forward',(0,-2,5),(0,-2,5.3),'ROOT',False)
     arms={};radii={}
@@ -70,7 +58,7 @@ def build():
         for i,(a,b) in enumerate(zip(points,points[1:])):bone(name(key,i),a,b,'CTRL_'+key)
     oral={}
     for index,(_,knots) in enumerate(beard_strands()):
-        pts=fitted(spline([P(*k[:3]) for k in knots],14));pts,_=resample(pts,8);oral[index]=pts
+        pts=spline([P(*k[:3]) for k in knots],14);pts,_=resample(pts,8);oral[index]=pts
         for i,(a,b) in enumerate(zip(pts,pts[1:])):bone(f'DEF_Mouth_{index:02d}_{i:02d}',a,b,'DEF_Head')
     for side,sign in [('L',-1),('R',1)]:
         wrist=Vector((sign*3.2,1.05,9.5));shoulder=Vector((sign*1.8,.9,6.4))
@@ -118,7 +106,9 @@ def build():
     stumpmat=bpy.data.materials.new('WC_Stump');p=next(n for n in stumpmat.node_tree.nodes if n.type=='BSDF_PRINCIPLED')
     p.inputs['Base Color'].default_value=(.21,.07,.12,1);p.inputs['Roughness'].default_value=.43
     for key in KEYS:
-        a=math.radians(ANGLES[key]);g=Mesh();g.ellipsoid((math.sin(a)*1.72,-math.cos(a)*1.72,4.34),(.54,.54,.54),24,16)
+        base,outer=control_points(key)[:2]
+        p=base[0].lerp(outer[0],.68);r=(base[1]*.32+outer[1]*.68)*.82
+        g=Mesh();g.ellipsoid(p,(r,r,r),24,16)
         ob=g.finish('AW_Stump_'+key,scene.collection,[stumpmat]);weights(ob,[{'DEF_Body':1} for v in ob.data.vertices]);bind(ob,rig);ob.hide_render=True
     rig['arm_reference']={k:[list(p) for p in pts] for k,pts in arms.items()}
     rig['arm_radii']=radii;rig['oral_reference']={str(k):[list(p) for p in pts] for k,pts in oral.items()}

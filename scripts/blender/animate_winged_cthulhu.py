@@ -17,7 +17,7 @@ def main():
     clips=motion.registry();allbones=[b.name for b in rig.pose.bones];manifest=[];joint_data=[];body_data=[]
     loop_errors={};eye=bpy.data.objects['AW_Eye_Center']
     # Proxy bounds follow only the physical mantle/head, excluding wings and oral whiskers.
-    corners=[Vector((x,y,z)) for x in (-1.85,2.7) for y in (-1.45,2.45) for z in (4.4,10.05)]
+    corners=[Vector((x,y,z)) for x in (-2.25,2.25) for y in (-1.45,2.4) for z in (4.1,10.02)]
     for cname,spec in clips.items():
         action=bpy.data.actions.new(cname);action.use_fake_user=True;assign(rig,action)
         owners=motion.owned(rig,spec);previous={};first=None;channels=[];joint_frames=[];body_frames=[]

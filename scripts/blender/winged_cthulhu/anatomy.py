@@ -1,8 +1,6 @@
 """Hand-authored silhouette landmarks from the user's supplied concept; no image projection."""
 import math
-import bpy
 from mathutils import Vector
-from mathutils.noise import noise_vector
 from mathutils.bvhtree import BVHTree
 from .geometry import Mesh,P,spline
 
@@ -17,22 +15,42 @@ def plate(name,bound,center,depth,bulge,col,mat,thick=.08):
 
 def build_body(col,m):
     g=Mesh()
-    def head_shape(q,ph,a):
-        # Broad upper cranium, narrowed lower face, an off-centre frontal ridge.
-        k=1+.035*math.cos(3*a)*math.sin(ph)**2
-        q.x*=k*(1-.12*max(0,-math.cos(ph)))
-        q.x+=.22*math.cos(ph)
-        q.y+=.06*math.sin(ph*5+a*3)*math.sin(ph)
-        q+=noise_vector(q*3.8)*.012
-        return q
-    g.ellipsoid(P(811,253,.52),(2.25,1.8,2.26),128,96,head_shape)
-    g.finish('CR_WingedCthulhu_Cranium',col,[m['head']])
-    g=Mesh();g.ellipsoid(P(814,521,.46),(1.82,1.45,2.3),80,64)
-    g.finish('CR_WingedCthulhu_Mantle',col,[m['skin']])
+    # One closed longitudinal surface: dome, mantle and arm seat. A ring or
+    # a stack of overlapping ellipsoids would read as a collar in rear view.
+    # Each section is (height, half width, half depth, dorsal offset).
+    profile=[(3.91,.05,.06,0),(4.02,.68,.65,0),(4.23,1.08,1.04,0),
+        (4.54,1.23,1.18,.02),(4.98,1.18,1.15,.06),(5.56,1.25,1.25,.16),
+        (6.24,1.56,1.42,.29),(6.92,1.93,1.58,.39),(7.62,2.21,1.77,.48),
+        (8.18,2.22,1.77,.53),(8.78,1.99,1.65,.54),(9.32,1.56,1.38,.53),
+        (9.69,1.06,1.02,.52),(9.91,.58,.63,.51),(10.00,.21,.25,.50),
+        (10.014,.04,.05,.50)]
+    from .radial_arms import ANGLES
+    axes=[math.radians(a) for a in ANGLES.values()];n=128;previous=None
+    for z,rx,ry,cy in spline([Vector(row) for row in profile],7):
+        row=[]
+        for i in range(n):
+            a=math.tau*i/n
+            lobe=max(max(0,math.cos(a-axis))**48 for axis in axes)
+            weight=math.exp(-((z-4.49)/.66)**2)
+            ridge=.22*lobe*weight
+            row.append(g.vert(((rx+ridge)*math.sin(a),cy-(ry+ridge)*math.cos(a),z-.09*lobe*weight)))
+        if previous is None:
+            pole=g.vert((0,cy,z-.005))
+            for i in range(n):g.face((pole,row[i],row[(i+1)%n]),1)
+        else:
+            for i in range(n):
+                j=(i+1)%n;a=math.tau*(i+.5)/n
+                # Pigment boundary follows the temples rather than an equatorial belt.
+                mi=0 if z>6.65+.34*math.cos(2*a)+.13*math.sin(3*a) else 1
+                g.face((previous[i],previous[j],row[j],row[i]),mi)
+        previous=row
+    pole=g.vert((0,cy,z+.003))
+    for i in range(n):g.face((row[i],pole,row[(i+1)%n]))
+    g.finish('CR_WingedCthulhu_Cranium',col,[m['head'],m['skin']])
     # Muscular support connecting the wing girdle to the mantle.
     for name,k in [
-        ('Girdle_L',[(795,399,.85,68),(679,331,.96,51),(591,282,1.05,35),(508,218,1.05,24),(465,81,1.12,20)]),
-        ('Girdle_R',[(892,417,.9,66),(1035,331,.97,44),(1127,223,1.05,29),(1140,91,1.12,21)])]:tube(name,k,col,m)
+        ('Girdle_L',[(750,405,.52,15),(724,377,.66,40),(679,331,.96,49),(591,282,1.05,35),(508,218,1.05,24),(465,81,1.12,20)]),
+        ('Girdle_R',[(785,406,.52,15),(833,390,.62,45),(911,366,.78,51),(1008,320,.92,40),(1071,279,1.02,32),(1127,223,1.05,29),(1140,91,1.12,21)])]:tube(name,k,col,m)
 
 def build_arms(col,m):
     # Back arms are drawn first but use actual depth, rather than painter's-order tricks.
@@ -51,55 +69,40 @@ def build_arms(col,m):
     for name,k,a,c,r in arms:tube(name,k,col,m,True,a,c,r,steps=16,sides=48)
 
 def build_face(col,m):
-    # The facial axis lies to the right of the cranial axis in the supplied concept.
-    # Fins are domed membranes with separate radiating cartilage.
+    # The painting is a three-quarter portrait. Use one anatomical orbit and
+    # reflect its finished surface across the skull midline (world X = 0).
+    axis=914
+    def pair(ob,right):
+        twin=ob.copy();twin.data=ob.data.copy();twin.name='CR_WingedCthulhu_'+right
+        for v in twin.data.vertices:v.co.x=-v.co.x
+        twin.data.flip_normals();twin.data.update();col.objects.link(twin)
+    def landmarks(seq):return [(x-axis+768,*rest) for x,*rest in seq]
+    def paired_plate(name,outline,center,depth,bulge,material,thick=.08):
+        ob=plate(name+'_L',landmarks(outline),landmarks([center])[0],depth,bulge,col,material,thick)
+        pair(ob,name+'_R')
     g=Mesh()
-    g.ellipsoid(P(872,335,-.86),(1.04,.97,.66),64,40)
-    g.ellipsoid(P(971,334,-.72),(.54,.97,.64),56,40)
+    for side in (-1,1):g.ellipsoid((side*.61,-.91,6.90),(.88,.90,.61),64,40)
     g.finish('CR_WingedCthulhu_OrbitalSupport',col,[m['skin']])
-    cheek_left=[(803,298),(756,269),(711,233),(666,212),(679,251),(628,277),(670,290),(652,328),(638,357),(672,347),(646,397),(699,366),(722,396),(742,355),(783,352),(810,332)]
-    cheek_right=[(991,293),(1047,238),(1039,274),(1101,304),(1064,312),(1082,347),(1046,338),(1083,391),(1040,366),(1018,395),(1002,350),(976,333)]
-    plate('CheekFin_L',cheek_left,(739,315),-1.05,.35,col,m['ridge'])
-    plate('CheekFin_R',cheek_right,(1021,319),-.94,.28,col,m['ridge'])
+    paired_plate('CheekFin',[(803,298),(756,269),(711,233),(666,212),(679,251),(628,277),(670,290),(652,328),(638,357),(672,347),(646,397),(699,366),(722,396),(742,355),(783,352),(810,332)],(739,315),-1.05,.35,m['ridge'])
     ribs=[[(798,326,-1.25,11),(741,290,-1.34,11),(675,272,-1.08,3),(630,278,-1.07,.5)],
           [(788,335,-1.35,10),(726,316,-1.38,8),(678,324,-1.12,4),(640,356,-1.07,.5)],
-          [(779,349,-1.38,10),(724,346,-1.35,8),(684,367,-1.14,5),(647,397,-1.06,.5)],
-          [(991,324,-1.21,10),(1042,294,-1.25,7),(1100,304,-.95,.5)],
-          [(994,342,-1.25,8),(1040,331,-1.24,7),(1081,347,-.97,.5)],
-          [(1000,356,-1.25,8),(1039,358,-1.12,6),(1080,390,-.95,.5)]]
-    for i,k in enumerate(ribs):tube('Cheek_Rib_%02d'%i,k,col,m,steps=9,sides=24)
-    # Eye sockets and eyes are almond-shaped closed curved surfaces, not spheres.
-    plate('Socket_L',[(798,283),(827,281),(863,302),(897,322),(884,341),(849,340),(817,325)],(850,316),-1.55,.25,col,m['socket'])
-    plate('Socket_R',[(943,321),(960,302),(992,286),(1000,305),(991,330),(970,343),(946,338)],(974,322),-1.53,.21,col,m['socket'])
-    plate('Eye_L',[(818,294),(836,299),(856,310),(883,325),(861,329),(838,321),(826,311)],(851,314),-1.78,.11,col,m['eye'],.025)
-    plate('Eye_R',[(950,329),(963,315),(988,302),(983,319),(972,330),(961,332)],(970,321),-1.74,.09,col,m['eye'],.025)
-    # Bold sculpted brow blades, individually authored to retain their asymmetry.
-    plate('Brow_L',[(624,174),(678,208),(735,224),(729,159),(750,182),(785,206),(812,244),(835,266),(858,277),(881,303),(907,321),(895,334),(874,330),(850,313),(821,297),(796,288),(767,267),(724,250),(680,225)],(811,271),-1.74,.29,col,m['ridge'])
-    plate('Brow_R',[(927,330),(937,295),(958,270),(987,242),(1017,215),(1028,174),(1033,205),(1025,245),(1009,270),(1060,241),(1090,206),(1067,246),(1042,271),(1016,304),(985,321),(959,335),(941,337)],(974,292),-1.7,.25,col,m['ridge'])
-    # Narrow raised creases running down from the crown into the brow, with tapered ends.
+          [(779,349,-1.38,10),(724,346,-1.35,8),(684,367,-1.14,5),(647,397,-1.06,.5)]]
+    for i,k in enumerate(ribs):pair(tube('Cheek_Rib_L'+str(i),landmarks(k),col,m,steps=9,sides=24),'Cheek_Rib_R'+str(i))
+    paired_plate('Socket',[(798,283),(827,281),(863,302),(897,322),(884,341),(849,340),(817,325)],(850,316),-1.65,.25,m['socket'])
+    paired_plate('Eye',[(818,294),(836,299),(856,310),(883,325),(861,329),(838,321),(826,311)],(851,314),-1.90,.11,m['eye'],.025)
+    paired_plate('Brow',[(624,174),(678,208),(735,224),(729,159),(750,182),(785,206),(812,244),(835,266),(858,277),(881,303),(907,321),(895,334),(874,330),(850,313),(821,297),(796,288),(767,267),(724,250),(680,225)],(811,271),-1.80,.29,m['ridge'])
+    # Paired lower eyelid and forehead relief. Fit the latter to the skin.
     vv=[];ff=[]
     for ob in col.objects:
         if ob.type=='MESH' and any(s in ob.name for s in ('Cranium','OrbitalSupport','Brow_')):
-            off=len(vv);vv.extend(v.co.copy() for v in ob.data.vertices)
-            ff.extend(tuple(off+v for v in f.vertices) for f in ob.data.polygons)
-    face_surface=BVHTree.FromPolygons(vv,ff)
-    for i,k in enumerate([
-        [(864,223,-1.25,1),(876,264,-1.45,5),(895,295,-1.77,5),(902,318,-1.92,1)],
-        [(913,240,-1.31,1),(909,269,-1.55,4),(917,304,-1.81,4),(918,330,-1.9,1)],
-        [(954,235,-1.25,1),(942,270,-1.52,5),(929,300,-1.76,4),(926,327,-1.85,1)],
-        [(810,334,-1.58,3),(832,347,-1.63,7),(860,347,-1.67,6),(878,339,-1.72,1)],
-        [(949,344,-1.64,2),(968,352,-1.58,5),(990,337,-1.56,5),(1001,314,-1.53,1)]
-    ]):
-        if i<3:
-            # Attach every sampled wrinkle to the real face surface, avoiding free-floating rods.
-            kk=spline([Vector((x,y,r*.6)) for x,y,depth,r in k],7);k=[]
-            for q in kk:
-                hit,_,_,_=face_surface.ray_cast(P(q.x,q.y,-10),Vector((0,1,0)))
-                depth=hit.y+q.z*.004 if hit is not None else -1.1
-                k.append((q.x,q.y,depth,max(.6,q.z)))
-        tube('Face_Crease_%02d'%i,k,col,m,steps=2 if i<3 else 10,sides=24)
-    # A soft muzzle bridges the brow, oral tissue, and tentacle roots.
-    g=Mesh();g.ellipsoid(P(907,381,-1.35),(.78,.56,.78),72,48)
+            off=len(vv);vv.extend(v.co.copy() for v in ob.data.vertices);ff.extend(tuple(off+v for v in f.vertices) for f in ob.data.polygons)
+    surface=BVHTree.FromPolygons(vv,ff);crease=[]
+    for q in spline([Vector(k) for k in landmarks([(864,223,1),(876,264,3),(895,295,3),(902,318,1)])],7):
+        hit,_,_,_=surface.ray_cast(P(q.x,q.y,-10),Vector((0,1,0)))
+        if hit is not None:crease.append((q.x,q.y,hit.y+.008,q.z))
+    if len(crease)>1:pair(tube('Face_Crease_L',crease,col,m,steps=2,sides=24),'Face_Crease_R')
+    pair(tube('Face_Crease_Lid_L',landmarks([(810,334,-1.64,3),(832,347,-1.70,6),(860,347,-1.73,5),(878,339,-1.77,1)]),col,m),'Face_Crease_Lid_R')
+    g=Mesh();g.ellipsoid((0,-1.35,6.43),(.78,.56,.78),72,48)
     g.finish('CR_WingedCthulhu_OralMantle',col,[m['skin']])
 
 def beard_strands():
@@ -113,7 +116,7 @@ def beard_strands():
         ('Beard_Center',[(905,360,-2.05,27),(893,410,-2.25,34),(885,463,-2.35,36),(907,522,-2.39,34),(938,572,-2.42,29),(945,626,-2.44,23),(930,676,-2.46,16),(912,702,-2.45,8),(914,671,-2.44,1)]),
         ('Beard_Side_L',[(799,380,-1.4,19),(744,432,-1.46,23),(728,488,-1.51,21),(698,529,-1.55,18),(673,587,-1.55,13),(693,631,-1.55,8),(720,644,-1.55,1)]),
     ]
-    return strands
+    return [(name,[(x-146,y,d,r) for x,y,d,r in ks]) for name,ks in strands]
 
 def build_beard(col,m):
     for name,k in beard_strands():tube(name,k,col,m,steps=17,sides=40)

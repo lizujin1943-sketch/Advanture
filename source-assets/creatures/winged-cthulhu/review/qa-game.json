@@ -3,7 +3,7 @@
   "pass": true,
   "errors": [],
   "warnings": [
-    "hidden back-to-back faces: AW_Arm_A01 (1 pairs) - delete to save tris",
+    "hidden back-to-back faces: AW_Arm_S03 (1 pairs) - delete to save tris",
     "hidden back-to-back faces: AW_Head<->WC_Wing_L (1 pairs) - delete to save tris",
     "1 parts fully enclosed, not touching (eyes/internals?): ['WC_Wing_R']",
     "asset lowest point z=0.5427 (not resting on ground plane z=0)"
@@ -13,7 +13,7 @@
   "floating": [],
   "back_to_back": [
     {
-      "where": "AW_Arm_A01",
+      "where": "AW_Arm_S03",
       "tri_pairs": 1
     },
     {
@@ -24,103 +24,16 @@
   "enclosed": [
     {
       "object": "WC_Wing_R",
-      "island_verts": 109,
+      "island_verts": 110,
       "center": [
         3.277,
         1.125,
-        7.914
+        7.916
       ]
     }
   ],
   "objects": {
     "AW_Arm_A01": {
-      "verts": 4742,
-      "faces": 9200,
-      "tris": 9200,
-      "ngons": 0,
-      "boundary_edges": 0,
-      "nonmanifold_edges": 0,
-      "wire_edges": 0,
-      "loose_verts": 0,
-      "degenerate_faces": 0,
-      "zero_length_edges": 0,
-      "inconsistent_normals_edges": 0,
-      "duplicate_verts": 0,
-      "islands": 71,
-      "inside_out_islands": 0,
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "materials": 1,
-      "unweighted_verts": 0,
-      "verts_over_4_influences": 0,
-      "uv_maps": 1,
-      "uv_oob_pct": 0.0,
-      "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 3.7
-    },
-    "AW_Arm_A02": {
-      "verts": 4342,
-      "faces": 8432,
-      "tris": 8432,
-      "ngons": 0,
-      "boundary_edges": 0,
-      "nonmanifold_edges": 0,
-      "wire_edges": 0,
-      "loose_verts": 0,
-      "degenerate_faces": 0,
-      "zero_length_edges": 0,
-      "inconsistent_normals_edges": 0,
-      "duplicate_verts": 0,
-      "islands": 63,
-      "inside_out_islands": 0,
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "materials": 1,
-      "unweighted_verts": 0,
-      "verts_over_4_influences": 0,
-      "uv_maps": 1,
-      "uv_oob_pct": 0.0,
-      "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 4.4
-    },
-    "AW_Arm_A03": {
-      "verts": 4442,
-      "faces": 8624,
-      "tris": 8624,
-      "ngons": 0,
-      "boundary_edges": 0,
-      "nonmanifold_edges": 0,
-      "wire_edges": 0,
-      "loose_verts": 0,
-      "degenerate_faces": 0,
-      "zero_length_edges": 0,
-      "inconsistent_normals_edges": 0,
-      "duplicate_verts": 0,
-      "islands": 65,
-      "inside_out_islands": 0,
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "materials": 1,
-      "unweighted_verts": 0,
-      "verts_over_4_influences": 0,
-      "uv_maps": 1,
-      "uv_oob_pct": 0.0,
-      "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 4.5
-    },
-    "AW_Arm_A04": {
       "verts": 4942,
       "faces": 9584,
       "tris": 9584,
@@ -147,12 +60,41 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
+      "uv_coverage_pct": 3.2
+    },
+    "AW_Arm_A02": {
+      "verts": 4442,
+      "faces": 8624,
+      "tris": 8624,
+      "ngons": 0,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "wire_edges": 0,
+      "loose_verts": 0,
+      "degenerate_faces": 0,
+      "zero_length_edges": 0,
+      "inconsistent_normals_edges": 0,
+      "duplicate_verts": 0,
+      "islands": 65,
+      "inside_out_islands": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "materials": 1,
+      "unweighted_verts": 0,
+      "verts_over_4_influences": 0,
+      "uv_maps": 1,
+      "uv_oob_pct": 0.0,
+      "uv_zero_area_faces": 0,
+      "uv_overlap_pct": 0.0,
       "uv_coverage_pct": 3.9
     },
-    "AW_Arm_S01": {
-      "verts": 4530,
-      "faces": 8784,
-      "tris": 8784,
+    "AW_Arm_A03": {
+      "verts": 4542,
+      "faces": 8816,
+      "tris": 8816,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -162,7 +104,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 69,
+      "islands": 67,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -176,38 +118,67 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 4.1
+      "uv_coverage_pct": 4.0
+    },
+    "AW_Arm_A04": {
+      "verts": 5042,
+      "faces": 9776,
+      "tris": 9776,
+      "ngons": 0,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "wire_edges": 0,
+      "loose_verts": 0,
+      "degenerate_faces": 0,
+      "zero_length_edges": 0,
+      "inconsistent_normals_edges": 0,
+      "duplicate_verts": 0,
+      "islands": 77,
+      "inside_out_islands": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "materials": 1,
+      "unweighted_verts": 0,
+      "verts_over_4_influences": 0,
+      "uv_maps": 1,
+      "uv_oob_pct": 0.0,
+      "uv_zero_area_faces": 0,
+      "uv_overlap_pct": 0.0,
+      "uv_coverage_pct": 3.4
+    },
+    "AW_Arm_S01": {
+      "verts": 4730,
+      "faces": 9168,
+      "tris": 9168,
+      "ngons": 0,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "wire_edges": 0,
+      "loose_verts": 0,
+      "degenerate_faces": 0,
+      "zero_length_edges": 0,
+      "inconsistent_normals_edges": 0,
+      "duplicate_verts": 0,
+      "islands": 73,
+      "inside_out_islands": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "materials": 1,
+      "unweighted_verts": 0,
+      "verts_over_4_influences": 0,
+      "uv_maps": 1,
+      "uv_oob_pct": 0.0,
+      "uv_zero_area_faces": 0,
+      "uv_overlap_pct": 0.0,
+      "uv_coverage_pct": 3.4
     },
     "AW_Arm_S02": {
-      "verts": 4742,
-      "faces": 9200,
-      "tris": 9200,
-      "ngons": 0,
-      "boundary_edges": 0,
-      "nonmanifold_edges": 0,
-      "wire_edges": 0,
-      "loose_verts": 0,
-      "degenerate_faces": 0,
-      "zero_length_edges": 0,
-      "inconsistent_normals_edges": 0,
-      "duplicate_verts": 0,
-      "islands": 71,
-      "inside_out_islands": 0,
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "materials": 1,
-      "unweighted_verts": 0,
-      "verts_over_4_influences": 0,
-      "uv_maps": 1,
-      "uv_oob_pct": 0.0,
-      "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 3.7
-    },
-    "AW_Arm_S03": {
       "verts": 4842,
       "faces": 9392,
       "tris": 9392,
@@ -234,12 +205,12 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 3.7
+      "uv_coverage_pct": 3.4
     },
-    "AW_Arm_S04": {
-      "verts": 4530,
-      "faces": 8784,
-      "tris": 8784,
+    "AW_Arm_S03": {
+      "verts": 5042,
+      "faces": 9776,
+      "tris": 9776,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -249,7 +220,7 @@
       "zero_length_edges": 0,
       "inconsistent_normals_edges": 0,
       "duplicate_verts": 0,
-      "islands": 69,
+      "islands": 77,
       "inside_out_islands": 0,
       "scale": [
         1.0,
@@ -263,12 +234,41 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 3.9
+      "uv_coverage_pct": 3.7
+    },
+    "AW_Arm_S04": {
+      "verts": 4730,
+      "faces": 9168,
+      "tris": 9168,
+      "ngons": 0,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "wire_edges": 0,
+      "loose_verts": 0,
+      "degenerate_faces": 0,
+      "zero_length_edges": 0,
+      "inconsistent_normals_edges": 0,
+      "duplicate_verts": 0,
+      "islands": 73,
+      "inside_out_islands": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "materials": 1,
+      "unweighted_verts": 0,
+      "verts_over_4_influences": 0,
+      "uv_maps": 1,
+      "uv_oob_pct": 0.0,
+      "uv_zero_area_faces": 0,
+      "uv_overlap_pct": 0.0,
+      "uv_coverage_pct": 3.3
     },
     "AW_Eye_Center": {
-      "verts": 1044,
-      "faces": 2080,
-      "tris": 2080,
+      "verts": 1124,
+      "faces": 2240,
+      "tris": 2240,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -292,12 +292,12 @@
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
       "uv_overlap_pct": 0.0,
-      "uv_coverage_pct": 53.8
+      "uv_coverage_pct": 47.5
     },
     "AW_Head": {
-      "verts": 28513,
-      "faces": 57026,
-      "tris": 57026,
+      "verts": 26824,
+      "faces": 53644,
+      "tris": 53644,
       "ngons": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
@@ -320,8 +320,8 @@
       "uv_maps": 1,
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 0.93,
-      "uv_coverage_pct": 20.3
+      "uv_overlap_pct": 0.85,
+      "uv_coverage_pct": 16.5
     },
     "WC_Wing_L": {
       "verts": 4562,
@@ -349,8 +349,8 @@
       "uv_maps": 1,
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 1.42,
-      "uv_coverage_pct": 12.9
+      "uv_overlap_pct": 1.4,
+      "uv_coverage_pct": 11.3
     },
     "WC_Wing_R": {
       "verts": 4562,
@@ -378,9 +378,9 @@
       "uv_maps": 1,
       "uv_oob_pct": 0.0,
       "uv_zero_area_faces": 0,
-      "uv_overlap_pct": 0.05,
-      "uv_coverage_pct": 12.1
+      "uv_overlap_pct": 0.15,
+      "uv_coverage_pct": 11.9
     }
   },
-  "sourceSHA256": "432c4e52d0e0cc8633d5799c31d97db54fced9726136ed7d02885611560c3b9a"
+  "sourceSHA256": "49f17df57e21488cbf9621142a3d1570c1ec3b8c60827c72f73fc0dd90aba6bf"
 }

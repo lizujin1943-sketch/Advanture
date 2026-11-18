@@ -2,37 +2,13 @@
   "asset": "CR_WingedCthulhu",
   "blender": "5.3.0",
   "objects": 21,
-  "vertices": 472694,
-  "triangles_base": 943280,
+  "vertices": 452614,
+  "triangles_base": 903116,
   "status": "HIGH sculpt source; no runtime/animation claim",
   "inferred": [
     "back anatomy",
     "body depth",
     "hidden roots",
     "wing attachment"
-  ],
-  "triangles_evaluated": 972384,
-  "full_frame_silhouette_iou": 0.9008319474107619,
-  "silhouette_fit": "review/silhouette-fit-field.npz",
-  "qa_profile": "render",
-  "qa_limitations": [
-    "972384 tris > max_tris 300000: z-fighting/floating checks skipped",
-    "asset lowest point z=0.0083 (not resting on ground plane z=0)"
-  ],
-  "aligned_silhouette_iou": 0.9157,
-  "bounds_metres": {
-    "min": [
-      -7.635255,
-      -3.644052,
-      0.008254
-    ],
-    "max": [
-      7.582452,
-      2.345499,
-      10.248867
-    ]
-  },
-  "stage": "Historical frontal high sculpt, before radial rebuild. Counts and silhouette scores are NOT final asset metrics.",
-  "currentSource": "CR_WingedCthulhu_animated.blend",
-  "currentMetrics": "exports/unity/unity-manifest.json"
+  ]
 }

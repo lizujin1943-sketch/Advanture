@@ -109,6 +109,5 @@
       "packed": true
     }
   ],
-  "source_sha256": "2a4599915bbe27f24643ddb0b9ce0fd7b906c46ed3611dffcf5bdd769c2397ec",
-  "stage": "High-source paint stage; final baked runtime maps are listed in exports/unity/unity-manifest.json"
+  "source_sha256": "2a4599915bbe27f24643ddb0b9ce0fd7b906c46ed3611dffcf5bdd769c2397ec"
 }

@@ -41,12 +41,13 @@ def control_points(key):
                (4.0,.45,4.1,.6),(5.25,1.1,4.25,.49),(5.9,1.8,4.8,.37),
                (5.7,2.55,5.2,.26),(5.0,2.8,4.95,.18),(4.55,2.4,4.4,.12),
                (4.75,1.95,4.15,.065),(5.1,1.9,4.35,.008)]
+    proximal=(.65,.65,.73,.86,.95)
     result=[]
     for i,(r,s,z,radius) in enumerate(knots):
         p=out*(r*(reach if i>1 else 1))+side*(s*spread*sign)
         # Deliberate mild left/right asymmetry; roots still use the contract angle.
         p.z=z+(0.14*math.sin(i*.8) if sign>0 and i>2 else 0)
-        result.append((p,radius))
+        result.append((p,radius*(proximal[i] if i<len(proximal) else 1)))
     return result
 
 
