@@ -102,6 +102,8 @@ def build():
         p=v.co
         if body.data.attributes['CrownTissue'].data[v.index].value>.5:
             entry=tissue(p)
+        elif body.get('mantle_rear') and p.y>2.4 and abs(p.x)<2.05:
+            entry={'DEF_Head':1.}
         elif abs(p.x)>2.05 and p.y>.48 and p.z>5.3:
             entry=wing_weight(p,'L' if p.x<0 else 'R')
             w=max(0,min(1,(abs(p.x)-2.05)/.75));entry={k:val*w for k,val in entry.items()};entry['DEF_Head']=1-w

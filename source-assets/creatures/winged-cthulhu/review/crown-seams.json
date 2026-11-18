@@ -1,10 +1,10 @@
 {
-  "sourceSHA256": "506aa03baf606e581c0d29129339ad819d147e25ca57c1b6a866c0f005893ac8",
+  "sourceSHA256": "562bf0facb9e7b4af325dd0798c8d692f44bf93983dfdc7a1e37f78a953a1fa8",
   "matchedVertices": 320,
   "sampling": "First, last and every eighth interior frame of each authored clip",
   "maximumGapMmByClip": {
     "AW_Combination": 0,
-    "AW_Death": 0.00095367431640625,
+    "AW_Death": 0,
     "AW_Emerge": 0,
     "AW_Enrage": 0,
     "AW_EnragedIdle": 0,

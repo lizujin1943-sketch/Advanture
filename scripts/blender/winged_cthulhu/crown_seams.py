@@ -88,8 +88,15 @@ def trim_and_loft(bm,key,arm,material,params):
     # Limit the cut to the intended wrist. Other arms and oral tendrils may
     # cross the infinite plane elsewhere in the sculpt.
     crown=bm.verts.layers.float.get('CrownTissue') if not arm else None
-    near={v for v in bm.verts if (v.co-plane).length_squared<1.05 and (not crown or v[crown]>.5)}
-    es={e for v in near for e in v.link_edges};fs={f for e in es for f in e.link_faces}
+    if arm:
+        # Reduced triangles may span most of the first bend. Include the
+        # full skin surface, leaving separate sucker shells out of the cut.
+        fs={f for f in bm.faces if f.material_index<2}
+        es={e for f in fs for e in f.edges}
+        near={v for f in fs for v in f.verts}
+    else:
+        near={v for v in bm.verts if (v.co-plane).length_squared<1.05 and v[crown]>.5}
+        es={e for v in near for e in v.link_edges};fs={f for e in es for f in e.link_faces}
     result=bmesh.ops.bisect_plane(bm,geom=list(near)+list(es)+list(fs),dist=.00001,plane_co=plane,plane_no=t)
     edges={e for e in result['geom_cut'] if isinstance(e,bmesh.types.BMEdge) and e.is_valid}
     # Walk closed cuts and select the loop surrounding this arm axis.
@@ -115,8 +122,11 @@ def trim_and_loft(bm,key,arm,material,params):
     bmesh.ops.delete(bm,geom=list(remove),context='FACES')
     # Cull nearly coincident vertices from a cut grazing a voxel corner.
     bmesh.ops.remove_doubles(bm,verts=list(vs),dist=.0015)
-    vs={v for v in bm.verts if v.is_boundary and (v.co-plane).length_squared<.8 and abs((v.co-plane).dot(t))<.001}
-    assert vs and all(v.is_boundary for v in vs)
+    # A swept wrist meets this plane obliquely. Cropping the open contour
+    # to a fixed radius can discard part of its outer lip. Every other
+    # sleeve has already been closed, so follow the actual open boundary.
+    vs={v for v in bm.verts if v.is_boundary}
+    assert vs and all(abs((v.co-plane).dot(t))<.001 for v in vs),(key,arm)
     controls=bm.verts.layers.float.get('ArmParameter') if arm else None
     tissue=bm.verts.layers.float.get('CrownTissue') if not arm else None
     last=vs

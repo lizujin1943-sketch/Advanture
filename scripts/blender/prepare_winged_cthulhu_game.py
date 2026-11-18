@@ -1,6 +1,6 @@
 """Make a reduced, uniquely unwrapped, baked copy of the radial source.
 
-Run against CR_WingedCthulhu_radial.blend in a background Blender process.
+Run against the painted reference sculpt in a background Blender process.
 The high source is never overwritten. No external add-ons are required.
 """
 from pathlib import Path
@@ -117,11 +117,14 @@ def main():
     wing_parts={side:[o for o in obs if o.name.endswith('_'+side) and ('WingMembrane' in o.name or 'WingVeins' in o.name)] for side in ('L','R')}
     arms=sorted([o for o in obs if '_Arm_' in o.name],key=lambda o:o['limb_id'])
     from winged_cthulhu.crown_seams import close_junctions
-    from paint_winged_cthulhu import uv_and_coverage
+    from paint_winged_cthulhu import uv_and_coverage,paint_dorsal_marks,paint_mantle_and_cups
     core=next(o for o in body_parts if 'OrganicCore' in o.name)
+    if core.get('portrait_paint'):
+        paint_dorsal_marks()
+        paint_mantle_and_cups()
     close_junctions(core,arms)
     for ob in [core]+arms:uv_and_coverage(ob)
-    body=join(body_parts,'AW_Head');eyes=join(eye_parts,'AW_Eye_Center')
+    body=join([core]+[o for o in body_parts if o!=core],'AW_Head');eyes=join(eye_parts,'AW_Eye_Center')
     wings=[join(wing_parts[side],'WC_Wing_'+side) for side in ('L','R')]
     for ob in arms:ob.name='AW_Arm_'+ob['limb_id']
     relief=[relieve(ob) for ob in [body]+wings+arms]
@@ -143,6 +146,7 @@ def main():
     bpy.data.objects['STUDIO_Backdrop'].hide_render=True
     total=sum(len(o.data.loop_triangles) for o in [body,eyes]+wings+arms)
     (OUT/'runtime-geometry.json').write_text(json.dumps({'triangles':total,'reduction':report,'surfaceRelief':relief,'textureGroups':['Body4096','Arms4096','Wings2048'],'uv':'Unique atlas RuntimeUV; no procedural Blender nodes required in engine'},indent=2))
+    bpy.context.preferences.filepaths.save_version=0
     bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'CR_WingedCthulhu_game_mesh.blend'),compress=True)
     print('GAME_MESH_SAVED',total,flush=True)
 

@@ -9,9 +9,14 @@ s=bpy.context.scene;rig=bpy.data.objects['WC_Rig']
 for ob in bpy.data.objects:
     if ob.name.startswith('AW_Stump_'):ob.hide_render=True
 s.render.engine='BLENDER_WORKBENCH';s.render.resolution_x=960;s.render.resolution_y=640;s.render.resolution_percentage=100
-s.display.shading.light='STUDIO';s.display.shading.color_type='MATERIAL';s.display.shading.show_cavity=True
+s.display.shading.light='STUDIO';s.display.shading.color_type='TEXTURE';s.display.shading.show_cavity=True
+for name in ('WC_Body','WC_Arms','WC_Wings'):
+    nodes=bpy.data.materials[name].node_tree.nodes
+    nodes.active=next(n for n in nodes if n.type=='TEX_IMAGE' and n.image.name.endswith('BaseColor'))
+bpy.data.materials['WC_Eyes'].diffuse_color=(.80,.98,.24,1)
 camera('CAM_MotionWide',(26,-35,20),(0,-5,4),32)
-shots=[('AW_Idle',181,'CAM_RadialHero'),('AW_Slam_A02',91,'CAM_MotionWide'),('AW_Sweep_A04',109,'CAM_MotionWide'),('AW_Ink',97,'CAM_RadialFront'),('AW_Death',181,'CAM_RadialHero')]
+portrait='CAM_SculptPortrait' if bpy.data.objects.get('CAM_SculptPortrait') else 'CAM_RadialHero'
+shots=[('AW_Idle',181,portrait),('AW_Slam_A02',91,'CAM_MotionWide'),('AW_Sweep_A04',109,'CAM_MotionWide'),('AW_Ink',97,portrait),('AW_Death',181,portrait)]
 index=0;chapters=[]
 for clip,end,cam in shots:
     assign(rig,bpy.data.actions[clip]);s.camera=bpy.data.objects[cam]

@@ -155,6 +155,11 @@ def uv_and_coverage(ob):
     world=v@mat[:3,:3].T+mat[:3,3]
     # Fixed reference camera; no camera-dependent material coordinates.
     uv=np.column_stack((world[:,0]/15.6+.5,(world[:,2]-5.12)/10.4+.5))
+    if ob.get('portrait_paint'):
+        # In the painting the eyes are to the right of the crown's centre.
+        # Register the facial pigment there and taper the shift up the dome.
+        height=world[:,2]
+        uv[:,0]+=(.090-.059*smooth(height,7.0,9.9))*smooth(height,5.1,6.8)
     ids=np.empty(len(me.loops),np.int32);me.loops.foreach_get('vertex_index',ids)
     layer=me.uv_layers.get('ReferencePaintUV') or me.uv_layers.new(name='ReferencePaintUV')
     layer.uv.foreach_set('vector',uv[ids].astype(np.float32).ravel())
@@ -165,6 +170,103 @@ def uv_and_coverage(ob):
     attr=me.attributes.get('ReferencePaintCoverage') or me.attributes.new('ReferencePaintCoverage','FLOAT','POINT')
     attr.data.foreach_set('value',coverage.astype(np.float32))
     me.update()
+
+
+def paint_dorsal_marks():
+    """Paint olive chromatophores along the two sides of the coiling wrist's back."""
+    # The old frontal projection contains silhouettes of overlapping oral
+    # tendrils. Their shadows must not cross onto separate turning surfaces.
+    for name,strength in [('PAINT_Skin_TealAndOlive',.20),('PAINT_Cartilage_Green',.16)]:
+        surface=bpy.data.materials[name].node_tree
+        shader=next(n for n in surface.nodes if n.type=='BSDF_PRINCIPLED')
+        paint_mix=shader.inputs['Base Color'].links[0].from_node
+        weight=paint_mix.inputs[0].links[0].from_socket
+        opacity=surface.nodes.new('ShaderNodeMath')
+        opacity.operation='MULTIPLY'
+        surface.links.new(weight,opacity.inputs[0])
+        opacity.inputs[1].default_value=strength
+        surface.links.new(opacity.outputs[0],paint_mix.inputs[0])
+        bump=next((n for n in surface.nodes if n.type=='BUMP'),None)
+        if bump:
+            bump.inputs['Strength'].default_value*=strength
+    mat=bpy.data.materials['PAINT_Skin_TealAndOlive']
+    nodes,links=mat.node_tree.nodes,mat.node_tree.links
+    shader=next(n for n in nodes if n.type=='BSDF_PRINCIPLED')
+    previous=shader.inputs['Base Color'].links[0].from_socket
+    y,x=np.mgrid[0:1024,0:512].astype(np.float32)
+    u=x/511
+    v=y/1023
+    mask=np.zeros_like(u)
+    for i,f in enumerate((.29,.39,.51,.62,.74,.84,.91)):
+        for row,azimuth in enumerate((.34,.64)):
+            center=azimuth+.043*np.sin(2.1*i+row)
+            distance=v-f-.024*row
+            width=.054-.021*f
+            length=.028-.012*f+.005*np.cos(i*1.6+row)
+            edge=((u-center-distance*.7)/width)**2+(distance/length)**2
+            edge+=.13*np.sin(u*93+v*127)*np.cos(v*79-u*47)
+            mask=np.maximum(mask,(1-smooth(edge,.69,1.12))*(.74+.13*np.sin(i+row)))
+    rgba=np.ones((1024,512,4),np.float32)
+    rgba[:,:,:3]=mask[:,:,None]
+    paint=bpy.data.images.new('Longitudinal olive markings',512,1024,is_data=True)
+    paint.pixels.foreach_set(rgba.ravel())
+    paint.pack()
+    uv=nodes.new('ShaderNodeUVMap')
+    uv.uv_map='SurfaceUV'
+    spots=image_node(nodes,links,paint,uv,'Dorsal wrist pigment')
+    arm=nodes.new('ShaderNodeAttribute')
+    arm.attribute_name='ArmParameter'
+    gate=nodes.new('ShaderNodeMath')
+    gate.operation='GREATER_THAN'
+    links.new(arm.outputs['Fac'],gate.inputs[0])
+    gate.inputs[1].default_value=.18
+    weight=nodes.new('ShaderNodeMath')
+    weight.operation='MULTIPLY'
+    links.new(gate.outputs[0],weight.inputs[0])
+    links.new(spots.outputs['Color'],weight.inputs[1])
+    mix=nodes.new('ShaderNodeMixRGB')
+    links.new(weight.outputs[0],mix.inputs[0])
+    links.new(previous,mix.inputs[1])
+    mix.inputs[2].default_value=rgb('a0ad84')
+    links.new(mix.outputs[0],shader.inputs['Base Color'])
+
+
+def paint_mantle_and_cups():
+    """Carry the forehead pattern into the darker lateral and rear mantle seen in profile."""
+    head=bpy.data.materials['PAINT_Cranium_SlateChromatophores'].node_tree
+    nodes,links=head.nodes,head.links
+    shader=next(n for n in nodes if n.type=='BSDF_PRINCIPLED')
+    previous=shader.inputs['Base Color'].links[0].from_socket
+    position=nodes.new('ShaderNodeNewGeometry').outputs['Position']
+    axis=nodes.new('ShaderNodeSeparateXYZ')
+    links.new(position,axis.inputs[0])
+    posterior=nodes.new('ShaderNodeMapRange')
+    posterior.interpolation_type='SMOOTHSTEP'
+    for socket,value in [('From Min',-.7),('From Max',2.6),('To Min',0.),('To Max',.87)]:
+        posterior.inputs[socket].default_value=value
+    links.new(axis.outputs['Y'],posterior.inputs['Value'])
+    grain=nodes.new('ShaderNodeTexNoise')
+    grain.inputs['Scale'].default_value=3.1
+    grain.inputs['Detail'].default_value=3.5
+    links.new(position,grain.inputs['Vector'])
+    pigment=ramp(nodes,[(.21,'344746'),(.52,'405357'),(.81,'4d6560')])
+    links.new(grain.outputs['Fac'],pigment.inputs[0])
+    fade=nodes.new('ShaderNodeMixRGB')
+    links.new(posterior.outputs['Result'],fade.inputs[0])
+    links.new(previous,fade.inputs[1])
+    links.new(pigment.outputs[0],fade.inputs[2])
+    links.new(fade.outputs[0],shader.inputs['Base Color'])
+    # The lip and recessed bowl share the same rose base map. A darker
+    # inner tissue keeps the funnel legible under diffuse game lighting.
+    bowl=bpy.data.materials['PAINT_Suckers_MauveBowl'].node_tree
+    shader=next(n for n in bowl.nodes if n.type=='BSDF_PRINCIPLED')
+    previous=shader.inputs['Base Color'].links[0].from_socket
+    tint=bowl.nodes.new('ShaderNodeMixRGB')
+    tint.blend_type='MULTIPLY'
+    tint.inputs[0].default_value=1.
+    tint.inputs[2].default_value=(.75,.65,.74,1.)
+    bowl.links.new(previous,tint.inputs[1])
+    bowl.links.new(tint.outputs[0],shader.inputs['Base Color'])
 
 
 def image_node(ns,ln,im,uv,label):

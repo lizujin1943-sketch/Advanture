@@ -9,7 +9,7 @@ namespace Advanture.HookIsland.Simulation;
 /// <summary>来自已批准模型的 30 Hz 毫米骨链表。离线采样，每个客户端使用同一资源哈希。</summary>
 internal static class BossPoseData
 {
-    internal const string Hash="d044bdaa972cff8773883b655142a865c551337030b8ba4d63e3564ede83a448";
+    internal const string Hash="e63cf4e49143b6153289614ed8e73b2eabf8113f0a4791e99960814cfcbf08ac";
     private readonly struct Clip
     {
         internal Clip(int limbs,int body,int frames){Limbs=limbs;Body=body;Frames=frames;}

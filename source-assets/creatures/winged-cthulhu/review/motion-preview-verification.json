@@ -29,7 +29,7 @@
     960,
     640
   ],
-  "scope": "Actual skinned workbench frames; final lighting/materials in rendered stills and Unity capture",
-  "fileSHA256": "11b3411bae2e594218a50d071cfade966cc4ad102b51b7dfcc45d30ac9a78cd7",
-  "sourceSHA256": "506aa03baf606e581c0d29129339ad819d147e25ca57c1b6a866c0f005893ac8"
+  "scope": "Baked colors in the workbench turn and attack preview. Final lighting is shown in the Cycles portraits and the Unity town captures.",
+  "fileSHA256": "b46016fbdc905ddee0e9bf14cef0a77c7c01cc8a68db49b7da9f61132ae2bc44",
+  "sourceSHA256": "562bf0facb9e7b4af325dd0798c8d692f44bf93983dfdc7a1e37f78a953a1fa8"
 }

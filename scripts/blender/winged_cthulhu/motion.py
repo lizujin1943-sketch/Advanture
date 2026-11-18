@@ -33,16 +33,29 @@ def targets(key):
 def turn(points,angle):
     q=Quaternion((0,0,1),angle);r=points[0];return [r+q@(p-r) for p in points]
 
+def unfurl(start,end,progress):
+    # Lead with the wrist. The tip completes the same authored contact pose
+    # on the gameplay event frame, then trails again on the recovery.
+    points=[start[0].lerp(end[0],ease(progress))]
+    for i,(a,b,c,d) in enumerate(zip(start,start[1:],end,end[1:])):
+        lag=.19*i/(len(start)-2)
+        local=ease((progress-lag)/(1-lag))
+        # The shared blend rotates the segment and interpolates its length.
+        # Interpolating absolute tip positions pinches opposing curls shut.
+        first,second=blend((a,b),(c,d),local)
+        points.append(points[-1]+(second-first))
+    return points
+
 def attack(key,kind,t,reference):
     windup,impact,sw=targets(key)
     if kind=='Slam':
-        if t<1.2:return blend(reference,windup,ease(t/1.2))
+        if t<1.2:return unfurl(reference,windup,t/1.2)
         if t<1.5:return blend(windup,impact,((t-1.2)/.3)**2)
         if t<1.8:return impact
-        return blend(impact,reference,ease((t-1.8)/1.2))
-    if t<1.2:return blend(reference,turn(sw,-.35),ease(t/1.2))
+        return unfurl(impact,reference,(t-1.8)/1.2)
+    if t<1.2:return unfurl(reference,turn(sw,-.35),t/1.2)
     if t<2:return turn(sw,-.35+.7*ease((t-1.2)/.8))
-    return blend(turn(sw,.35),reference,ease((t-2)/1.6))
+    return unfurl(turn(sw,.35),reference,(t-2)/1.6)
 
 def owned(rig,spec):
     if spec['kind'] in ('Slam','Sweep','Sever'):return [name(spec['limb'],i) for i in range(count(spec['limb']))]
@@ -85,7 +98,7 @@ def apply(rig,kind,t,key,ref,oral):
         for i,p in enumerate(pts):
             f=i/(len(pts)-1);offset=.10*power*f*(math.sin(phase-2*f+idx*.6)-math.sin(-2*f+idx*.6))
             opening=.38*f*ease(t/.95)*(1-ease((t-1.9)/1.3)) if kind in ('Ink','Combination') else 0
-            moved.append(p+Vector((offset+(p.x-1.25)*opening,offset*.4,-.04*math.sin(phase)*f)))
+            moved.append(p+Vector((offset+p.x*opening,offset*.4,-.04*math.sin(phase)*f)))
         for i,(a,b) in enumerate(zip(moved,moved[1:])):
             pb=rig.pose.bones[f'DEF_Mouth_{idx:02d}_{i:02d}'];base=pb.bone.matrix_local
             old=pts[i+1]-pts[i];delta=b-a;q=old.normalized().rotation_difference(delta.normalized())@base.to_quaternion()

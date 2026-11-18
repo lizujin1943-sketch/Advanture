@@ -21,4 +21,24 @@ s.render.engine='CYCLES';s.cycles.device='CPU';s.cycles.samples=40;s.cycles.use_
 s.render.resolution_x=1536;s.render.resolution_y=1536
 for cam,filename in [('CAM_RadialHero','game-material-hero'),('CAM_RadialFront','game-material-front')]:
     s.camera=bpy.data.objects[cam];s.render.filepath=str(OUT/(filename+'.png'));bpy.ops.render.render(write_still=True)
+if bpy.data.objects.get('CAM_SculptPortrait'):
+    from sculpt_winged_cthulhu_review import studio
+    for cam,filename,width,height in [('CAM_SculptPortrait','game-portrait',1650,1130),
+                                      ('CAM_SculptProfile','game-profile',1280,1100)]:
+        s.camera=bpy.data.objects[cam]
+        studio(s,s.camera)
+        s.render.resolution_x,s.render.resolution_y=width,height
+        s.render.filepath=str(OUT/(filename+'.png'))
+        bpy.ops.render.render(write_still=True)
+    clay=bpy.data.materials.new('Review neutral clay')
+    clay.diffuse_color=(.33,.33,.33,1)
+    surface=next(n for n in clay.node_tree.nodes if n.type=='BSDF_PRINCIPLED')
+    surface.inputs['Base Color'].default_value=clay.diffuse_color
+    surface.inputs['Roughness'].default_value=.59
+    bpy.context.view_layer.material_override=clay
+    s.camera=bpy.data.objects['CAM_SculptPortrait']
+    studio(s,s.camera)
+    s.render.resolution_x,s.render.resolution_y=1650,1130
+    s.render.filepath=str(OUT/'game-clay-portrait.png')
+    bpy.ops.render.render(write_still=True)
 print('ANIMATION_REVIEW_DONE',flush=True)

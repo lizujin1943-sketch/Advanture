@@ -1,7 +1,7 @@
 {
-  "recordedUtc": "2026-11-18T04:00:15.993376+00:00",
+  "recordedUtc": "2026-11-18T06:29:54.389572+00:00",
   "status": "PASS",
-  "scope": "Wrist mesh/skin revision. No change to authoritative geometry, timing or simulation.",
+  "scope": "Reference sculpt, baked materials, 24 clips, authoritative joint and head volumes, Unity town presentation.",
   "unity": {
     "version": "2022.3.62f1",
     "mode": "TacticalGame.Unity EditMode",
@@ -32,15 +32,16 @@
         "name": "Advanture.HookIsland.Tests.BossPresentationTests.WristSeamsStayClosedWhenTownAttacksAimInDifferentDirections",
         "result": "Passed"
       }
-    ]
+    ],
+    "maxIdleJointErrorMm": 0.792435894254595
   },
   "artifactIdentity": {
-    "sourceSHA256": "506aa03baf606e581c0d29129339ad819d147e25ca57c1b6a866c0f005893ac8",
-    "fbxSHA256": "79ae7745e454aaa7c4453b975a8525bb5e93355230d8aab6a5f06e7be3d69763",
-    "collisionRawSHA256": "d044bdaa972cff8773883b655142a865c551337030b8ba4d63e3564ede83a448"
+    "sourceSHA256": "562bf0facb9e7b4af325dd0798c8d692f44bf93983dfdc7a1e37f78a953a1fa8",
+    "fbxSHA256": "7812d8883a33209f561673c6d877be1e55abe6f3a4efc41e3125a387cf81e1c8",
+    "collisionRawSHA256": "e63cf4e49143b6153289614ed8e73b2eabf8113f0a4791e99960814cfcbf08ac"
   },
-  "maxSampledWristGapMm": 0.00095367431640625,
+  "maxSampledWristGapMm": 0,
   "limits": [
-    "The Unity captures use the production presentation in the town scene. No manual multiplayer playthrough or full simulation regression was run for this art revision."
+    "Unity town screenshots exercise a temporary production presentation. No manual multiplayer playthrough."
   ]
 }

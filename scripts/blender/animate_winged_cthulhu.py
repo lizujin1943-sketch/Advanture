@@ -17,7 +17,8 @@ def main():
     clips=motion.registry();allbones=[b.name for b in rig.pose.bones];manifest=[];joint_data=[];body_data=[]
     loop_errors={};eye=bpy.data.objects['AW_Eye_Center']
     # Proxy bounds follow only the physical mantle/head, excluding wings and oral whiskers.
-    corners=[Vector((x,y,z)) for x in (-2.25,2.25) for y in (-1.45,2.4) for z in (4.1,10.02)]
+    mantle_rear=bpy.data.objects['AW_Head'].get('mantle_rear',2.4)
+    corners=[Vector((x,y,z)) for x in (-2.25,2.25) for y in (-1.45,mantle_rear) for z in (4.1,10.02)]
     for cname,spec in clips.items():
         action=bpy.data.actions.new(cname);action.use_fake_user=True;assign(rig,action)
         owners=motion.owned(rig,spec);previous={};first=None;channels=[];joint_frames=[];body_frames=[]
@@ -69,7 +70,23 @@ def main():
     (EXPORT/'unity-manifest.json').write_text(json.dumps(result,indent=2))
     # Do not embed abandoned high-mesh copies and unused baking materials in delivery.
     # All clips have fake users; active skins, studio and packed runtime textures survive.
+    portrait=bpy.data.objects.get('CAM_SculptPortrait')
+    if portrait:
+        scene.camera=portrait
+        scene.render.resolution_x,scene.render.resolution_y=1650,1130
+        for ob in meshes:
+            if ob.name.startswith('AW_Stump_'):
+                ob.hide_set(True)
+        for screen in bpy.data.screens:
+            for area in screen.areas:
+                if area.type=='VIEW_3D':
+                    view=area.spaces.active
+                    view.overlay.show_overlays=False
+                    view.shading.type='MATERIAL'
+                    view.region_3d.view_perspective='CAMERA'
+                    view.region_3d.view_camera_zoom=5
     bpy.data.orphans_purge(do_recursive=True)
+    bpy.context.preferences.filepaths.save_version=0
     bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'CR_WingedCthulhu_animated.blend'),compress=True)
     print('ANIMATION_READY',len(manifest),len(rig.data.bones),result['meshTriangles'],flush=True)
 

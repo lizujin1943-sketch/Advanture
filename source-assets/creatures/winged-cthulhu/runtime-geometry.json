@@ -1,11 +1,11 @@
 {
-  "triangles": 140652,
+  "triangles": 155000,
   "reduction": [
     {
       "name": "CR_WingedCthulhu_OrganicCore",
-      "sourceVertices": 244953,
-      "vertices": 20815,
-      "maxSurfaceErrorMeters": 0.024258440360426903
+      "sourceVertices": 447147,
+      "vertices": 37985,
+      "maxSurfaceErrorMeters": 0.003485082183033228
     },
     {
       "name": "CR_WingedCthulhu_WingMembrane_L",
@@ -32,70 +32,28 @@
       "maxSurfaceErrorMeters": 0.0018752629403024912
     },
     {
-      "name": "CR_WingedCthulhu_CheekFin_L",
-      "sourceVertices": 3202,
-      "vertices": 1282,
-      "maxSurfaceErrorMeters": 0.0008048292365856469
-    },
-    {
-      "name": "CR_WingedCthulhu_CheekFin_R",
-      "sourceVertices": 3202,
-      "vertices": 1282,
-      "maxSurfaceErrorMeters": 0.0008048292365856469
-    },
-    {
       "name": "CR_WingedCthulhu_Socket_L",
       "sourceVertices": 1402,
       "vertices": 562,
-      "maxSurfaceErrorMeters": 0.0005193348624743521
+      "maxSurfaceErrorMeters": 0.0007777256541885436
     },
     {
       "name": "CR_WingedCthulhu_Socket_R",
       "sourceVertices": 1402,
       "vertices": 562,
-      "maxSurfaceErrorMeters": 0.0005193819524720311
+      "maxSurfaceErrorMeters": 0.0007623936980962753
     },
     {
       "name": "CR_WingedCthulhu_Eye_L",
       "sourceVertices": 1402,
       "vertices": 562,
-      "maxSurfaceErrorMeters": 0.00016477949975524098
+      "maxSurfaceErrorMeters": 0.0002713370486162603
     },
     {
       "name": "CR_WingedCthulhu_Eye_R",
       "sourceVertices": 1402,
       "vertices": 562,
-      "maxSurfaceErrorMeters": 0.00016513615264557302
-    },
-    {
-      "name": "CR_WingedCthulhu_Arm_A01",
-      "sourceVertices": 22238,
-      "vertices": 4561,
-      "maxSurfaceErrorMeters": 0.006513433065265417
-    },
-    {
-      "name": "CR_WingedCthulhu_Arm_A02",
-      "sourceVertices": 20285,
-      "vertices": 4157,
-      "maxSurfaceErrorMeters": 0.007182393688708544
-    },
-    {
-      "name": "CR_WingedCthulhu_Arm_A03",
-      "sourceVertices": 20279,
-      "vertices": 4156,
-      "maxSurfaceErrorMeters": 0.008737170137465
-    },
-    {
-      "name": "CR_WingedCthulhu_Arm_A04",
-      "sourceVertices": 22724,
-      "vertices": 4661,
-      "maxSurfaceErrorMeters": 0.010958652012050152
-    },
-    {
-      "name": "CR_WingedCthulhu_Arm_S01",
-      "sourceVertices": 21172,
-      "vertices": 4344,
-      "maxSurfaceErrorMeters": 0.005462483502924442
+      "maxSurfaceErrorMeters": 0.0002526617026887834
     },
     {
       "name": "CR_WingedCthulhu_Arm_S02",
@@ -104,26 +62,55 @@
       "maxSurfaceErrorMeters": 0.006724353414028883
     },
     {
+      "name": "CR_WingedCthulhu_Arm_A01",
+      "sourceVertices": 17920,
+      "vertices": 3648,
+      "maxSurfaceErrorMeters": 0.006633713375777006
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_A03",
+      "sourceVertices": 16632,
+      "vertices": 3384,
+      "maxSurfaceErrorMeters": 0.0074087935499846935
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_A02",
+      "sourceVertices": 14378,
+      "vertices": 2922,
+      "maxSurfaceErrorMeters": 0.008072832599282265
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_A04",
+      "sourceVertices": 16310,
+      "vertices": 3318,
+      "maxSurfaceErrorMeters": 0.008798440918326378
+    },
+    {
+      "name": "CR_WingedCthulhu_Arm_S01",
+      "sourceVertices": 16072,
+      "vertices": 3272,
+      "maxSurfaceErrorMeters": 0.005525958724319935
+    },
+    {
       "name": "CR_WingedCthulhu_Arm_S03",
-      "sourceVertices": 22721,
-      "vertices": 4661,
-      "maxSurfaceErrorMeters": 0.006248933263123035
+      "sourceVertices": 15988,
+      "vertices": 3252,
+      "maxSurfaceErrorMeters": 0.007965236902236938
     },
     {
       "name": "CR_WingedCthulhu_Arm_S04",
-      "sourceVertices": 21170,
-      "vertices": 4344,
-      "maxSurfaceErrorMeters": 0.0052836560644209385
+      "sourceVertices": 16716,
+      "vertices": 3404,
+      "maxSurfaceErrorMeters": 0.007628489285707474
     }
   ],
   "surfaceRelief": [
     {
       "object": "AW_Head",
       "contactCounts": [
-        2,
         0
       ],
-      "maxReliefMeters": 0.002999999032243063
+      "maxReliefMeters": 0.0
     },
     {
       "object": "WC_Wing_L",
@@ -137,7 +124,7 @@
     {
       "object": "WC_Wing_R",
       "contactCounts": [
-        12,
+        10,
         0
       ],
       "maxReliefMeters": 0.0030001008915848232
@@ -145,9 +132,10 @@
     {
       "object": "AW_Arm_A01",
       "contactCounts": [
+        1,
         0
       ],
-      "maxReliefMeters": 0.0
+      "maxReliefMeters": 0.0030001551557863283
     },
     {
       "object": "AW_Arm_A02",
@@ -159,9 +147,10 @@
     {
       "object": "AW_Arm_A03",
       "contactCounts": [
+        1,
         0
       ],
-      "maxReliefMeters": 0.0
+      "maxReliefMeters": 0.0030000150975764855
     },
     {
       "object": "AW_Arm_A04",
@@ -173,9 +162,10 @@
     {
       "object": "AW_Arm_S01",
       "contactCounts": [
+        1,
         0
       ],
-      "maxReliefMeters": 0.0
+      "maxReliefMeters": 0.0029999690258635885
     },
     {
       "object": "AW_Arm_S02",

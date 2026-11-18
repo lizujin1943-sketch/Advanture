@@ -8,6 +8,7 @@ import bmesh
 import numpy as np
 from mathutils import Vector
 from mathutils.kdtree import KDTree
+from mathutils.bvhtree import BVHTree
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -24,9 +25,13 @@ PREFIX = 'CR_WingedCthulhu_'
 # X, Y, Z and radius in metres. The first two control points and the cut
 # ring are locked to the original crown. These paths start beyond the wrist.
 POSE = {
-    'A03': [(1.04,-2.55,3.81,.67),(1.22,-3.04,3.02,.70),(1.28,-3.38,2.17,.67),
-            (1.11,-3.56,1.28,.52),(.47,-3.63,.68,.38),(-.26,-3.59,.57,.28),
-            (-.82,-3.50,.90,.19),(-.87,-3.45,1.34,.13),(-.57,-3.36,1.57,.07),(-.24,-3.22,1.40,.012)],
+    'A01': [(-2.70,-1.18,4.76,.55),(-4.05,-1.64,5.35,.65),(-5.42,-1.83,5.27,.64),
+            (-6.46,-1.94,4.58,.54),(-6.82,-1.90,3.57,.40),(-6.60,-1.73,2.79,.30),
+            (-6.01,-1.54,2.55,.22),(-5.56,-1.49,2.88,.15),(-5.59,-1.52,3.36,.075),
+            (-5.87,-1.58,3.46,.012)],
+    'A03': [(.92,-2.55,3.81,.65),(1.11,-3.03,3.00,.72),(1.36,-3.40,2.18,.66),
+            (1.16,-3.63,1.25,.52),(.46,-3.82,.65,.39),(-.32,-3.77,.60,.27),
+            (-.84,-3.58,.93,.19),(-.81,-3.41,1.39,.12),(-.49,-3.29,1.55,.065),(-.22,-3.18,1.35,.012)],
     'A02': [(-1.60,-2.72,3.81,.70),(-2.57,-3.12,4.12,.86),(-3.46,-3.38,3.77,.86),
             (-4.05,-3.57,2.96,.73),(-4.30,-3.71,1.99,.55),(-4.19,-3.65,1.13,.40),
             (-3.76,-3.46,.65,.28),(-3.23,-3.26,.67,.18),(-3.12,-3.12,.95,.09),(-3.36,-3.06,1.08,.012)],
@@ -44,7 +49,7 @@ POSE = {
             (4.11,3.35,6.24,.13),(4.00,3.28,5.90,.07),(4.22,3.19,5.79,.009)]
 }
 # Centres of the distal curls in the frontal plane, used to orient the sucker bed.
-CURL = {'A03': (-.19,1.22), 'A02': (-3.52,1.46), 'A04': (5.84,2.22),
+CURL = {'A01': (-6.04,3.42), 'A03': (-.19,1.22), 'A02': (-3.52,1.46), 'A04': (5.84,2.22),
         'S01': (-3.16,5.95), 'S03': (1.83,4.65), 'S04': (4.65,5.88)}
 
 
@@ -64,12 +69,13 @@ def write_coordinates(ob, vertices):
     ob.data.update()
 
 
-def rebuilt_sleeve(key, points, radii, collection):
+def rebuilt_sleeve(key, points, radii, collection, materials):
     # Use the body's exact rim frame and transport it along the new curve.
     # Unwrapped axial roll prevents a sudden half-turn on tightly curled tips.
     start = 21
     origin, tangent, normal, lateral, radius = seat(key)
     mesh = Mesh()
+    params = []
     previous = None
     frames = []
     roll = 0.0
@@ -104,18 +110,22 @@ def rebuilt_sleeve(key, points, radii, collection):
         for k in range(SIDES):
             a=math.tau*k/SIDES
             muscle=1+.014*float(smooth(.17,.28,f))*math.cos(3*a+.6*f)
-            ring.append(mesh.vert(p+r*muscle*(math.cos(a)*n+math.sin(a)*b)))
+            ring.append(mesh.vert(p+r*muscle*(math.cos(a)*n+math.sin(a)*b),(k/SIDES,f)))
+            params.append(f)
         if previous:
             for k in range(SIDES):
                 q=(k+1)%SIDES
-                mesh.face((previous[k],ring[k],ring[q],previous[q]))
+                underside = math.cos(math.tau*(k+.5)/SIDES)>.73
+                mesh.face((previous[k],ring[k],ring[q],previous[q]),int(underside))
         else:
             cap=mesh.vert(origin+t*.145)
+            params.append(f)
             for k in range(SIDES):
                 mesh.face((ring[k],ring[(k+1)%SIDES],cap))
         previous=ring
         frames.append((p,t,n,b,r))
     cap=mesh.vert(points[-1])
+    params.append(1.)
     for k in range(SIDES):
         mesh.face((previous[k],previous[(k+1)%SIDES],cap))
     # Each row advances independently by tissue distance, staggering the larger cups.
@@ -129,11 +139,16 @@ def rebuilt_sleeve(key, points, radii, collection):
         for row in range(2):
             if traveled<next_distance[row]:
                 continue
-            angle=(-.46,.46)[row]
+            angle=(-.54,.54)[row]
             local=(n*math.cos(angle)+b*math.sin(angle)).normalized()
-            mesh.cup(p+local*r*.99,local,t,r*.42,aspect=.93,segments=24)
-            next_distance[row]=traveled+max(.075,r*.89)
-    result=mesh.finish(PREFIX+'ReviewArm_'+key,collection,[])
+            before=len(mesh.v)
+            lip=r*(.53 if key.startswith('A') else .48)
+            mesh.cup(p+local*r*.99,local,t,lip,aspect=.94,segments=32)
+            params.extend([(j+start)/(len(points)-1)]*(len(mesh.v)-before))
+            next_distance[row]=traveled+max(.075,lip*2.02)
+    result=mesh.finish(PREFIX+'ReviewArm_'+key,collection,materials)
+    param=result.data.attributes.new('ArmParameter','FLOAT','POINT')
+    param.data.foreach_set('value',np.asarray(params,dtype=np.float32))
     for poly in list(result.data.polygons)[:SIDES]:
         poly.use_smooth=False
     return result
@@ -159,7 +174,7 @@ def pose_arm(ob):
         points[j]=((2*u**3-3*u*u+1)*origin+(u**3-2*u*u+u)*length*tangent+
                    (-2*u**3+3*u*u)*endpoint+(u**3-u*u)*length*end_tangent)
         radii[j]=radius+(radii[end]-radius)*float(smooth(0,1,u))
-    result=rebuilt_sleeve(key,points,radii,ob.users_collection[0])
+    result=rebuilt_sleeve(key,points,radii,ob.users_collection[0],list(ob.data.materials))
     for tag in ('limb_id','azimuth_degrees'):
         result[tag]=ob[tag]
     result['centerline']=[list(p) for p in points]
@@ -202,7 +217,7 @@ def sculpt_head(ob):
     xyz[:,1] -= .19*brow*face
     if '_Eye_' in ob.name:
         axis = 7.125+.52*(side-.64)
-        xyz[:,2] = axis + 1.27*(xyz[:,2]-axis)
+        xyz[:,2] = axis + 1.12*(xyz[:,2]-axis)
         xyz[:,1] -= .040+.050*np.exp(-((side-.64)/.27)**2)
     write_coordinates(ob,xyz)
 
@@ -236,11 +251,11 @@ def orbital_fold(high, side, name, knots, depth_ratio=1):
     return obj
 
 
-def sculpt_orbits(high):
+def sculpt_orbits(high, painted=False):
     for ob in list(high.objects):
         if ob.type=='MESH' and not ob.get('limb_id'):
             sculpt_head(ob)
-    brow = [(.045,-1.89,7.16,.045),(.17,-2.00,7.18,.137),(.41,-2.02,7.38,.192),
+    brow = [(.045,-1.89,7.16,.032),(.17,-2.00,7.18,.110),(.41,-2.02,7.38,.165),
             (.71,-1.99,7.61,.204),(1.03,-1.87,7.76,.173),(1.31,-1.60,7.92,.138),
             (1.51,-1.38,8.16,.09),(1.60,-1.24,8.39,.014)]
     lid = [(.23,-1.84,7.00,.018),(.37,-1.90,6.92,.040),(.59,-1.94,6.915,.055),
@@ -248,7 +263,7 @@ def sculpt_orbits(high):
            (1.02,-1.65,7.48,.014)]
     # The lids turn into the temples. A second fold shells the brow into the
     # forehead, and the cheek slopes into the first fleshy roots of the beard.
-    crest=[(.10,-1.92,7.22,.085),(.27,-1.89,7.42,.20),(.46,-1.66,7.65,.185),
+    crest=[(.10,-1.92,7.22,.065),(.27,-1.89,7.42,.17),(.46,-1.66,7.65,.17),
            (.61,-1.39,7.90,.135),(.67,-1.18,8.16,.065),(.63,-1.04,8.37,.009)]
     bridge=[(.16,-1.78,7.08,.07),(.18,-1.83,6.89,.205),(.28,-1.90,6.68,.225),
             (.42,-1.98,6.43,.216),(.53,-2.00,6.20,.12),(.54,-1.98,6.04,.021)]
@@ -263,16 +278,21 @@ def sculpt_orbits(high):
            (-.025,-2.03,6.63,.262),(-.13,-2.12,6.39,.287),(-.21,-2.19,6.17,.218),
            (-.24,-2.24,5.91,.045)]
     folds.append(orbital_fold(high,1,'NasalMantle',nasal,.95))
+    if painted:
+        for fold in folds:
+            cartilage=any(s in fold.name for s in ('Brow','Crest','Lid'))
+            material='PAINT_Cartilage_Green' if cartilage else 'PAINT_Skin_TealAndOlive'
+            fold.data.materials.append(bpy.data.materials[material])
     for side in ('L','R'):
         fin=high.objects[PREFIX+'CheekFin_'+side]
         xyz=coordinates(fin)
         xyz[:,1]-=.13
         write_coordinates(fin,xyz)
         folds.append(fin)
-    fuse_face(high.objects[PREFIX+'OrganicCore'],folds)
+    fuse_face(high.objects[PREFIX+'OrganicCore'],folds,painted)
 
 
-def fuse_face(core, folds):
+def fuse_face(core, folds, painted):
     # Remesh to blend new eyelid, forehead and muzzle volumes. Graft the
     # original authored eight-way fork back so the wrist interfaces stay exact.
     source=bmesh.new()
@@ -302,6 +322,13 @@ def fuse_face(core, folds):
         ob.select_set(True)
     bpy.context.view_layer.objects.active=core
     bpy.ops.object.join()
+    if painted:
+        slots=list(core.data.materials)
+        skin=next(i for i,m in enumerate(slots) if 'Skin_Teal' in m.name)
+        original=BVHTree.FromPolygons([v.co.copy() for v in core.data.vertices],
+                                      [p.vertices[:] for p in core.data.polygons])
+        indices=np.empty(len(core.data.polygons),np.int32)
+        core.data.polygons.foreach_get('material_index',indices)
     core.data.remesh_voxel_size=.023
     core.data.use_remesh_preserve_attributes=False
     bpy.ops.object.voxel_remesh()
@@ -311,6 +338,7 @@ def fuse_face(core, folds):
     bpy.ops.object.modifier_apply(modifier=sm.name)
     mesh=bmesh.new()
     mesh.from_mesh(core.data)
+    tissue=mesh.verts.layers.float.get('CrownTissue') or mesh.verts.layers.float.new('CrownTissue')
     z=5.71
     origin=Vector((0,.18,z))
     bmesh.ops.bisect_plane(mesh,geom=list(mesh.verts)+list(mesh.edges)+list(mesh.faces),
@@ -331,6 +359,8 @@ def fuse_face(core, folds):
     bmesh.ops.remove_doubles(mesh,verts=neck,dist=.001)
     neck=[v for v in mesh.verts if v.is_boundary]
     new=[mesh.verts.new(p) for p in fork_points]
+    for v in new:
+        v[tissue]=1.
     for ids in fork_faces:
         mesh.faces.new([new[i] for i in ids])
     fork_rim=[v for v in new if v.is_boundary]
@@ -347,15 +377,38 @@ def fuse_face(core, folds):
         stitch(mesh,previous,ring,origin,Vector((1,0,0)),Vector((0,1,0)),0)
         previous=ring
     stitch(mesh,neck,previous,origin,Vector((1,0,0)),Vector((0,1,0)),0)
+    # The core is one continuous sculpture. Isolated voxel flecks can
+    # survive on a thin fin edge and collapse to loose triangles in the LOD.
+    connected={new[0]}
+    pending=[new[0]]
+    while pending:
+        vertex=pending.pop()
+        for edge in vertex.link_edges:
+            neighbor=edge.other_vert(vertex)
+            if neighbor not in connected:
+                connected.add(neighbor)
+                pending.append(neighbor)
+    flecks=[v for v in mesh.verts if v not in connected]
+    if flecks:
+        bmesh.ops.delete(mesh,geom=flecks,context='VERTS')
     blend=[v for v in mesh.verts if 5.58<v.co.z<6.04 and (v.co-Vector((0,.18,v.co.z))).length<1.55]
     for _ in range(8):
         bmesh.ops.smooth_vert(mesh,verts=blend,factor=.48,use_axis_x=True,use_axis_y=True,use_axis_z=True)
     bmesh.ops.recalc_face_normals(mesh,faces=list(mesh.faces))
     for face in mesh.faces:
         face.smooth=True
+        if painted:
+            if any(v[tissue]>.5 for v in face.verts):
+                face.material_index=skin
+            else:
+                face.material_index=int(indices[original.find_nearest(face.calc_center_median())[2]])
     assert not any(e.is_boundary for e in mesh.edges)
     mesh.to_mesh(core.data)
     mesh.free()
+    if painted:
+        # Remesh can drop slots on some Blender versions. Never clear a
+        # populated slot list here, which would also reset the polygon indices.
+        assert list(core.data.materials)==slots
     core.data.update()
 
 
@@ -484,6 +537,24 @@ def main():
     out.mkdir(parents=True,exist_ok=True)
     scene=bpy.context.scene
     high=bpy.data.collections['HIGH']
+    if '--production' in sys.argv:
+        for key in POSE:
+            pose_arm(high.objects[PREFIX+'Arm_'+key])
+        sculpt_orbits(high,painted=True)
+        check_roots(high)
+        core=high.objects[PREFIX+'OrganicCore']
+        core['portrait_paint']=True
+        # The cranium alone defines the rear extent of the body hit proxy.
+        cranial=[p for p in core.data.polygons if 'Cranium' in core.data.materials[p.material_index].name]
+        core['mantle_rear']=max(core.data.vertices[i].co.y for p in cranial for i in p.vertices)
+        camera('CAM_SculptPortrait',(-7.4,-32,8.8),(0,0,5.13),16.2)
+        camera('CAM_SculptProfile',(32,0,5.1),(0,0,5.1),13.6)
+        output=HERE.parents[1]/'artifacts/cthulhu-production'
+        output.mkdir(parents=True,exist_ok=True)
+        bpy.context.preferences.filepaths.save_version=0
+        bpy.ops.wm.save_as_mainfile(filepath=str(output/'painted-sculpt.blend'),compress=True)
+        print('PAINTED_SCULPT_READY',core['mantle_rear'],flush=True)
+        return
     view_specs=[
         ('portrait',(-7.4,-32,8.8),(0,0,5.13),16.2,1650,1130),
         ('front',(0,-32,5.1),(0,0,5.1),16.1,1500,1040),
