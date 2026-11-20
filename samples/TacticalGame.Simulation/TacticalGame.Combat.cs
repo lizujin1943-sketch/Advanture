@@ -22,24 +22,29 @@ public sealed partial class TacticalGame
                 if (!input.Fire || c.ReloadUntilTick>0 || c.Ammo==0 || tick<c.NextFireTick) continue;
                 c.Ammo--; c.NextFireTick=checked(tick+Duration(100));
                 c.ShotSequence=checked(c.ShotSequence+1); c.LastShotTick=tick;
-                int target=Trace(i, active, combat, c);
+                int target=Trace(i, active, combat, c,out c.LastHitCreature);
                 c.LastHitSlot=target<0?-1:_players[target].Slot;
                 if (target>=0) { c.Hits=checked(c.Hits+1); damage[target]+=25; if(attackers[target]<0) attackers[target]=i; }
+                else if(c.LastHitCreature>=0)c.Hits=checked(c.Hits+1);
             }
+            if(monsters!=null)ResolveCreatureHits(combat);
             for(int i=0;i<combat.Length;i++)
             {
-                var c=combat[i]; if(damage[i]==0 || c.Health==0) continue;
-                c.Health=Math.Max(0,c.Health-damage[i]);
-                if(c.Health==0)
-                {
-                    c.Deaths=checked(c.Deaths+1); c.RespawnAtTick=checked(tick+Duration(3000)); c.ReloadUntilTick=0;
-                    var killer=combat[attackers[i]]; killer.Kills=checked(killer.Kills+1);
-                }
+                if(!DamagePlayer(combat[i],damage[i],tick))continue;
+                var killer=combat[attackers[i]];killer.Kills=checked(killer.Kills+1);
             }
+        }
+        private bool DamagePlayer(CombatModel player,int amount,ulong tick)
+        {
+            if(amount<=0 || player.Health==0)return false;
+            player.Health=Math.Max(0,player.Health-amount);
+            if(player.Health>0)return false;
+            player.Deaths=checked(player.Deaths+1);player.RespawnAtTick=checked(tick+Duration(3000));player.ReloadUntilTick=0;
+            return true;
         }
 
         /// <summary>以眼睛和冻结朝向发出射线。距离参数精度为 0.001 毫米，全过程只做整数运算。</summary>
-        private int Trace(int shooter, bool[] active, CombatModel[] combat, CombatModel shot)
+        private int Trace(int shooter, bool[] active, CombatModel[] combat, CombatModel shot,out int creature)
         {
             var source=_players[shooter];
             int eye = _map.FeetHeight(source) + EyeHeight;
@@ -60,27 +65,29 @@ public sealed partial class TacticalGame
                 if(Intersect(source.X,eye,source.Z,dx,dy,dz,p.X-radius,feet,p.Z-radius,p.X+radius,feet+VerticalMotion.BodyHeight,p.Z+radius,nearest,out long distance) && distance<nearest)
                 { nearest=distance; hit=i; }
             }
+            creature=TraceCreatures(source.X,eye,source.Z,dx,dy,dz,ref nearest);
+            if(creature>=0)hit=-1;
             shot.EndX=source.X+(int)((long)dx*nearest/(FixedAim.Scale*1000L));
             shot.EndY=eye+(int)((long)dy*nearest/(FixedAim.Scale*1000L));
             shot.EndZ=source.Z+(int)((long)dz*nearest/(FixedAim.Scale*1000L));
             return hit;
         }
+    }
 
-        private static bool Intersect(int x,int y,int z,int dx,int dy,int dz,int minX,int minY,int minZ,int maxX,int maxY,int maxZ,long limit,out long distance)
-        {
-            long enter=0,exit=limit;
-            bool hit=Slab(x,dx,minX,maxX,ref enter,ref exit) && Slab(y,dy,minY,maxY,ref enter,ref exit) && Slab(z,dz,minZ,maxZ,ref enter,ref exit);
-            distance=enter;return hit;
-        }
-        /// <summary>将射线进入/离开单个轴区间的时间相交。向内舍入，避免把边界外的射线误判成命中。</summary>
-        private static bool Slab(int origin,int direction,int min,int max,ref long enter,ref long exit)
-        {
-            if(direction==0) return origin>=min && origin<=max;
-            long a=((long)min-origin)*FixedAim.Scale*1000, b=((long)max-origin)*FixedAim.Scale*1000;
-            long d=direction;
-            if(d<0) { long old=a; a=-b; b=-old; d=-d; }
-            long lo=a/d+(a%d>0?1:0), hi=b/d-(b%d<0?1:0);
-            enter=Math.Max(enter,lo);exit=Math.Min(exit,hi);return enter<=exit;
-        }
+    internal static bool Intersect(int x,int y,int z,int dx,int dy,int dz,int minX,int minY,int minZ,int maxX,int maxY,int maxZ,long limit,out long distance)
+    {
+        long enter=0,exit=limit;
+        bool hit=Slab(x,dx,minX,maxX,ref enter,ref exit) && Slab(y,dy,minY,maxY,ref enter,ref exit) && Slab(z,dz,minZ,maxZ,ref enter,ref exit);
+        distance=enter;return hit;
+    }
+    /// <summary>将射线进入/离开单个轴区间的时间相交。向内舍入，避免把边界外的射线误判成命中。</summary>
+    private static bool Slab(int origin,int direction,int min,int max,ref long enter,ref long exit)
+    {
+        if(direction==0) return origin>=min && origin<=max;
+        long a=((long)min-origin)*FixedAim.Scale*1000, b=((long)max-origin)*FixedAim.Scale*1000;
+        long d=direction;
+        if(d<0) { long old=a; a=-b; b=-old; d=-d; }
+        long lo=a/d+(a%d>0?1:0), hi=b/d-(b%d<0?1:0);
+        enter=Math.Max(enter,lo);exit=Math.Min(exit,hi);return enter<=exit;
     }
 }

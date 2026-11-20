@@ -18,7 +18,7 @@ public sealed class TacticalClient : IDisposable
     private readonly ulong _peer;
     private readonly ushort _slot;
     private readonly byte[] _hash;
-    private readonly bool _elevated;
+    private readonly TacticalMap _map;
     private bool _connected, _joined, _acked, _disposed, _checkedInitial, _transportStopped;
     private FixedInputScheduler? _scheduler;
     private TimeSpan? _clockOrigin;
@@ -28,7 +28,7 @@ public sealed class TacticalClient : IDisposable
     public TacticalClient(TacticalMap map, IPAddress host, int port, ushort slot)
     {
         if (slot > 1) throw new ArgumentOutOfRangeException(nameof(slot));
-        _elevated = map.HasElevation;
+        _map = map;
         _hash = RoomProtocol.Hash(map); _slot = slot;
         _port = new SocketDatagramPort(new DatagramAddress(host.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any, 0));
         try { _node = new UdpNode(_port); _peer = _node.Connect(new DatagramAddress(host, port)); _transport = new RoomTransport(_node); }
@@ -69,7 +69,7 @@ public sealed class TacticalClient : IDisposable
             {
                 var id = new Guid(packet.Welcome.SessionId.Span);
                 if (id == Guid.Empty) { Fail("房间身份不合法。"); return; }
-                Session = new ClientSession<TacticalState>(TacticalGame.CreateModule(_elevated), id, 1, _transport, _peer, RoomProtocol.Limits,
+                Session = new ClientSession<TacticalState>(TacticalGame.CreateModule(_map), id, 1, _transport, _peer, RoomProtocol.Limits,
                     prediction: new PredictionOptions(maxPredictionFrames: 12), neutralInput: _ => RoomProtocol.Neutral);
             }
             else if (packet.BodyCase == RoomPacket.BodyOneofCase.Reject)

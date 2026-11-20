@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.IO;
+using Advanture.HookIsland;
+using Advanture.HookIsland.Simulation;
 using Advanture.Tactical.Network;
 using Advanture.Tactical.Simulation;
 using FrameSync.Sessions;
@@ -25,6 +27,8 @@ namespace Advanture.TacticalGame.NetworkView
         private NetworkInputSource input;
         private NetworkRoomOverlay overlay;
         private NetworkAvatar remote;
+        private EldritchPresentation encounters;
+        private Func<int,int,float> groundHeight;
         private Ak47View localWeapon;
         private bool localWasAlive=true;
         public TacticalPlayer? LocalPlayer { get; private set; }
@@ -57,7 +61,7 @@ namespace Advanture.TacticalGame.NetworkView
         {
             Application.runInBackground = true; Application.targetFrameRate = 60; QualitySettings.vSyncCount = 0;
             input = GetComponent<NetworkInputSource>(); overlay = GetComponent<NetworkRoomOverlay>(); clock.Start();
-            try { map = TacticalMap.Decode(mapData.bytes); }
+            try { map = TacticalMap.Decode(mapData.bytes); groundHeight = (x,z) => map.GroundHeight(x,z)*.001f; }
             catch (Exception e) { error = "地图数据无法读取：" + e.Message; }
         }
         public void HostRoom(int port) => StartHost(port, 2);
@@ -95,6 +99,11 @@ namespace Advanture.TacticalGame.NetworkView
                 if (session?.LocalParticipant == null) return;
                 TacticalState confirmed = session.InspectState(), predicted = session.InspectPredictedState();
                 float delta = Time.unscaledDeltaTime;
+                if (confirmed.Monsters.Creatures.Count > 0)
+                {
+                    if (encounters == null) encounters = new EldritchPresentation(transform,Shader.Find("Sprites/Default"),new EldritchConfig(),true);
+                    encounters.Synchronize(confirmed.Monsters,confirmed.Steps,groundHeight,delta);
+                }
                 foreach (var p in confirmed.Players)
                 {
                     if (p.Slot != localSlot) continue;
@@ -173,6 +182,7 @@ namespace Advanture.TacticalGame.NetworkView
             // 在 Dispose 和清空引用前采集最新帧；OnApplicationQuit 后的 OnDestroy 不会覆盖首次结束状态。
             ObserveDiagnostics(); diagnostics?.End(state, reason); CheckDiagnosticError(); diagnostics?.Dispose();
             Client?.Dispose(); Host?.Dispose(); Client = null; Host = null; error = null;
+            encounters?.Dispose(); encounters = null;
             solo = false; LocalPlayer = null; localWasAlive = true;
             if (localWeapon != null) { localWeapon.gameObject.SetActive(false); Destroy(localWeapon.gameObject); }
             localWeapon = null;

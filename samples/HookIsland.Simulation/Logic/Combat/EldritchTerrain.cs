@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Advanture.HookIsland.Simulation;
 
 /// <summary>Derived navigation and visibility, never serialized or shared across simulation models.</summary>
-internal sealed class EldritchTerrain
+internal sealed class EldritchTerrain : IEldritchTerrain
 {
     private readonly IslandMap map;
     private readonly CrabNavigation ground;
@@ -12,7 +12,7 @@ internal sealed class EldritchTerrain
     private static readonly Point[] Directions={new Point(1000,0),new Point(707,707),new Point(0,1000),new Point(-707,707),new Point(-1000,0),new Point(-707,-707),new Point(0,-1000),new Point(707,-707)};
     internal EldritchTerrain(IslandMap map){this.map=map;ground=new CrabNavigation(map);}
     internal void Refresh(IReadOnlyList<PlatformTile> value){tiles=value;ground.Refresh(value);}
-    internal bool CanStand(EldritchHabitat habitat,int x,int z)
+    public bool CanStand(EldritchHabitat habitat,int x,int z)
     {
         if(Math.Abs((long)x)>(map.IsTown?79000:49000) || Math.Abs((long)z)>(map.IsTown?63000:49000) || GrenadeRules.Solid(map,x,600,z,EldritchCatalog.BodyRadius))return false;
         if(habitat==EldritchHabitat.Ground)return map.Platform==null?map.CanStand(x,z):ground.CanStand(x,z);
@@ -21,14 +21,14 @@ internal sealed class EldritchTerrain
             if(SwimmingTerrain.Ground(map,tiles,x+dx,z+dz))return false;
         return true;
     }
-    internal bool Segment(EldritchHabitat habitat,int ax,int az,int bx,int bz)
+    public bool Segment(EldritchHabitat habitat,int ax,int az,int bx,int bz)
     {
         int n=Math.Max(1,(HookGame.Sqrt(IslandMap.DistanceSquared(ax,az,bx,bz))+49)/50);
         for(int i=0;i<=n;i++)if(!CanStand(habitat,ax+(int)((long)(bx-ax)*i/n),az+(int)((long)(bz-az)*i/n)))return false;
         return true;
     }
-    internal bool Visible(int ax,int az,int bx,int bz)=>GrenadeRules.Visible(map,ax,700,az,bx,700,bz);
-    internal int Target(EldritchCreature c,IReadOnlyList<Fisher> players,out Point goal)
+    public bool Visible(int ax,int az,int bx,int bz)=>GrenadeRules.Visible(map,ax,700,az,bx,700,bz);
+    public int Target(EldritchCreature c,IReadOnlyList<Fisher> players,out Point goal)
     {
         if(EldritchCatalog.Get(c.Kind).Habitat==EldritchHabitat.Ground && map.Platform!=null)
             return ground.Target(players,c.X,c.Z,out goal);
@@ -41,6 +41,8 @@ internal sealed class EldritchTerrain
         }
         return target;
     }
+    public bool TrySpawn(EldritchCreature c,IReadOnlyList<Fisher> players,IReadOnlyList<EldritchCreature> creatures,out Point point)
+        => map.IsTown ? SpawnTown(c,players,creatures,out point) : Spawn(c,players,creatures,out point);
     internal bool SpawnTown(EldritchCreature c,IReadOnlyList<Fisher> players,IReadOnlyList<EldritchCreature> creatures,out Point point)
     {
         point=default;int zone=TownEncounters.Zone(c.Id);var habitat=EldritchCatalog.Get(c.Kind).Habitat;

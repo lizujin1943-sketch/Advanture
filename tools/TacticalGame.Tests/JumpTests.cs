@@ -92,18 +92,22 @@ internal static class JumpTests
             Check.Equal(75, WeaponTests.B(sim).Health);
             Check.Equal(75, WeaponTests.A(sim).Health);
         });
-        yield return ("jump.four_predicting_clients_match_every_confirmed_frame", FourClients);
+        yield return ("jump.four_predicting_clients_match_every_confirmed_frame", () => FourClients(false));
+        yield return ("compound.four_predicting_clients_match_all_three_breaches", () => FourClients(true));
     }
 
-    private static void FourClients()
+    private static void FourClients(bool encounters)
     {
         const int rate = 30;
         var network = new InMemoryNetwork();
         var transport = network.CreateEndpoint(1);
-        var module = TacticalGame.CreateModule();
         var neutral = new ByteString(default(TacticalInput).Encode());
         var roster = Enumerable.Range(0,4).Select(i=>new Participant((ushort)i, Guid.NewGuid())).ToArray();
-        var map = new TacticalMap(OpenMap().Area, roster.Select(p=>new PlayerSpawn(p.Slot*2000,0,0)).ToArray(), Array.Empty<MapRect>());
+        var map = encounters ? CompoundEncounterTests.WithPlayerSpawns(
+            new PlayerSpawn(-8250,7400,0), new PlayerSpawn(-2250,7400,0),
+            new PlayerSpawn(-8250,7150,0), new PlayerSpawn(-2250,7150,0)) :
+            new TacticalMap(OpenMap().Area, roster.Select(p=>new PlayerSpawn(p.Slot*2000,0,0)).ToArray(), Array.Empty<MapRect>());
+        var module = TacticalGame.CreateModule(map);
         var clients = roster.Select(p=>new ClientSession<TacticalState>(module, Id, 1, network.CreateEndpoint(2UL+p.Slot), 1,
             prediction:new PredictionOptions(maxPredictionFrames:12), neutralInput:_=>neutral)).ToArray();
         var server = new ServerSession<TacticalState>(module, new SessionDescriptor(Id,1,rate,roster), transport,
@@ -116,11 +120,12 @@ internal static class JumpTests
         }
         Check.True(clients.All(c=>c.Status==SessionStatus.Running));
         bool allAirborne = false;
-        for (ulong tick=1; tick<=45; tick++)
+        var entrances = new HashSet<(int,int)>();
+        for (ulong tick=1; tick<=(encounters ? 500UL : 45UL); tick++)
         {
             for (int slot=0;slot<clients.Length;slot++)
             {
-                var input = new TacticalInput(0,500,jump:tick==5UL+(ulong)slot*2);
+                var input = new TacticalInput(0,encounters ? (short)0 : (short)500,jump:tick==5UL+(ulong)slot*2);
                 Check.True(clients[slot].TrySubmit(tick,input.Encode()));
                 clients[slot].Poll(tick);
             }
@@ -134,9 +139,13 @@ internal static class JumpTests
                 client.Poll(tick);
                 Check.Equal(expected, CheckpointCodec.Hash(client.CaptureCheckpoint()));
             }
-            allAirborne |= server.InspectState().Players.All(p=>p.HeightAboveGround>450);
+            var state=server.InspectState();
+            foreach(var c in state.Monsters.Creatures)
+                if(c.Phase==Advanture.HookIsland.Simulation.EldritchPhase.Emerging)entrances.Add((c.X,c.Z));
+            allAirborne |= state.Players.All(p=>p.HeightAboveGround>450);
         }
         Check.True(allAirborne && server.InspectState().Players.All(p=>!p.IsAirborne));
         Check.True(clients.All(c=>c.RollbackCount>0));
+        if(encounters)Check.True(entrances.SetEquals(map.MonsterEntrances.Select(p=>(p.X,p.Z))));
     }
 }

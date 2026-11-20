@@ -94,7 +94,7 @@ public sealed class TacticalHost : IDisposable
             if (_peers.Count == _participants && _ready.Count == _participants)
             {
                 var roster = Enumerable.Range(0, _participants).Select(slot => new Participant((ushort)slot, Guid.NewGuid(), isActive: false)).ToArray();
-                Session = new ServerSession<TacticalState>(TacticalGame.CreateModule(_map.HasElevation), new SessionDescriptor(_id, 1, RoomProtocol.Rate, roster), _transport,
+                Session = new ServerSession<TacticalState>(TacticalGame.CreateModule(_map), new SessionDescriptor(_id, 1, RoomProtocol.Rate, roster), _transport,
                     _peers.Select(p => new PeerBinding(p.Value, p.Key)).ToArray(), _ => RoomProtocol.Neutral, RoomProtocol.Limits, new ByteString(_map.Encode()));
             }
         }

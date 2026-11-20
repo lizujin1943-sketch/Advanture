@@ -175,7 +175,7 @@ namespace Advanture.TacticalGame.NetworkView
 
         private static Contact Classify(CombatState state, float range)
         {
-            if (state.LastHitSlot >= 0) return Contact.Character;
+            if (state.LastHitSlot >= 0 || state.LastHitCreature >= 0) return Contact.Character;
             // 快照没有环境标志；方向表与三个端点分量均经整数舍入。封顶附近宁可略去尘屑。
             float maximum = CombatState.ShotRangeMillimeters * .001f;
             return range > .001f && range < maximum - .01f ? Contact.Environment : Contact.None;

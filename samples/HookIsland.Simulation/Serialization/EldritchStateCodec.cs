@@ -3,13 +3,14 @@ using System.IO;
 
 namespace Advanture.HookIsland.Simulation;
 
-internal static class EldritchStateCodec
+public static class EldritchStateCodec
 {
-    internal static void Write(BinaryWriter w,HookState s)
+    internal static void Write(BinaryWriter w,HookState s)=>Write(w,s.Eldritch);
+    public static void Write(BinaryWriter w,EldritchState state)
     {
-        w.Write(0x33524445);w.Write(s.Eldritch.NextSpawn);w.Write(s.Eldritch.Creatures.Count);
-        TownDirectorStateCodec.Write(w,s.Eldritch.Director);
-        foreach(var c in s.Eldritch.Creatures)
+        w.Write(0x33524445);w.Write(state.NextSpawn);w.Write(state.Creatures.Count);
+        TownDirectorStateCodec.Write(w,state.Director);
+        foreach(var c in state.Creatures)
         {
             w.Write(c.Id);w.Write((byte)c.Kind);w.Write((byte)c.Phase);w.Write(c.Generation);w.Write(c.AttackSerial);
             w.Write(c.X);w.Write(c.Z);w.Write(c.DirectionX);w.Write(c.DirectionZ);w.Write(c.Health);w.Write(c.Timer);w.Write(c.Target);
@@ -19,9 +20,16 @@ internal static class EldritchStateCodec
     }
     internal static HookState Read(BinaryReader r,HookState s)
     {
-        if(r.ReadInt32()!=0x33524445)throw new InvalidDataException("Eldritch state version mismatch.");
         var config=s.Tackle?.Config.Eldritch??EldritchConfig.Disabled;
-        bool town=s.Tackle?.Config.TownMode==true;int adults=town?TownEncounters.AdultCount:10;
+        int joined=0;
+        foreach(var player in s.Players)if(!player.WaitingToJoin)joined|=1<<player.Slot;
+        var roster=Read(r,config,s.Tackle?.Config.TownMode==true,s.Steps,s.Players.Count,joined);
+        return new HookState(s.Steps,s.Players,s.Fish,s.Coins,s.Tiles,s.Driftwood,s.Tackle,s.Enemies,s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale,s.Crabs,s.Boss,s.Grenades,roster);
+    }
+    public static EldritchState Read(BinaryReader r,EldritchConfig config,bool town,ulong steps,int playerSlots,int joinedMask)
+    {
+        if(r.ReadInt32()!=0x33524445)throw new InvalidDataException("Eldritch state version mismatch.");
+        int adults=town?TownEncounters.AdultCount:10;
         int next=r.ReadInt32(),count=r.ReadInt32();
         if(count!=(config.Enabled?(town?TownEncounters.Population:EldritchCatalog.Population):0) || next<0 || next>=adults || !config.Enabled && next!=0)
             throw new InvalidDataException("Invalid eldritch population.");
@@ -43,8 +51,8 @@ internal static class EldritchStateCodec
             long direction=(long)c.DirectionX*c.DirectionX+(long)c.DirectionZ*c.DirectionZ;
             if(c.Timer<0 || c.Timer>limit || c.Phase!=EldritchPhase.Dormant && c.Phase!=EldritchPhase.Hunting && c.Timer==0 ||
                 c.Health<0 || c.Health>EldritchCatalog.MaxHealth(c) || c.Alive && c.Health==0 ||
-                c.Target< -1 || c.Target>=s.Players.Count || c.Ally< -1 || c.Ally>=count || c.Ally==i ||
-                c.RewardOwner<0 || c.RewardOwner>s.Players.Count || c.HitMask>=(1<<s.Players.Count) ||
+                c.Target< -1 || c.Target>=playerSlots || c.Ally< -1 || c.Ally>=count || c.Ally==i ||
+                c.RewardOwner<0 || c.RewardOwner>playerSlots || c.HitMask>=(1<<playerSlots) ||
                 c.TravelRemainder<0 || c.TravelRemainder>=HookGame.Rate || c.RouteTicks<0 || c.RouteTicks>6 || c.NoTargetTicks<0 || c.NoTargetTicks>=300 ||
                 c.Summons<0 || c.Summons>EldritchCatalog.MaxBroodPerGeneration || c.Kind!=EldritchKind.BroodMother && c.Summons!=0 ||
                 !Position(c.X,c.Z,town?80000:49000) || !Position(c.GoalX,c.GoalZ,100000) || !Position(c.EffectX,c.EffectZ,100000) ||
@@ -60,13 +68,13 @@ internal static class EldritchStateCodec
                 var expected=new EldritchCreature{Id=i,Kind=c.Kind,TownAdult=c.TownAdult,Generation=c.Generation,Timer=c.Timer,Target=-1,Ally=-1};
                 if(!c.Equals(expected) || c.IsMinion && c.Timer!=0)throw new InvalidDataException("Invalid dormant eldritch state.");
             }
-            if(c.RewardOwner>0 && s.Players[c.RewardOwner-1].WaitingToJoin)throw new InvalidDataException("Unjoined eldritch reward owner.");
+            if(c.RewardOwner>0 && (joinedMask & (1<<(c.RewardOwner-1)))==0)throw new InvalidDataException("Unjoined eldritch reward owner.");
             if(!c.IsMinion && c.Damageable && !c.Paused)alive++;
             creatures[i]=c;
         }
         if(alive>config.MaxAlive)throw new InvalidDataException("Eldritch encounter cap exceeded.");
-        TownDirectorStateCodec.Validate(director,town && config.Enabled,s.Steps,creatures);
-        return new HookState(s.Steps,s.Players,s.Fish,s.Coins,s.Tiles,s.Driftwood,s.Tackle,s.Enemies,s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale,s.Crabs,s.Boss,s.Grenades,new EldritchState(creatures,next,director));
+        TownDirectorStateCodec.Validate(director,town && config.Enabled,steps,creatures);
+        return new EldritchState(creatures,next,director);
     }
     internal static void ValidateMap(IslandMap map,HookState s)
     {

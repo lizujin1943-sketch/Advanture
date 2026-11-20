@@ -9,7 +9,7 @@ namespace Advanture.Tactical.Tests;
 
 internal static class FortifiedCompoundTests
 {
-    private const string Asset = "samples/TacticalGame.Unity/Assets/TacticalGame/Art/FortifiedCompound/FortifiedCompound.bytes";
+    internal const string Asset = "samples/TacticalGame.Unity/Assets/TacticalGame/Art/FortifiedCompound/FortifiedCompound.bytes";
 
     internal static IEnumerable<(string Name,Action Run)> Cases()
     {

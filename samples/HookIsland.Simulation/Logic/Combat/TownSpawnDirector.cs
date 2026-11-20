@@ -17,7 +17,7 @@ public sealed class TownSpawnDirector
     public TownDirectorState Capture()=>state;
 
     public void Advance(bool allowed,int participants,IReadOnlyList<bool> zones,
-        IReadOnlyList<EldritchCreature> creatures,int maxAlive,Func<int,bool> spawn)
+        IReadOnlyList<EldritchCreature> creatures,int maxAlive,Func<int,bool> spawn,int speciesMask=1023)
     {
         bool anyZone=false;for(int z=0;z<zones.Count;z++)anyZone|=zones[z];
         // 暂停时不走时钟，也不存预算；恢复仍遵循原有冷却与硬上限。
@@ -37,7 +37,7 @@ public sealed class TownSpawnDirector
 
         int alive=0;for(int i=0;i<TownEncounters.AdultCount;i++)if(creatures[i].Damageable)alive++;
         if(alive>=maxAlive)return;
-        bool Available(int id)=>zones[TownEncounters.Zone(id)] && creatures[id].Phase==EldritchPhase.Dormant &&
+        bool Available(int id)=>(speciesMask & (1<<(int)creatures[id].Kind))!=0 && zones[TownEncounters.Zone(id)] && creatures[id].Phase==EldritchPhase.Dormant &&
             creatures[id].Timer==0 && creatures[id].Generation<uint.MaxValue;
         if(state.PendingCard>0 && !Available(state.PendingCard-1))state.PendingCard=0;
         if(state.PendingCard==0)

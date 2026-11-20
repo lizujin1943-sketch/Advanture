@@ -212,11 +212,17 @@ compressor = zlib.compressobj(9, zlib.DEFLATED, -15)
 packed = compressor.compress(columns.tobytes())+compressor.flush()
 # Facing the flag and radar from the raised plaza. Both slots have clear floor and headroom.
 spawns = [(-8250, 7400, 2550), (-2250, 7400, 33500)]
-header = struct.pack('<I6iB', 0x34504d54, -40000,-57000,40000,56000,-1000,24000, len(spawns))
+header = struct.pack('<I6iB', 0x35504d54, -40000,-57000,40000,56000,-1000,24000, len(spawns))
 for x,z,yaw in spawns:
     assert for_feet[int((z/1000-zmin)/cell),int((x/1000-xmin)/cell)] == 205
     header += struct.pack('<iiH',x,z,yaw)
-(OUT/'FortifiedCompound.bytes').write_bytes(header + struct.pack('<H6i',0,-40000,-57000,250,width,depth,len(packed)) + packed)
+# North, east and south wall openings, on footable ground behind the broken wall shoulders.
+entrances = [(-21250,54000),(35500,2250),(-26500,-56000)]
+header += struct.pack('<HB', 0, len(entrances))
+for x,z in entrances:
+    assert for_feet[int((z/1000-zmin)/cell),int((x/1000-xmin)/cell)] != absent
+    header += struct.pack('<ii',x,z)
+(OUT/'FortifiedCompound.bytes').write_bytes(header + struct.pack('<6i',-40000,-57000,250,width,depth,len(packed)) + packed)
 if '--terrain-only' in sys.argv:
     print(f'FORT_TERRAIN_OK grid={len(packed)} walk={np.sum(for_feet!=absent)}')
     sys.exit(0)

@@ -64,6 +64,39 @@ internal sealed class TacticalHeightField
         return true;
     }
 
+    // Test every touched cell, including both shoulders at an exact diagonal corner.
+    // Sampling a smoothed route can miss a sliver of rubble that blocks the next short AI step.
+    internal bool Walk(int ax,int az,int bx,int bz)
+    {
+        int col=(ax-originX)/cell,row=(az-originZ)/cell;
+        int endCol=(bx-originX)/cell,endRow=(bz-originZ)/cell;
+        int dx=Math.Abs(bx-ax),dz=Math.Abs(bz-az),sx=Math.Sign(bx-ax),sz=Math.Sign(bz-az);
+        int edgeX=Math.Abs(originX+(col+(sx>0?1:0))*cell-ax);
+        int edgeZ=Math.Abs(originZ+(row+(sz>0?1:0))*cell-az);
+        short floor=Value(col,row,0);
+        while(col!=endCol || row!=endRow)
+        {
+            long crossX=col==endCol?long.MaxValue:(long)edgeX*dz;
+            long crossZ=row==endRow?long.MaxValue:(long)edgeZ*dx;
+            bool stepX=crossX<=crossZ,stepZ=crossZ<=crossX;
+            int nextCol=stepX?col+sx:col,nextRow=stepZ?row+sz:row;
+            short next=Value(nextCol,nextRow,0);
+            if(!WalkableStep(floor,next))return false;
+            if(stepX && stepZ)
+            {
+                short sideX=Value(nextCol,row,0),sideZ=Value(col,nextRow,0);
+                if(!WalkableStep(floor,sideX) || !WalkableStep(sideX,next) ||
+                   !WalkableStep(floor,sideZ) || !WalkableStep(sideZ,next))return false;
+            }
+            if(stepX)edgeX+=cell;
+            if(stepZ)edgeZ+=cell;
+            col=nextCol;row=nextRow;floor=next;
+        }
+        return true;
+    }
+    private static bool WalkableStep(short from,short to) =>
+        from!=Missing && to!=Missing && Math.Abs(from-to)*10<=VerticalMotion.StepHeight;
+
     // Visit each crossed cell, even if one input spans several stair treads.
     internal int Sweep(int from, int other, int target, bool xAxis, int? airborneFeet)
     {

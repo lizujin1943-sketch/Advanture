@@ -6,8 +6,9 @@ dotnet build samples/TacticalGame.Network/TacticalGame.Network.csproj -c Release
 dotnet build framework/src/FrameSync.Diagnostics/FrameSync.Diagnostics.csproj -c Release --nologo
 core_dir="adapters/Unity/Runtime/Plugins"
 game_dir="samples/TacticalGame.Unity/Assets/TacticalGame/Plugins/Generated"
+island_dir="samples/TacticalGame.Unity/Assets/HookIsland/Plugins/Generated"
 built_dir="samples/TacticalGame.Network/bin/Release/netstandard2.1"
-mkdir -p "$core_dir" "$game_dir" artifacts/tactical-network
+mkdir -p "$core_dir" "$game_dir" "$island_dir" artifacts/tactical-network
 for name in FrameSync.Abstractions FrameSync.Runtime FrameSync.Transport FrameSync.Protocol.Protobuf FrameSync.Sessions ReliableUdp.Core FrameSync.Transport.Udp; do
   cp "$built_dir/$name.dll" "$core_dir/$name.dll"
 done
@@ -18,4 +19,5 @@ cp framework/src/FrameSync.Diagnostics/bin/Release/netstandard2.1/FrameSync.Diag
 for name in Advanture.Tactical.Simulation Advanture.Tactical.Network; do
   cp "$built_dir/$name.dll" "$game_dir/$name.dll"
 done
-shasum -a 256 "$core_dir"/*.dll "$game_dir"/*.dll > artifacts/tactical-network/unity-libraries.sha256
+cp "$built_dir/Advanture.HookIsland.Simulation.dll" "$island_dir/Advanture.HookIsland.Simulation.dll"
+shasum -a 256 "$island_dir/Advanture.HookIsland.Simulation.dll" "$core_dir"/*.dll "$game_dir"/*.dll > artifacts/tactical-network/unity-libraries.sha256

@@ -15,7 +15,18 @@ namespace Advanture.HookIsland
         }
         public void Synchronize(HookState state)=>Synchronize(state,Application.isPlaying?Time.deltaTime:0);
         public void Synchronize(HookState state,float deltaTime)
-        {for(int i=0;i<views.Length;i++){if(i<state.Eldritch.Creatures.Count)views[i].Sync(state.Eldritch.Creatures[i],state,deltaTime);else views[i].Clear();}}
+        {
+            float Floor(int x,int z) => (state.Town.Enabled ? TownLayout.OnGround(state.Tiles,x,z) : PlatformRules.OnPlatform(state.Tiles,x,z)) ? .45f : 0;
+            Synchronize(state.Eldritch,state.Steps,Floor,deltaTime);
+        }
+        public void Synchronize(EldritchState roster,ulong steps,Func<int,int,float> groundHeight,float deltaTime)
+        {
+            for(int i=0;i<views.Length;i++)
+            {
+                if(i<roster.Creatures.Count)views[i].Sync(roster.Creatures[i],roster,steps,groundHeight,deltaTime);
+                else views[i].Clear();
+            }
+        }
         public void Clear(){foreach(var view in views)view.Clear();}
         public void Dispose(){foreach(var view in views)view.Dispose();}
         private sealed class View : IDisposable
@@ -45,30 +56,30 @@ namespace Advanture.HookIsland
                 l.useWorldSpace=true;l.startWidth=l.endWidth=width;l.startColor=l.endColor=color;l.positionCount=0;
                 l.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;return l;
             }
-            public void Sync(EldritchCreature c,HookState state,float deltaTime)
+            public void Sync(EldritchCreature c,EldritchState roster,ulong steps,Func<int,int,float> groundHeight,float deltaTime)
             {
-                bool reset=!observed || c.Generation!=generation || state.Steps<lastStep;
+                bool reset=!observed || c.Generation!=generation || steps<lastStep;
                 if(reset){deathAge=DeathDuration;model?.ResetObservation();}
                 else if(wasAlive && c.Phase==EldritchPhase.Dead)deathAge=0;
                 else if(c.Phase==EldritchPhase.Dead)deathAge+=Mathf.Max(0,deltaTime);
-                observed=true;wasAlive=c.Alive;generation=c.Generation;lastStep=state.Steps;
+                observed=true;wasAlive=c.Alive;generation=c.Generation;lastStep=steps;
                 float death=c.Phase==EldritchPhase.Dead?Mathf.Clamp01(deathAge/DeathDuration):0;
                 // Only an observed kill plays a short cosmetic death. Restored corpses stay hidden,
                 // and a frozen encounter clock cannot prevent the model from being reclaimed.
                 bool visible=c.Visible && (c.Phase!=EldritchPhase.Dead || death<1);root.gameObject.SetActive(visible);if(!visible)return;
                 if(model==null)model=new EldritchModel(root,c.Kind);
-                float floor=(state.Town.Enabled?TownLayout.OnGround(state.Tiles,c.X,c.Z):PlatformRules.OnPlatform(state.Tiles,c.X,c.Z)) ? .45f : 0;
+                float floor=groundHeight(c.X,c.Z);
                 float height=definition.Habitat==EldritchHabitat.Ground?floor:definition.Habitat==EldritchHabitat.Hover?floor+.35f:.02f;
                 if(c.Phase==EldritchPhase.Emerging)height-=.8f*c.Timer/EldritchCatalog.EmergenceTicks;
                 // Keep root and telegraphs on the same confirmed position; cosmetic joint motion is separate.
                 root.position=new Vector3(c.X/1000f,height,c.Z/1000f);
-                root.rotation=Quaternion.LookRotation(new Vector3(c.DirectionX,0,c.DirectionZ));model.Animate(c,state.Steps,death,deltaTime);
+                root.rotation=Quaternion.LookRotation(new Vector3(c.DirectionX,0,c.DirectionZ));model.Animate(c,steps,death,deltaTime);
                 bool windup=c.Phase==EldritchPhase.Windup,active=c.Phase==EldritchPhase.Active;
                 warning.enabled=windup;effect.enabled=active;inner.enabled=(windup || active) && definition.Ability==EldritchAbility.Ring;
                 health.enabled=c.Damageable;health.positionCount=2;health.SetPosition(0,root.position+new Vector3(-.35f,2.15f,0));health.SetPosition(1,root.position+new Vector3(-.35f+.7f*c.Health/EldritchCatalog.MaxHealth(c),2.15f,0));
                 if(c.Phase==EldritchPhase.Emerging){warning.enabled=true;Circle(warning,new Vector3(c.X/1000f,floor+.045f,c.Z/1000f),.75f);return;}
                 var origin=new Vector3(c.X/1000f,floor+.05f,c.Z/1000f);
-                var target=new Vector3(c.EffectX/1000f,(state.Town.Enabled?TownLayout.OnGround(state.Tiles,c.EffectX,c.EffectZ):PlatformRules.OnPlatform(state.Tiles,c.EffectX,c.EffectZ)) ? .5f : .05f,c.EffectZ/1000f);
+                var target=new Vector3(c.EffectX/1000f,groundHeight(c.EffectX,c.EffectZ)+.05f,c.EffectZ/1000f);
                 if(inner.enabled)Circle(inner,origin,EldritchCatalog.RingInnerRadius/1000f);
                 if(!windup && !active)return;
                 var trace=windup?warning:effect;
@@ -78,10 +89,11 @@ namespace Advanture.HookIsland
                     if(active && definition.Ability==EldritchAbility.Beam){trace.startWidth=trace.endWidth=.18f;}
                     else trace.startWidth=trace.endWidth=windup ? .045f : .08f;
                 }
-                else if(definition.Ability==EldritchAbility.Mend && c.Ally>=0 && c.Ally<state.Eldritch.Creatures.Count)
+                else if(definition.Ability==EldritchAbility.Mend && c.Ally>=0 && c.Ally<roster.Creatures.Count)
                 {
-                    var a=state.Eldritch.Creatures[c.Ally];trace.loop=false;trace.positionCount=3;
-                    trace.SetPosition(0,root.position+Vector3.up);trace.SetPosition(1,(root.position+new Vector3(a.X/1000f,1,a.Z/1000f))*.5f+Vector3.up*1.5f);trace.SetPosition(2,new Vector3(a.X/1000f,1,a.Z/1000f));
+                    var a=roster.Creatures[c.Ally];trace.loop=false;trace.positionCount=3;
+                    var ally=new Vector3(a.X/1000f,groundHeight(a.X,a.Z)+1,a.Z/1000f);
+                    trace.SetPosition(0,root.position+Vector3.up);trace.SetPosition(1,(root.position+ally)*.5f+Vector3.up*1.5f);trace.SetPosition(2,ally);
                 }
                 else Circle(trace,definition.Ability==EldritchAbility.Miasma || definition.Ability==EldritchAbility.Blink?target:origin,definition.Radius/1000f);
                 if(definition.Ability==EldritchAbility.Miasma)trace.startColor=trace.endColor=new Color(.65f,.9f,.16f);

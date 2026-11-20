@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Advanture.HookIsland.Simulation;
 
 namespace Advanture.Tactical.Simulation;
 
@@ -31,15 +32,16 @@ public readonly struct TacticalPlayer
 /// <summary>独立、不可变的状态副本；按槽位排序，编码顺序不依赖字典遍历。</summary>
 public sealed class TacticalState
 {
-    public TacticalState(ulong steps, IReadOnlyList<TacticalPlayer> players)
+    public TacticalState(ulong steps, IReadOnlyList<TacticalPlayer> players, EldritchState? monsters=null)
     {
         if (players == null || players.Count < 1 || players.Count > 4) throw new InvalidDataException("玩家数量不合法。");
+        Monsters = monsters ?? EldritchState.Empty;
         var copy = players.ToArray();
         for (int i = 0; i < copy.Length; i++)
         {
             var p = copy[i];
             if (p.Slot > 3 || (i > 0 && copy[i - 1].Slot >= p.Slot) || Math.Abs((long)p.X) > 10000000 || Math.Abs((long)p.Z) > 10000000 ||
-                p.Combat == null || p.Combat.LastShotTick > steps || p.Yaw >= 36000 || p.Pitch < -8500 || p.Pitch > 8500 || Math.Abs((long)p.RemainderX) >= 1000000 || Math.Abs((long)p.RemainderZ) >= 1000000)
+                p.Combat == null || p.Combat.LastHitCreature >= Monsters.Creatures.Count || p.Combat.LastShotTick > steps || p.Yaw >= 36000 || p.Pitch < -8500 || p.Pitch > 8500 || Math.Abs((long)p.RemainderX) >= 1000000 || Math.Abs((long)p.RemainderZ) >= 1000000)
                 throw new InvalidDataException("角色状态不合法。");
         }
         Steps = steps;
@@ -47,4 +49,5 @@ public sealed class TacticalState
     }
     public ulong Steps { get; }
     public IReadOnlyList<TacticalPlayer> Players { get; }
+    public EldritchState Monsters { get; }
 }

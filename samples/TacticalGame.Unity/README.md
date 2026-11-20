@@ -6,6 +6,8 @@
 
 在沉钟镇大厅点 **进入要塞基地**，或直接打开 Unity 场景 `Assets/TacticalGame/Scenes/FortifiedCompound.unity`。要塞大厅可选 **先自己玩** 或创建、加入双人房间。玩家分别出生在中央广场的两个点，间隔 6 米，复活时返回各自的位置。广场的南阶、东阶和西坡连接院内地面，A-1、B-1、C-1 的外部楼梯连接屋顶。
 
+怪物沿用沉钟镇按人数积攒预算、分批生成的规则，入口设在北、东、南三处围墙破洞。玩家靠近或能直接看见某个入口时，怪物会换一个入口，三个入口都不合适时就延后生成。要塞使用适合陆地的怪物。
+
 点击画面取得控制后，按 **空格** 起跳，可以配合 WASD 移动或 Shift 助跑。平地跳高约 1 米，落地后可再次起跳。广场东侧的矮墙可以跳过，低顶棚会限制跳高。
 
 关卡以精修 Blender 模型为源，角色移动使用每格 25 厘米的支撑面和顶棚高度。仓库的陈列作为场景道具，基地使用战术试玩的角色与战斗规则。这个场景的房间独立于沉钟镇的存档。
@@ -16,7 +18,7 @@
 asset=source-assets/environments/fortified-compound
 blender -b "$asset/EN_FortifiedCompound_Art.blend" --python-exit-code 1 -P "$asset/build/export_game.py"
 python3 "$asset/build/pack_game_textures.py"
-./scripts/sync-unity-libraries.sh
+./scripts/sync-hook-island.sh
 ```
 
 **Tactical Game → Build Fortified Compound macOS Player** 生成可直接启动的版本，包含要塞基地和沉钟镇大厅。[打开本地 macOS 版本](../../artifacts/fortified-compound-game/FortifiedCompound.app)
@@ -49,7 +51,7 @@ python3 scripts/run-yard-pair.py
 
 ## 在 Unity 中打开
 
-1. 先在仓库根目录运行 `./scripts/sync-unity-libraries.sh`，生成框架和示例的程序集。
+1. 先在仓库根目录运行 `./scripts/sync-hook-island.sh`，生成框架和示例的程序集。
 2. 用 **Unity 2022.3.62f1** 打开本目录 `samples/TacticalGame.Unity`，不是仓库根目录。
 3. 打开 `Assets/TacticalGame/Scenes/Yard07Network.unity`，点击 Play。编辑器可以与一个独立程序联机。
 4. 工程的 **Active Input Handling 为 Both**。角色使用新版 Input System；当前房间菜单使用 IMGUI，需要旧输入处理。若修改该设置，按 Unity 提示重启编辑器。

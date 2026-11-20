@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Advanture.HookIsland.Simulation;
 namespace Advanture.Tactical.Simulation;
 
 /// <summary>不可变战斗快照。所有会影响后续射击、伤害或表现去重的数据都随状态保存。</summary>
@@ -8,10 +9,11 @@ public sealed class CombatState
     internal const int ByteCount = 92;
     public const uint ReloadDurationMilliseconds = 2400;
     public const int ShotRangeMillimeters = 100000;
-    public CombatState(int health = 100, int ammo = 30, int reserve = 90, ulong nextFireTick = 0, ulong reloadUntilTick = 0, ulong respawnAtTick = 0, ulong shotSequence = 0, ulong lastShotTick = 0, uint hits = 0, uint kills = 0, uint deaths = 0, int lastHitSlot = -1, int shotX = 0, int shotY = 0, int shotZ = 0, int endX = 0, int endY = 0, int endZ = 0)
+    public CombatState(int health = 100, int ammo = 30, int reserve = 90, ulong nextFireTick = 0, ulong reloadUntilTick = 0, ulong respawnAtTick = 0, ulong shotSequence = 0, ulong lastShotTick = 0, uint hits = 0, uint kills = 0, uint deaths = 0, int lastHitSlot = -1, int shotX = 0, int shotY = 0, int shotZ = 0, int endX = 0, int endY = 0, int endZ = 0, int lastHitCreature = -1)
     {
         if (health < 0 || health > 100 || ammo < 0 || ammo > 30 || reserve < 0 || reserve > 90 ||
             (health == 0) != (respawnAtTick > 0) || (health == 0 && reloadUntilTick != 0) || lastHitSlot < -1 || lastHitSlot > 3 ||
+            (lastHitCreature < -1 || lastHitCreature >= TownEncounters.Population || (lastHitCreature >= 0 && (lastHitSlot >= 0 || shotSequence == 0))) ||
             (shotSequence == 0) != (lastShotTick == 0) || hits > shotSequence)
             throw new InvalidDataException("战斗状态不合法。");
         foreach (int coordinate in new[]{shotX,shotY,shotZ,endX,endY,endZ})
@@ -28,6 +30,7 @@ public sealed class CombatState
         Kills = kills;
         Deaths = deaths;
         LastHitSlot = lastHitSlot;
+        LastHitCreature = lastHitCreature;
         ShotX = shotX;
         ShotY = shotY;
         ShotZ = shotZ;
@@ -59,6 +62,8 @@ public sealed class CombatState
     public uint Deaths { get; }
     /// <summary>最近一枪命中的角色槽位；未命中角色时为 -1。</summary>
     public int LastHitSlot { get; }
+    /// <summary>最近一枪命中的怪物槽位。</summary>
+    public int LastHitCreature { get; }
     /// <summary>最近射线起点 X，毫米。</summary>
     public int ShotX { get; }
     /// <summary>最近射线起点 Y，毫米。</summary>
@@ -72,7 +77,7 @@ public sealed class CombatState
     /// <summary>最近射线终点 Z，毫米。</summary>
     public int EndZ { get; }
     public bool IsAlive => Health > 0;
-    internal void Write(BinaryWriter writer)
+    internal void Write(BinaryWriter writer, bool encounters)
     {
         writer.Write(Health);
         writer.Write(Ammo);
@@ -92,8 +97,9 @@ public sealed class CombatState
         writer.Write(EndX);
         writer.Write(EndY);
         writer.Write(EndZ);
+        if (encounters) writer.Write(LastHitCreature);
     }
-    internal static CombatState Read(BinaryReader reader) => new CombatState(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadUInt32(), reader.ReadUInt32(), reader.ReadUInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32());
+    internal static CombatState Read(BinaryReader reader, bool encounters) => new CombatState(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadUInt32(), reader.ReadUInt32(), reader.ReadUInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), encounters ? reader.ReadInt32() : -1);
 }
 
 /// <summary>仅模拟内部使用的可变工作副本；Capture 产生独立快照，不泄漏给画面层修改。</summary>
@@ -111,6 +117,7 @@ internal sealed class CombatModel
     internal uint Kills;
     internal uint Deaths;
     internal int LastHitSlot;
+    internal int LastHitCreature;
     internal int ShotX;
     internal int ShotY;
     internal int ShotZ;
@@ -131,6 +138,7 @@ internal sealed class CombatModel
         Kills = state.Kills;
         Deaths = state.Deaths;
         LastHitSlot = state.LastHitSlot;
+        LastHitCreature = state.LastHitCreature;
         ShotX = state.ShotX;
         ShotY = state.ShotY;
         ShotZ = state.ShotZ;
@@ -138,5 +146,5 @@ internal sealed class CombatModel
         EndY = state.EndY;
         EndZ = state.EndZ;
     }
-    internal CombatState Capture() => new CombatState(Health, Ammo, Reserve, NextFireTick, ReloadUntilTick, RespawnAtTick, ShotSequence, LastShotTick, Hits, Kills, Deaths, LastHitSlot, ShotX, ShotY, ShotZ, EndX, EndY, EndZ);
+    internal CombatState Capture() => new CombatState(Health, Ammo, Reserve, NextFireTick, ReloadUntilTick, RespawnAtTick, ShotSequence, LastShotTick, Hits, Kills, Deaths, LastHitSlot, ShotX, ShotY, ShotZ, EndX, EndY, EndZ, LastHitCreature);
 }
