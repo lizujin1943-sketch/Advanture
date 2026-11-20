@@ -11,7 +11,7 @@ internal static class SimulationTests
     internal static TacticalMap OpenMap() => new TacticalMap(new MapRect(-20000,-20000,20000,20000),
         new[]{new PlayerSpawn(0,0,0),new PlayerSpawn(5000,0,18000)},Array.Empty<MapRect>());
     internal static SimulationRunner<TacticalState> Runner(TacticalMap? map=null,uint rate=30) =>
-        new SimulationRunner<TacticalState>(TacticalGame.CreateModule(),new SessionDescriptor(Id,1,rate,
+        new SimulationRunner<TacticalState>(TacticalGame.CreateModule(map?.HasElevation == true),new SessionDescriptor(Id,1,rate,
             new[]{new Participant(0,Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001")),new Participant(1,Guid.Parse("aaaaaaaa-0000-0000-0000-000000000002"))}),
             new RuntimeLimits(maxInputBytes:9,maxCheckpointBytes:65536),new ByteString((map??OpenMap()).Encode()));
     internal static InputFrame Frame(ulong tick,TacticalInput a,TacticalInput b=default) => new InputFrame(Id,1,tick,

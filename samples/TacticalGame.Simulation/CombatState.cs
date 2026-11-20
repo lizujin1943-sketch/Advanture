@@ -6,6 +6,8 @@ namespace Advanture.Tactical.Simulation;
 public sealed class CombatState
 {
     internal const int ByteCount = 92;
+    public const uint ReloadDurationMilliseconds = 2400;
+    public const int ShotRangeMillimeters = 100000;
     public CombatState(int health = 100, int ammo = 30, int reserve = 90, ulong nextFireTick = 0, ulong reloadUntilTick = 0, ulong respawnAtTick = 0, ulong shotSequence = 0, ulong lastShotTick = 0, uint hits = 0, uint kills = 0, uint deaths = 0, int lastHitSlot = -1, int shotX = 0, int shotY = 0, int shotZ = 0, int endX = 0, int endY = 0, int endZ = 0)
     {
         if (health < 0 || health > 100 || ammo < 0 || ammo > 30 || reserve < 0 || reserve > 90 ||

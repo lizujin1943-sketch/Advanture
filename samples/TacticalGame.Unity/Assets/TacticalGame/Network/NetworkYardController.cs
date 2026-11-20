@@ -14,6 +14,12 @@ namespace Advanture.TacticalGame.NetworkView
     {
         [SerializeField] private TextAsset mapData;
         [SerializeField] private Camera viewCamera;
+        [SerializeField] private string mapTitle = "七号转运站";
+        [SerializeField] private bool allowSolo;
+        public TacticalMap Map => map;
+        public string MapTitle => mapTitle;
+        public bool AllowSolo => allowSolo;
+        private bool solo;
         private readonly Stopwatch clock = new Stopwatch();
         private TacticalMap map;
         private NetworkInputSource input;
@@ -43,9 +49,10 @@ namespace Advanture.TacticalGame.NetworkView
         // 可替换输入来源供手柄、录像或开发验收使用；接口仍走同一个冻结和网络流程。
         public Func<ulong, TacticalInput> InputProvider { get; set; }
         public string StatusText => Failure ?? (!InRoom ? "创建房间，或输入好友的局域网地址" :
-            Playing ? (localSlot == 0 ? "你是蓝色 A · 好友是橙色 B" : "你是橙色 B · 好友是蓝色 A") : "等待另一位玩家连接…");
+            Playing && solo ? "单人探索" : Playing ? (localSlot == 0 ? "你是蓝色 A · 好友是橙色 B" : "你是橙色 B · 好友是蓝色 A") : "等待另一位玩家连接…");
 
-        public void Configure(TextAsset data, Camera camera) { mapData = data; viewCamera = camera; }
+        public void Configure(TextAsset data, Camera camera, string title = "七号转运站", bool enableSolo = false)
+        { mapData = data; viewCamera = camera; mapTitle = title; allowSolo = enableSolo; }
         private void Awake()
         {
             Application.runInBackground = true; Application.targetFrameRate = 60; QualitySettings.vSyncCount = 0;
@@ -53,11 +60,13 @@ namespace Advanture.TacticalGame.NetworkView
             try { map = TacticalMap.Decode(mapData.bytes); }
             catch (Exception e) { error = "地图数据无法读取：" + e.Message; }
         }
-        public void HostRoom(int port)
+        public void HostRoom(int port) => StartHost(port, 2);
+        public void PlaySolo() { if (allowSolo) StartHost(0, 1); }
+        private void StartHost(int port, int players)
         {
             LeaveRoom(); if (map == null) { error = "缺少地图数据。"; return; }
             StartDiagnostics(true);
-            try { Host = new TacticalHost(map, port); Connect(IPAddress.Loopback, Host.Port, 0); }
+            try { solo = players == 1; Host = new TacticalHost(map, port, players); Connect(IPAddress.Loopback, Host.Port, 0); }
             catch (Exception e) { EndRoom("ConnectionFailed", e.ToString()); error = "无法创建房间：" + e.Message; }
         }
         public void JoinRoom(string address, int port)
@@ -85,28 +94,31 @@ namespace Advanture.TacticalGame.NetworkView
                 var session = Client.Session;
                 if (session?.LocalParticipant == null) return;
                 TacticalState confirmed = session.InspectState(), predicted = session.InspectPredictedState();
+                float delta = Time.unscaledDeltaTime;
                 foreach (var p in confirmed.Players)
                 {
-                    if (p.Slot == localSlot)
-                    {
-                        LocalPlayer=p;
-                        if(localWeapon==null)localWeapon=Ak47View.Create(viewCamera.transform,true);
-                        localWeapon.Present(p.Combat,session.ConfirmedTick,Time.unscaledDeltaTime);
-                        if(!localWasAlive && p.Combat.IsAlive){cameraPlaced=false;input.InitializeLook(p.Yaw/100f);}
-                        localWasAlive=p.Combat.IsAlive;
-                        continue;
-                    }
-                    if (remote == null) remote = NetworkAvatar.Create(p.Slot);
-                    remote.Present(p, viewCamera, Time.unscaledDeltaTime, session.ConfirmedTick);
+                    if (p.Slot != localSlot) continue;
+                    LocalPlayer = p;
+                    if (localWeapon == null) localWeapon = Ak47View.Create(viewCamera.transform, true);
+                    if (!localWasAlive && p.Combat.IsAlive) { cameraPlaced = false; input.InitializeLook(p.Yaw / 100f); }
+                    localWasAlive = p.Combat.IsAlive;
                 }
                 foreach (var p in predicted.Players)
                 {
                     if (p.Slot != localSlot) continue;
-                    Vector3 target = new Vector3(p.X / 1000f, p.Combat.IsAlive?1.65f:.65f, p.Z / 1000f);
-                    viewCamera.transform.position = cameraPlaced ? Vector3.Lerp(viewCamera.transform.position, target, 1 - Mathf.Exp(-25 * Time.unscaledDeltaTime)) : target;
-                    // 鼠标视角立即响应；共享角色朝向由已冻结输入推进，远端展示确认结果。
+                    Vector3 target = new Vector3(p.X / 1000f, map.FeetHeight(p)/1000f + (p.Combat.IsAlive?1.65f:.65f), p.Z / 1000f);
+                    viewCamera.transform.position = cameraPlaced ? Vector3.Lerp(viewCamera.transform.position, target, 1 - Mathf.Exp(-25 * delta)) : target;
                     viewCamera.transform.rotation = input.HasControl ? Quaternion.Euler(input.Pitch, input.Yaw, 0) : Quaternion.Euler(p.Pitch / 100f, p.Yaw / 100f, 0);
                     cameraPlaced = true;
+                    // Locomotion follows the displayed camera. Shots, impacts and ammo still come from confirmed state.
+                    localWeapon?.SampleMovement(viewCamera.transform, p.IsAirborne, delta);
+                }
+                if (LocalPlayer.HasValue) localWeapon.Present(LocalPlayer.Value.Combat, session.ConfirmedTick, delta);
+                foreach (var p in confirmed.Players)
+                {
+                    if (p.Slot == localSlot) continue;
+                    if (remote == null) remote = NetworkAvatar.Create(p.Slot, viewCamera);
+                    remote.Present(p, viewCamera, delta, session.ConfirmedTick, map.FeetHeight(p)/1000f);
                 }
             }
             catch (Exception e)
@@ -161,7 +173,9 @@ namespace Advanture.TacticalGame.NetworkView
             // 在 Dispose 和清空引用前采集最新帧；OnApplicationQuit 后的 OnDestroy 不会覆盖首次结束状态。
             ObserveDiagnostics(); diagnostics?.End(state, reason); CheckDiagnosticError(); diagnostics?.Dispose();
             Client?.Dispose(); Host?.Dispose(); Client = null; Host = null; error = null;
-            LocalPlayer=null;localWasAlive=true;if(localWeapon!=null)Destroy(localWeapon.gameObject);localWeapon=null;
+            solo = false; LocalPlayer = null; localWasAlive = true;
+            if (localWeapon != null) { localWeapon.gameObject.SetActive(false); Destroy(localWeapon.gameObject); }
+            localWeapon = null;
             if (input != null) input.Release(); if (remote != null) Destroy(remote.gameObject); remote = null;
         }
         private void OnDestroy() => EndRoom("SceneDestroyed");

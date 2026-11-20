@@ -38,12 +38,19 @@ public sealed class TacticalMap
 {
     public const int PlayerRadius = 350;
     private const uint Magic = 0x32504D54; // TMP2：加入障碍物的真实高度。
+    private const uint HeightMagic = 0x33504D54;
+    private const uint ClearanceMagic = 0x34504D54;
+    private readonly TacticalHeightField? terrain;
     public TacticalMap(MapRect area, IReadOnlyList<PlayerSpawn> spawns, IReadOnlyList<MapRect> obstacles)
+        : this(area, spawns, obstacles, null) { }
+
+    private TacticalMap(MapRect area, IReadOnlyList<PlayerSpawn> spawns, IReadOnlyList<MapRect> obstacles, TacticalHeightField? terrain)
     {
         area.Validate();
         if (spawns == null || spawns.Count < 1 || spawns.Count > 4 || obstacles == null || obstacles.Count > 128)
             throw new InvalidDataException("出生点或碰撞体数量不合法。");
         Area = area;
+        this.terrain = terrain;
         Spawns = Array.AsReadOnly(spawns.ToArray());
         Obstacles = Array.AsReadOnly(obstacles.ToArray());
         foreach (var obstacle in Obstacles) obstacle.Validate();
@@ -55,6 +62,18 @@ public sealed class TacticalMap
     public IReadOnlyList<PlayerSpawn> Spawns { get; }
     public IReadOnlyList<MapRect> Obstacles { get; }
 
+    public bool HasElevation => terrain != null;
+    public int GroundHeight(int x, int z) => terrain != null && terrain.TryGround(x, z, out int y) ? y : 0;
+    public int FeetHeight(TacticalPlayer player) => GroundHeight(player.X, player.Z) + player.HeightAboveGround;
+    internal int Headroom(int x, int z)
+    {
+        int ceiling = terrain?.CeilingAt(x, z) ?? int.MaxValue;
+        return ceiling == int.MaxValue ? int.MaxValue : ceiling - GroundHeight(x, z) - VerticalMotion.BodyHeight;
+    }
+    internal int SweepTerrain(int from, int other, int target, bool xAxis, int? airborneFeet) =>
+        terrain?.Sweep(from, other, target, xAxis, airborneFeet) ?? target;
+    internal long TraceTerrain(int x, int y, int z, int dx, int dy, int dz, long limit) => terrain?.Trace(x, y, z, dx, dy, dz, limit) ?? limit;
+
     /// <summary>用 0.7 米宽的方形脚印保守近似角色。刚好接触障碍边缘允许站立和滑动。</summary>
     public bool CanStand(int x, int z)
     {
@@ -63,13 +82,13 @@ public sealed class TacticalMap
         foreach (var o in Obstacles)
             if (x > o.MinX - PlayerRadius && x < o.MaxX + PlayerRadius && z > o.MinZ - PlayerRadius && z < o.MaxZ + PlayerRadius)
                 return false;
-        return true;
+        return terrain == null || terrain.TryGround(x, z, out _);
     }
 
     public byte[] Encode()
     {
-        var bytes = new byte[31 + Spawns.Count * 10 + Obstacles.Count * 24];
-        BinaryPrimitives.WriteUInt32LittleEndian(bytes, Magic);
+        var bytes = new byte[31 + Spawns.Count * 10 + Obstacles.Count * 24 + (terrain == null ? 0 : terrain.Encoded.Length)];
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes, terrain == null ? Magic : terrain.HasCeiling ? ClearanceMagic : HeightMagic);
         WriteRect(bytes.AsSpan(4), Area);
         bytes[28] = (byte)Spawns.Count;
         int offset = 29;
@@ -83,17 +102,20 @@ public sealed class TacticalMap
         BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), (ushort)Obstacles.Count);
         offset += 2;
         foreach (var o in Obstacles) { WriteRect(bytes.AsSpan(offset), o); offset += 24; }
+        if (terrain != null) terrain.Encoded.CopyTo(bytes.AsSpan(offset));
         return bytes;
     }
 
     public static TacticalMap Decode(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.Length < 31 || BinaryPrimitives.ReadUInt32LittleEndian(bytes) != Magic || bytes[28] < 1 || bytes[28] > 4)
+        uint version = bytes.Length >= 4 ? BinaryPrimitives.ReadUInt32LittleEndian(bytes) : 0;
+        if (bytes.Length < 31 || (version != Magic && version != HeightMagic && version != ClearanceMagic) || bytes[28] < 1 || bytes[28] > 4)
             throw new InvalidDataException("地图头部不合法。");
         int count = bytes[28], offset = 29 + count * 10;
         if (bytes.Length < offset + 2) throw new InvalidDataException("地图被截断。");
         int obstacles = BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(offset));
-        if (obstacles > 128 || bytes.Length != offset + 2 + obstacles * 24) throw new InvalidDataException("地图长度不合法。");
+        int end = offset + 2 + obstacles * 24;
+        if (obstacles > 128 || bytes.Length < end || (version == Magic && bytes.Length != end)) throw new InvalidDataException("地图长度不合法。");
         var spawns = new PlayerSpawn[count];
         for (int i = 0; i < count; i++)
         {
@@ -102,7 +124,8 @@ public sealed class TacticalMap
         }
         var rects = new MapRect[obstacles];
         for (int i = 0; i < obstacles; i++) rects[i] = ReadRect(bytes.Slice(offset + 2 + i * 24));
-        return new TacticalMap(ReadRect(bytes.Slice(4)), spawns, rects);
+        var area = ReadRect(bytes.Slice(4));
+        return new TacticalMap(area, spawns, rects, version == Magic ? null : new TacticalHeightField(bytes.Slice(end), area, version == ClearanceMagic));
     }
 
     private static void WriteRect(Span<byte> b, MapRect r)

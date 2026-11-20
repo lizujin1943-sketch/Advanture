@@ -13,7 +13,7 @@
 - 地图仍在二维平面移动，但障碍增加高度区间供子弹遮挡。模型碰撞盒由编辑器导出；低掩体可从上方射击。角色使用固定长方体命中范围。
 - 一帧先完成所有角色移动与计时，再收集所有射击，最后统一结算伤害，允许同帧互相击杀。
 - 弹药、冷却结束帧、换弹结束帧、重生帧、生命、战绩、射击序号和最近射线都进入完整状态，参与校验、回滚与保存恢复。
-- 第一版枪声、闪光、弹道线和命中提示根据确认状态播放，以射击序号去重，预测重算不重复播放声音。
+- 枪声、枪口焰和命中提示只在收到新的确认射击序号时播放。曳迹和尘屑取自同一快照的射段，换弹姿态和动作音按确认的结束帧对齐。
 - 升级游戏规则、输入、状态、地图和房间兼容标识，旧版试玩不能与新版混用；不迁移旧试玩快照。
 
 ## 验收
@@ -29,14 +29,28 @@
 | `samples/TacticalGame.Simulation/TacticalGame.cs` | 先移动和更新计时，再调用战斗结算；编码、解码和恢复完整状态。 |
 | `samples/TacticalGame.Simulation/TacticalGame.Combat.cs` | 射速、换弹、最近命中、遮挡、批量扣血、死亡重生。 |
 | `samples/TacticalGame.Simulation/FixedAim.cs` | 固定整数正弦表与方向换算，运行时不用浮点三角函数。 |
-| `samples/TacticalGame.Unity/Assets/TacticalGame/Network/Ak47Model.cs` | 原创程序化低多边形枪模，只有网格与材质，没有物理碰撞体。 |
-| `samples/TacticalGame.Unity/Assets/TacticalGame/Network/Ak47View.cs` | 两种持枪视角、合成枪声、闪光、射线和表现去重；本地武器相机使用预留 31 层防止贴墙穿模。 |
+| `samples/TacticalGame.Unity/Assets/TacticalGame/Network/Ak47Model.cs` | 加载近景和远景 FBX、共享材质以及手部动作节点。 |
+| `samples/TacticalGame.Unity/Assets/TacticalGame/Network/Ak47View.cs` | 驱动两种持枪视角、确认事件去重和本地武器相机的 31 层。 |
+| `samples/TacticalGame.Unity/Assets/TacticalGame/Network/Ak47Motion.cs` | 上场、持枪、走动、起落、后坐和换弹动作，闭合手型跟随美术资源中的握持点。 |
+| `samples/TacticalGame.Unity/Assets/TacticalGame/Network/Ak47ShotEffects.cs` | 枪口焰、余烟、短曳迹、环境尘屑及角色命中反馈。 |
+| `samples/TacticalGame.Unity/Assets/TacticalGame/Network/Ak47Audio.cs` | 选择原创音效变体，按听者位置混合近场与远场，播放三个换弹动作音。 |
 | `samples/TacticalGame.Unity/Assets/TacticalGame/Network/NetworkInputSource.cs` | 左键持续开火，R 换弹；重新锁定鼠标的第一次点击不直接开枪。 |
 | `samples/TacticalGame.Unity/Assets/TacticalGame/Network/NetworkRoomOverlay.cs` | 确认生命、弹药、击杀/死亡、命中与受伤反馈、重生倒计时。 |
 
-本地相机位置继续使用预测状态；弹药、生命和枪声使用确认状态。正常网络下射击反馈会包含输入提前量和网络确认延迟。当前只保存最近一枪用于画面表现，积压多帧时不会补播整串过期枪声。此版不提供独立 FBX，模型由可读 C# 代码生成，可在后续替换美术资源而保留射击规则。
+本地相机位置继续使用预测状态；弹药、生命和枪声使用确认状态。正常网络下射击反馈会包含输入提前量和网络确认延迟。当前只保存最近一枪用于画面表现，积压多帧时不会补播整串过期枪声。
 
-## 本次实际结果（2026-10-16）
+两套 FBX 共用一套 2048 像素 PBR 贴图。可编辑 Blender 源、贴图和导出流程见[模型目录](../source-assets/props/ak47/README.md)。音效制作和试听见[声音目录](../source-assets/audio/ak47/README.md)。
+
+## 要塞基地表现验收（2026-11-20）
+
+- 将枪身侧视渲染与参考照片按可见全长对齐。初版、上一版和本版的轮廓交并比分别为 0.661、0.872、0.901。照片未展示的厚度、背面和端面沿用项目美术设定，并用多角度灰模检查。[侧面对照](../artifacts/fortified-compound-game/ak47/AK47_ProfileCompare.jpg) · [多角度灰模](../artifacts/fortified-compound-game/ak47/AK47_Turnaround.jpg)
+- 用同一机位重渲染修改前后的导出网格，对齐用户提供的局部照片。握把顶端与机匣的缝隙已闭合，握把下缘和护圈的圆角按照片重塑。握把轮廓的交并比从 0.791 提高到 0.946，护圈内侧留白从 0.630 提高到 0.904。[照片与新版](../artifacts/fortified-compound-game/ak47/AK47_ReceiverCompare.jpg) · [修改前后](../artifacts/fortified-compound-game/ak47/AK47_ReceiverIterations.jpg) · [斜侧和背面](../artifacts/fortified-compound-game/ak47/AK47_ReceiverAngles.jpg)
+- 核对了近景和远景模型的材质、握持点及换弹时的手部接触。独立 GLB 内含枪身网格及三张贴图，可单独旋转查看。[枪身模型](../artifacts/fortified-compound-game/ak47/AK47.glb) · [材质近景](../artifacts/fortified-compound-game/ak47/AK47_Armory.jpg)
+- 在 macOS 发布版的中央广场录制了点射、连续开火、完整换弹和换弹后的第一发，同时采集游戏窗口的画面和应用的立体声输出。[实机录像](../artifacts/fortified-compound-game/ak47/AK47_Gameplay.mp4)
+- 本轮只修改游戏美术资源，复验了两档 FBX 导入、持枪画面和双人实机。Unity EditMode 的 41 项测试全部通过，服务器和两个 macOS 客户端在第 360 帧的完整状态一致。上轮已通过战术示例的 44 项测试，本轮未重跑全仓回归。[Unity 测试](../artifacts/fortified-compound-game/ak47/UnityEditMode.xml) · [双人对战报告](../artifacts/tactical-network/smoke-20261120-172651-ae4018ab/result.json)
+- 全仓回归中，钩索小岛的四人装备切换用例在单独重跑后通过。该示例的四人水怪战斗用例重跑后仍然失败，最后一次停在食人鱼击杀结算。[本次重跑记录](../.build/ak47-studio/slim/crab-repeat.log)
+
+## 初版验收（2026-10-16）
 
 - 完整 `./scripts/verify.sh` 退出码 0；包含 23 项庭院/战斗/真实 UDP 测试。
 - Unity EditMode：22 项通过，无失败、无跳过；macOS Mono Development Build 成功，0 错误、0 警告。

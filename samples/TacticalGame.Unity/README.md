@@ -2,6 +2,25 @@
 
 现已接入独立帧同步框架。两个客户端可在同一地图里移动、转向，并看到对方。房主程序同时运行服务器与自己的客户端；原第一人称本地场景保留。
 
+## 要塞基地
+
+在沉钟镇大厅点 **进入要塞基地**，或直接打开 Unity 场景 `Assets/TacticalGame/Scenes/FortifiedCompound.unity`。要塞大厅可选 **先自己玩** 或创建、加入双人房间。玩家分别出生在中央广场的两个点，间隔 6 米，复活时返回各自的位置。广场的南阶、东阶和西坡连接院内地面，A-1、B-1、C-1 的外部楼梯连接屋顶。
+
+点击画面取得控制后，按 **空格** 起跳，可以配合 WASD 移动或 Shift 助跑。平地跳高约 1 米，落地后可再次起跳。广场东侧的矮墙可以跳过，低顶棚会限制跳高。
+
+关卡以精修 Blender 模型为源，角色移动使用每格 25 厘米的支撑面和顶棚高度。仓库的陈列作为场景道具，基地使用战术试玩的角色与战斗规则。这个场景的房间独立于沉钟镇的存档。
+
+`Assets/TacticalGame/Art/FortifiedCompound/` 包含 Unity 可直接导入的模型、贴图和地图数据。更新源模型时，从仓库根目录执行下列命令，再在 Unity 选择 **Tactical Game → Rebuild Fortified Compound**。
+
+```sh
+asset=source-assets/environments/fortified-compound
+blender -b "$asset/EN_FortifiedCompound_Art.blend" --python-exit-code 1 -P "$asset/build/export_game.py"
+python3 "$asset/build/pack_game_textures.py"
+./scripts/sync-unity-libraries.sh
+```
+
+**Tactical Game → Build Fortified Compound macOS Player** 生成可直接启动的版本，包含要塞基地和沉钟镇大厅。[打开本地 macOS 版本](../../artifacts/fortified-compound-game/FortifiedCompound.app)
+
 ## 最快体验
 
 本机已经构建了 [macOS 联机程序](../../artifacts/tactical-network/Yard07Network.app)。在仓库根目录运行：
@@ -18,6 +37,7 @@ python3 scripts/run-yard-pair.py
 | 操作 | 按键 |
 | --- | --- |
 | 移动 | WASD |
+| 跳跃（当前工程及要塞基地试玩包） | 空格 |
 | 加速 | Shift |
 | 转向、抬头低头 | 鼠标 |
 | AK-47 连射 / 换弹 | 左键 / R |
@@ -25,7 +45,7 @@ python3 scripts/run-yard-pair.py
 | 离开本局 | Esc 后点击“离开房间” |
 | 显示同步诊断 | F3 |
 
-地图使用二维平面规则，已支持 AK-47 射击、扣血、死亡与重生，没有跳跃、坡面或玩家互撞。此房间示例固定两人、面向可信本机或局域网；尚未接 Steam、中途加入或游戏存档菜单。
+七号转运站采用平地布局，当前工程支持跳跃、AK-47 射击、扣血、死亡与重生。房间供两名玩家在本机或局域网联机。坡面、玩家互撞、Steam、中途加入和游戏存档菜单尚未接入。
 
 ## 在 Unity 中打开
 
@@ -80,7 +100,7 @@ Unity 重新生成解决方案时会保留加入的外部工程。新增纯 C# �
 
 纯 C# 试玩测试：`./scripts/verify-tactical.sh`。完整框架与示例验收：`./scripts/verify.sh`。这些测试不依赖 Unity。
 
-Unity 菜单 **Window → General → Test Runner → EditMode → Run All** 运行 22 项测试，包括运动、场景、输入、地图高度、诊断与武器表现去重检查。
+Unity 菜单 **Window → General → Test Runner → EditMode → Run All** 可验证运动、场景、输入、地图高度、诊断，以及 AK 的材质、握持点、换弹和命中反馈。
 
 构建 Development Build 后运行：
 

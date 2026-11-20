@@ -1,3 +1,5 @@
+using Advanture.Tactical.Network;
+using Advanture.Tactical.Simulation;
 using UnityEngine;
 namespace Advanture.TacticalGame.NetworkView
 {
@@ -12,7 +14,8 @@ namespace Advanture.TacticalGame.NetworkView
         private bool diagnostics;
         private uint lastHits;
         private int lastHealth=100;
-        private float hitUntil,damageUntil;
+        private float hitUntil, damageUntil, reticlePulse;
+        private int seenShots;
         // Input System 的 Update 先于 IMGUI。按钮区域要先阻止捕获鼠标，否则点击会隐藏按钮。
         public bool PointerOverLeaveButton
         {
@@ -35,7 +38,10 @@ namespace Advanture.TacticalGame.NetworkView
         private void Update()
         {
             if (UnityEngine.InputSystem.Keyboard.current?.f3Key.wasPressedThisFrame == true) diagnostics = !diagnostics;
-            if(!room.LocalPlayer.HasValue){lastHits=0;lastHealth=100;return;}
+            if (!room.LocalPlayer.HasValue) { lastHits = 0; lastHealth = 100; seenShots = 0; reticlePulse = 0; return; }
+            int shots = room.LocalWeapon != null ? room.LocalWeapon.PresentedShots : 0;
+            reticlePulse = shots > seenShots ? 1 : reticlePulse * Mathf.Exp(-14 * Time.unscaledDeltaTime);
+            seenShots = shots;
             var combat=room.LocalPlayer.Value.Combat;
             if(combat.Hits>lastHits)hitUntil=Time.unscaledTime+.18f;
             if(combat.Health<lastHealth)damageUntil=Time.unscaledTime+.22f;
@@ -53,18 +59,22 @@ namespace Advanture.TacticalGame.NetworkView
             if (title == null) { title = Style(GUI.skin.label, 25); body = Style(GUI.skin.label, 16); button = Style(GUI.skin.button, 18); field = Style(GUI.skin.textField, 19); }
             float scale = Mathf.Clamp(Screen.width / 1280f, .65f, 1.6f); var old = GUI.matrix;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1)); float width = Screen.width / scale, height = Screen.height / scale;
-            Panel(new Rect(24,24,530,88)); GUI.Label(new Rect(42,34,490,33), "七号转运站 / 双人联机", title);
+            Panel(new Rect(24,24,530,88)); GUI.Label(new Rect(42,34,490,33), room.MapTitle, title);
             GUI.Label(new Rect(42,72,490,28), room.StatusText, body);
             if (!room.InRoom)
             {
-                float x = width / 2 - 230, y = height / 2 - 125; Panel(new Rect(x,y,460,290));
-                GUI.Label(new Rect(x+24,y+20,415,30), "和好友一起进入庭院", title);
+                float x = width / 2 - 230, y = height / 2 - 125; Panel(new Rect(x,y,460,room.AllowSolo ? 345 : 290));
+                GUI.Label(new Rect(x+24,y+20,415,30), room.AllowSolo ? "进入要塞基地" : "和好友一起进入庭院", title);
                 GUI.Label(new Rect(x+24,y+65,110,28), "房主地址", body); address = GUI.TextField(new Rect(x+130,y+62,300,34), address, 45, field);
                 GUI.Label(new Rect(x+24,y+110,110,28), "端口", body); port = GUI.TextField(new Rect(x+130,y+107,300,34), port, 5, field);
                 bool valid = int.TryParse(port, out int number) && number > 0 && number <= 65535; GUI.enabled = valid;
                 if (GUI.Button(new Rect(x+24,y+162,195,46), "创建双人房间", button)) room.HostRoom(number);
                 if (GUI.Button(new Rect(x+235,y+162,195,46), "加入好友房间", button)) room.JoinRoom(address, number);
                 GUI.enabled = true; GUI.Label(new Rect(x+24,y+228,415,48), "本机测试使用 127.0.0.1，两人到齐后开局。\n局域网联机填写房主电脑的 IP 地址。", body);
+                if (room.AllowSolo && GUI.Button(new Rect(x+24,y+285,195,40), "先自己玩", button)) room.PlaySolo();
+                string destination = room.AllowSolo ? "DrownedBellTown" : "FortifiedCompound";
+                if (Application.CanStreamedLevelBeLoaded(destination) && GUI.Button(new Rect(24,128,200,38), room.AllowSolo ? "返回沉钟镇" : "进入要塞基地", button))
+                    UnityEngine.SceneManagement.SceneManager.LoadScene(destination);
             }
             else if (!room.Input.HasControl)
             {
@@ -74,13 +84,14 @@ namespace Advanture.TacticalGame.NetworkView
             }
             else
             {
-                var color=GUI.color;GUI.color=Time.unscaledTime<hitUntil?new Color(1,.35f,.16f):Color.white;
-                GUI.DrawTexture(new Rect(width/2-14,height/2-1,8,2),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(width/2+6,height/2-1,8,2),Texture2D.whiteTexture);
-                GUI.DrawTexture(new Rect(width/2-1,height/2-14,2,8),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(width/2-1,height/2+6,2,8),Texture2D.whiteTexture);
-                if(Time.unscaledTime<hitUntil)GUI.Label(new Rect(width/2-10,height/2-18,30,36),"×",title);GUI.color=color;
+                DrawReticle(new Vector2(width / 2, height / 2));
             }
             DrawCombatHud(width,height);
-            Panel(new Rect(24,height-58,850,34)); GUI.Label(new Rect(38,height-55,825,30), "WASD 移动   Shift 加速   左键 连射   R 换弹   Esc 释放鼠标   F3 状态", body);
+            if (!room.Playing || !room.Input.HasControl || diagnostics)
+            {
+                Panel(new Rect(24,height-58,850,34));
+                GUI.Label(new Rect(38,height-55,825,30), "WASD 移动   空格 跳跃   Shift 加速   左键 连射   R 换弹   Esc 释放鼠标   F3 状态", body);
+            }
             if (diagnostics && room.Client?.Session != null)
             {
                 var s = room.Client.Session; Panel(new Rect(width-380,24,356,110));
@@ -90,19 +101,60 @@ namespace Advanture.TacticalGame.NetworkView
                 GUI.Label(new Rect(42,112,620,32), "诊断日志保存失败，详情见程序日志。", body);
             GUI.matrix = old;
         }
+        private void DrawReticle(Vector2 center)
+        {
+            var previous = GUI.color;
+            float gap = 4 + reticlePulse * 4;
+            bool hit = Time.unscaledTime < hitUntil;
+            Color ink = hit ? new Color(1, .75f, .37f) : Color.white;
+            ReticleStroke(new Rect(center.x-gap-5, center.y-.8f, 5, 1.6f), ink);
+            ReticleStroke(new Rect(center.x+gap, center.y-.8f, 5, 1.6f), ink);
+            ReticleStroke(new Rect(center.x-.8f, center.y-gap-5, 1.6f, 5), ink);
+            ReticleStroke(new Rect(center.x-.8f, center.y+gap, 1.6f, 5), ink);
+            if (hit)
+            {
+                var old = GUI.matrix;
+                GUIUtility.RotateAroundPivot(45, center);
+                ReticleStroke(new Rect(center.x-13, center.y-.8f, 5, 1.6f), ink);
+                ReticleStroke(new Rect(center.x+8, center.y-.8f, 5, 1.6f), ink);
+                ReticleStroke(new Rect(center.x-.8f, center.y-13, 1.6f, 5), ink);
+                ReticleStroke(new Rect(center.x-.8f, center.y+8, 1.6f, 5), ink);
+                GUI.matrix = old;
+            }
+            GUI.color = previous;
+        }
+
+        private static void ReticleStroke(Rect rect, Color ink)
+        {
+            GUI.color = new Color(.05f, .07f, .08f, .65f);
+            GUI.DrawTexture(new Rect(rect.x-1, rect.y-1, rect.width+2, rect.height+2), Texture2D.whiteTexture);
+            GUI.color = ink;
+            GUI.DrawTexture(rect, Texture2D.whiteTexture);
+        }
+
         /// <summary>生命、弹药与战绩均读取确认状态，画面不自行推测伤害或修改子弹数。</summary>
         private void DrawCombatHud(float width,float height)
         {
             if(!room.LocalPlayer.HasValue)return;
             var c=room.LocalPlayer.Value.Combat;ulong tick=room.Client.Session.ConfirmedTick;
-            float x=width-280,y=height-210;Panel(new Rect(x,y,256,180));
-            GUI.Label(new Rect(x+18,y+12,220,30),"AK-47  /  AUTO",title);
-            GUI.Label(new Rect(x+18,y+49,220,30),c.Ammo.ToString("00")+" / "+c.Reserve+" 发",title);
-            string status=c.ReloadUntilTick>tick?"换弹中 "+((c.ReloadUntilTick-tick)/30f).ToString("0.0")+" 秒":c.Ammo==0?"弹匣已空 · 按 R 换弹":"左键射击 · R 换弹";
-            GUI.Label(new Rect(x+18,y+84,225,26),status,body);
-            var previous=GUI.color;GUI.color=new Color(.2f,.25f,.27f);GUI.DrawTexture(new Rect(x+18,y+115,220,7),Texture2D.whiteTexture);
-            GUI.color=c.Health>25?new Color(.3f,.8f,.63f):new Color(1,.3f,.2f);GUI.DrawTexture(new Rect(x+18,y+115,220*c.Health/100f,7),Texture2D.whiteTexture);GUI.color=previous;
-            GUI.Label(new Rect(x+18,y+132,225,30),"生命 "+c.Health+"    击杀 "+c.Kills+" / 死亡 "+c.Deaths,body);
+            // Keep the lower-right silhouette and support hand clear in the first-person camera.
+            bool hasHelp = !room.Input.HasControl || diagnostics;
+            float x = 24, y = height - (hasHelp ? 158 : 114);
+            Panel(new Rect(x, y, 286, 90));
+            GUI.Label(new Rect(x+12, y+5, 104, 33), "AK-47", title);
+            GUI.Label(new Rect(x+112, y+5, 143, 33), c.Ammo.ToString("00")+" / "+c.Reserve, title);
+            bool reloading = c.ReloadUntilTick > tick;
+            float remaining = reloading ? (c.ReloadUntilTick-tick) / (float)TacticalClient.TickRate : 0;
+            string status = reloading ? "换弹  "+remaining.ToString("0.0")+" 秒" : c.Ammo == 0 ? "弹匣已空 · R 换弹" : "全自动";
+            GUI.Label(new Rect(x+12, y+40, 122, 26), status, body);
+            GUI.Label(new Rect(x+125, y+40, 153, 26), "生命 "+c.Health+"   K/D "+c.Kills+"/"+c.Deaths, body);
+            var previous = GUI.color;
+            GUI.color = new Color(.26f,.29f,.30f);
+            GUI.DrawTexture(new Rect(x+12, y+73, 262, 3), Texture2D.whiteTexture);
+            float fraction = reloading ? 1 - remaining * 1000 / CombatState.ReloadDurationMilliseconds : c.Health / 100f;
+            GUI.color = reloading ? new Color(.94f,.71f,.38f) : c.Health>25 ? new Color(.3f,.8f,.63f) : new Color(1,.3f,.2f);
+            GUI.DrawTexture(new Rect(x+12, y+73, 262*Mathf.Clamp01(fraction), 3), Texture2D.whiteTexture);
+            GUI.color = previous;
             if(Time.unscaledTime<damageUntil)
             {
                 GUI.color=new Color(1,.12f,.05f,.35f);GUI.DrawTexture(new Rect(0,0,width,10),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(0,height-10,width,10),Texture2D.whiteTexture);GUI.color=previous;
@@ -110,7 +162,7 @@ namespace Advanture.TacticalGame.NetworkView
             if(!c.IsAlive)
             {
                 Panel(new Rect(width/2-210,height/2-72,420,115));GUI.Label(new Rect(width/2-175,height/2-60,370,40),"你已阵亡",title);
-                GUI.Label(new Rect(width/2-175,height/2-16,370,40),Mathf.Max(0,((long)c.RespawnAtTick-(long)tick)/30f).ToString("0.0")+" 秒后自动重生",body);
+                GUI.Label(new Rect(width/2-175,height/2-16,370,40),Mathf.Max(0,((long)c.RespawnAtTick-(long)tick)/(float)TacticalClient.TickRate).ToString("0.0")+" 秒后自动重生",body);
             }
         }
         private void OnDestroy() { if (font != null) Destroy(font); }

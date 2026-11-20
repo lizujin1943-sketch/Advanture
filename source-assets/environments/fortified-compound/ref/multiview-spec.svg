@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1160" viewBox="0 0 1600 1160"><style>text{font-family:Arial;fill:#273441} .mass{fill:#d9e0e4;stroke:#667887;stroke-width:2}.wall{fill:none;stroke:#667887;stroke-width:8}.infer{fill:none;stroke:#bd8356;stroke-dasharray:6 5;stroke-width:2}</style><rect width="1600" height="1160" fill="#f6f4ef"/><text x="40" y="45" font-size="28">FORTIFIED COMPOUND — MULTIVIEW STRUCTURAL SPECIFICATION</text><text x="40" y="78" font-size="17">Primary image: target.png | meters inferred | dashed amber: inferred hidden structures | before 3D construction</text>
+<text x="45" y="120" font-size="22">TOP / north up</text>
+<path class="wall" d="M 173.6 696.0 L 506.4 696.0 L 537.6 514.0 L 527.2 280.0 L 496.0 129.2 L 184.0 129.2 L 152.79999999999998 280.0 L 142.4 514.0 Z"/>
+<rect class="mass" x="259.4" y="131.8" width="130.0" height="46.800000000000004"/><text x="265.4" y="151.8" font-size="14">A-1</text>
+<rect class="mass" x="236.0" y="285.2" width="156.0" height="176.8"/><text x="242.0" y="305.2" font-size="14">OPEN PLAZA</text>
+<rect class="mass" x="264.6" y="628.4" width="109.2" height="62.400000000000006"/><text x="270.6" y="648.4" font-size="14">C-1</text>
+<rect class="mass" x="412.8" y="306.0" width="72.8" height="62.400000000000006"/><text x="418.8" y="326.0" font-size="14">B-1</text>
+<rect class="mass" x="171.0" y="399.6" width="57.2" height="62.400000000000006"/><text x="177.0" y="419.6" font-size="14">ARMORY</text>
+<rect class="mass" x="225.6" y="202.0" width="62.400000000000006" height="62.400000000000006"/><text x="231.6" y="222.0" font-size="14">EQUIP</text>
+<rect class="mass" x="363.4" y="202.0" width="57.2" height="62.400000000000006"/><text x="369.4" y="222.0" font-size="14">MEDICAL</text>
+<rect class="mass" x="171.0" y="285.2" width="46.800000000000004" height="41.6"/><text x="177.0" y="305.2" font-size="14">SHEDS</text>
+<circle class="mass" cx="449.2" cy="524.4" r="43"/><text x="433.2" y="529.4">B-2</text>
+<circle class="mass" cx="173.6" cy="696.0" r="12"/>
+<circle class="mass" cx="506.4" cy="696.0" r="12"/>
+<circle class="mass" cx="537.6" cy="514.0" r="12"/>
+<circle class="mass" cx="527.2" cy="280.0" r="12"/>
+<circle class="mass" cx="496.0" cy="129.2" r="12"/>
+<circle class="mass" cx="184.0" cy="129.2" r="12"/>
+<circle class="mass" cx="152.79999999999998" cy="280.0" r="12"/>
+<circle class="mass" cx="142.4" cy="514.0" r="12"/>
+<circle class="mass" cx="298.4" cy="129.2" r="12"/>
+<circle class="mass" cx="350.4" cy="129.2" r="12"/>
+<circle cx="230.8" cy="129.2" r="17" fill="#f6f4ef" stroke="#bb5a42" stroke-width="3"/><text x="250.8" y="129.2" font-size="12">BREACH</text>
+<circle cx="532.4" cy="384.0" r="17" fill="#f6f4ef" stroke="#bb5a42" stroke-width="3"/><text x="552.4" y="384.0" font-size="12">BREACH</text>
+<circle cx="220.39999999999998" cy="696.0" r="17" fill="#f6f4ef" stroke="#bb5a42" stroke-width="3"/><text x="240.39999999999998" y="696.0" font-size="12">BREACH</text>
+<text x="700" y="120" font-size="22">FRONT / south — target camera geometry</text>
+<rect class="mass" x="720" y="240" width="760" height="80"/>
+<rect class="mass" x="740" y="185" width="45" height="135"/><rect class="mass" x="730" y="168" width="65" height="25"/>
+<rect class="mass" x="1425" y="185" width="45" height="135"/><rect class="mass" x="1415" y="168" width="65" height="25"/>
+<rect class="mass" x="1000" y="175" width="220" height="145"/><rect x="1070" y="220" width="74" height="100" fill="#858c7e"/><rect x="810" y="235" width="155" height="90" fill="#f6f4ef"/><text x="1040" y="160">C-1 / right wall continuous</text>
+<text x="700" y="410" font-size="22">SIDE / east — depths and access inferred from viewer</text><rect class="mass" x="720" y="520" width="760" height="80"/>
+<rect class="mass" x="730" y="465" width="42" height="135"/><rect class="mass" x="720" y="449" width="62" height="24"/>
+<rect class="mass" x="950" y="465" width="42" height="135"/><rect class="mass" x="940" y="449" width="62" height="24"/>
+<rect class="mass" x="1230" y="465" width="42" height="135"/><rect class="mass" x="1220" y="449" width="62" height="24"/>
+<rect class="mass" x="1430" y="465" width="42" height="135"/><rect class="mass" x="1420" y="449" width="62" height="24"/>
+<rect x="1080" y="510" width="95" height="95" fill="#f6f4ef"/><path class="infer" d="M 780 520 L 780 492 L 1020 492 L 1020 600 M 1180 600 L 1180 545 L 1370 545 L 1370 600"/>
+<text x="700" y="690" font-size="22">BACK / north — hidden surfaces are structural inference</text><rect class="mass" x="720" y="815" width="760" height="80"/>
+<rect class="mass" x="740" y="760" width="42" height="135"/><rect class="mass" x="730" y="744" width="62" height="24"/>
+<rect class="mass" x="1040" y="760" width="42" height="135"/><rect class="mass" x="1030" y="744" width="62" height="24"/>
+<rect class="mass" x="1190" y="760" width="42" height="135"/><rect class="mass" x="1180" y="744" width="62" height="24"/>
+<rect class="mass" x="1430" y="760" width="42" height="135"/><rect class="mass" x="1420" y="744" width="62" height="24"/>
+<rect x="1305" y="810" width="100" height="90" fill="#f6f4ef"/><rect class="infer" x="920" y="800" width="330" height="95"/><text x="45" y="770" font-size="18">ACCESS CHECKS</text>
+<text x="45" y="805" dy="0" font-size="16">A-1: single story, straight stair to roof</text>
+<text x="45" y="805" dy="28" font-size="16">B-1: clear upper landing, open parapet</text>
+<text x="45" y="805" dy="56" font-size="16">C-1: turning stair entirely inside perimeter</text>
+<text x="45" y="805" dy="84" font-size="16">Plaza: west ramp + south/east stairs</text>
+<text x="45" y="805" dy="112" font-size="16">Three breaches: irregular collapse, no formal roads</text>
+<text x="45" y="805" dy="140" font-size="16">Ten towers: connected perimeter, octagonal gallery</text>
+<text x="45" y="805" dy="168" font-size="16">Depots: coherent concrete shells, restrained props</text>
+<text x="45" y="1090" font-size="16">No web mesh download. No hidden details claimed as observed. Final acceptance uses actual Blender multiview renders.</text></svg>

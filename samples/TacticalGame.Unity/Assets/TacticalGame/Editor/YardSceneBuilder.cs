@@ -116,7 +116,7 @@ namespace Advanture.TacticalGame.Editor
             Physics.SyncTransforms();
             EditorSceneManager.SaveScene(scene,ScenePath);
             // 场景保存后才写构建列表，确保 Unity 已生成场景的资源标识。
-            EditorBuildSettings.scenes=new[] { new EditorBuildSettingsScene(ScenePath,true) };
+            FortifiedCompoundBuilder.RegisterScene(ScenePath,true);
             AssetDatabase.SaveAssets();
             CapturePreview(camera);
             Debug.Log("YARD07_BUILD_OK: scene="+ScenePath+"; boxColliders="+collisionRoot.GetComponentsInChildren<BoxCollider>().Length);

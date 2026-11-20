@@ -153,7 +153,8 @@ namespace Advanture.HookIsland
         private void DrawLobby(float w,float h)
         {
             bool saved=room.HasManualSave || room.HasAutoSave;
-            float height=saved?432:362,x=w/2-264,y=Mathf.Max(70,h/2-height/2);
+            bool compound=room.Map?.IsTown==true && Application.CanStreamedLevelBeLoaded("FortifiedCompound");
+            float height=(saved?432:362)+(compound?52:0),x=w/2-264,y=Mathf.Max(70,h/2-height/2);
             Panel(new Rect(x,y,528,height));
             GUI.Label(new Rect(x+28,y+18,472,38),room.Map?.IsTown==true?"沉钟镇 · 深渊之下的钟声":"把鱼钩上岸，和好友分享收获",title);
             GUI.Label(new Rect(x+28,y+61,472,27),room.Failure??(room.Map?.IsTown==true?"1–4 人合作探索与枪战 · 本机 / 局域网联机":"1–4 人合作捕鱼 · 本机 / 局域网联机"),small);
@@ -174,6 +175,8 @@ namespace Advanture.HookIsland
             if(GUI.Button(new Rect(x+28,y+267,224,42),"先自己玩",button))room.HostRoom(0,1);
             GUI.Label(new Rect(x+276,y+268,224,66),"同机填 127.0.0.1\n不同电脑填房主局域网 IP",small);
             GUI.Label(new Rect(x+28,y+322,472,26),"人数到齐自动开局，也可提前开始。好友可中途加入空位。",small);
+            if(compound && GUI.Button(new Rect(x+28,y+(saved?426:356),472,40),"进入要塞基地",button))
+                UnityEngine.SceneManagement.SceneManager.LoadScene("FortifiedCompound");
             if(saved)
             {
                 bool enabled=GUI.enabled;

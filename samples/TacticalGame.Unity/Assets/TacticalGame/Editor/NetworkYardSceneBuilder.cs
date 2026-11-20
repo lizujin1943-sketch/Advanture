@@ -35,10 +35,11 @@ namespace Advanture.TacticalGame.Editor
             camera.transform.position = new Vector3(-4,1.65f,-8); camera.transform.rotation = Quaternion.Euler(0,90,0);
             camera.fieldOfView = 75; camera.nearClipPlane = .05f; camera.farClipPlane = 180; camera.gameObject.AddComponent<AudioListener>();
             root.AddComponent<NetworkYardController>().Configure(AssetDatabase.LoadAssetAtPath<TextAsset>(MapPath), camera);
-            root.AddComponent<NetworkRoomOverlay>(); root.AddComponent<YardLaunchArguments>(); root.AddComponent<NetworkSmokeDriver>();
+            root.AddComponent<NetworkRoomOverlay>(); root.AddComponent<YardLaunchArguments>();
             PlayerSettings.runInBackground = true;
             EditorSceneManager.SaveScene(scene, ScenePath);
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true), new EditorBuildSettingsScene(YardSceneBuilder.ScenePath, false) };
+            FortifiedCompoundBuilder.RegisterScene(ScenePath,true);
+            FortifiedCompoundBuilder.RegisterScene(YardSceneBuilder.ScenePath,false);
             AssetDatabase.SaveAssets(); Debug.Log("YARD_NETWORK_SCENE_OK obstacles=" + data.Obstacles.Count);
         }
     }

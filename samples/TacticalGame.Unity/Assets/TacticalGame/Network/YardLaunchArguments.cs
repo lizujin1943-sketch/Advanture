@@ -18,7 +18,8 @@ namespace Advanture.TacticalGame.NetworkView
             string role = Value("-yard-role"); if (role == null) return;
             int port = int.TryParse(Value("-yard-port"), out int p) ? p : 7777;
             var room = GetComponent<NetworkYardController>();
-            if (role == "host") room.HostRoom(port);
+            if (role == "solo") room.PlaySolo();
+            else if (role == "host") room.HostRoom(port);
             else if (role == "join") room.JoinRoom(Value("-yard-address") ?? "127.0.0.1", port);
         }
     }

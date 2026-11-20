@@ -1,0 +1,1030 @@
+{
+  "materials": [
+    {
+      "id": "FCM_000",
+      "title": "FC Art | Rolled yard asphalt",
+      "dark": [
+        0.33333,
+        0.35686,
+        0.36078
+      ],
+      "light": [
+        0.52941,
+        0.51765,
+        0.48235
+      ],
+      "paint": [
+        0.52941,
+        0.51765,
+        0.48235
+      ],
+      "band": -1.0,
+      "tile": "asphalt_04",
+      "meters": 4.039999987959861,
+      "low": 0.10000000149011612,
+      "high": 0.33000001311302185,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_001",
+      "title": "FC Art | Enclosure \u00b7 patinated base",
+      "dark": [
+        0.5098,
+        0.49412,
+        0.44706
+      ],
+      "light": [
+        0.7451,
+        0.71765,
+        0.63529
+      ],
+      "paint": [
+        0.38431,
+        0.40784,
+        0.36863
+      ],
+      "band": 0.25999999928474427,
+      "tile": "concrete_wall_009",
+      "meters": 2.8499999787658457,
+      "low": 0.27000001072883606,
+      "high": 0.367000013589859,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_002",
+      "title": "FC Art | Pale precast coping",
+      "dark": [
+        0.60784,
+        0.58039,
+        0.51373
+      ],
+      "light": [
+        0.87451,
+        0.83529,
+        0.74118
+      ],
+      "paint": [
+        0.87451,
+        0.83529,
+        0.74118
+      ],
+      "band": -1.0,
+      "tile": "concrete_wall_009",
+      "meters": 2.8499999787658457,
+      "low": 0.27000001072883606,
+      "high": 0.367000013589859,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_003",
+      "title": "FC Art | Cast limestone concrete",
+      "dark": [
+        0.52941,
+        0.49804,
+        0.43922
+      ],
+      "light": [
+        0.81176,
+        0.77255,
+        0.67843
+      ],
+      "paint": [
+        0.81176,
+        0.77255,
+        0.67843
+      ],
+      "band": -1.0,
+      "tile": "concrete_wall_009",
+      "meters": 2.8499999787658457,
+      "low": 0.27000001072883606,
+      "high": 0.367000013589859,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_004",
+      "title": "FC Art | Weathered plinth",
+      "dark": [
+        0.35294,
+        0.35294,
+        0.31373
+      ],
+      "light": [
+        0.54118,
+        0.52941,
+        0.46275
+      ],
+      "paint": [
+        0.54118,
+        0.52941,
+        0.46275
+      ],
+      "band": -1.0,
+      "tile": "concrete_wall_009",
+      "meters": 2.8499999787658457,
+      "low": 0.27000001072883606,
+      "high": 0.367000013589859,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_005",
+      "title": "FC Art | Smoked blue-green glazing",
+      "dark": [
+        0.13333,
+        0.23529,
+        0.2549
+      ],
+      "light": [
+        0.21176,
+        0.32549,
+        0.3451
+      ],
+      "paint": [
+        0.21176,
+        0.32549,
+        0.3451
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.1599999964237213
+    },
+    {
+      "id": "FCM_006",
+      "title": "FC Art | Mineral felt roofing",
+      "dark": [
+        0.33725,
+        0.38431,
+        0.38431
+      ],
+      "light": [
+        0.52157,
+        0.53333,
+        0.51373
+      ],
+      "paint": [
+        0.52157,
+        0.53333,
+        0.51373
+      ],
+      "band": -1.0,
+      "tile": "concrete_floor_worn_001",
+      "meters": 2.4999999627470975,
+      "low": 0.07800000160932541,
+      "high": 0.1120000034570694,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_007",
+      "title": "FC Art | Galvanised wear surfaces",
+      "dark": [
+        0.58824,
+        0.61176,
+        0.59216
+      ],
+      "light": [
+        0.72549,
+        0.74902,
+        0.72157
+      ],
+      "paint": [
+        0.72549,
+        0.74902,
+        0.72157
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 1.0
+    },
+    {
+      "id": "FCM_008",
+      "title": "FC Art | Faded ochre safety paint",
+      "dark": [
+        0.61569,
+        0.47059,
+        0.23529
+      ],
+      "light": [
+        0.8,
+        0.67059,
+        0.4
+      ],
+      "paint": [
+        0.8,
+        0.67059,
+        0.4
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_009",
+      "title": "FC Art | Graphite structural steel",
+      "dark": [
+        0.18824,
+        0.24706,
+        0.25882
+      ],
+      "light": [
+        0.32549,
+        0.37647,
+        0.38039
+      ],
+      "paint": [
+        0.32549,
+        0.37647,
+        0.38039
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_010",
+      "title": "FC Art | Warm ivory enamel",
+      "dark": [
+        0.75686,
+        0.75686,
+        0.67843
+      ],
+      "light": [
+        0.91373,
+        0.88235,
+        0.77647
+      ],
+      "paint": [
+        0.91373,
+        0.88235,
+        0.77647
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_011",
+      "title": "FC Art | Gaskets and cable",
+      "dark": [
+        0.15294,
+        0.18431,
+        0.18824
+      ],
+      "light": [
+        0.2549,
+        0.27843,
+        0.27451
+      ],
+      "paint": [
+        0.2549,
+        0.27843,
+        0.27451
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_012",
+      "title": "FC Art | Jointed plaza paving",
+      "dark": [
+        0.57255,
+        0.55686,
+        0.51373
+      ],
+      "light": [
+        0.81176,
+        0.76863,
+        0.68627
+      ],
+      "paint": [
+        0.81176,
+        0.76863,
+        0.68627
+      ],
+      "band": -1.0,
+      "tile": "concrete_floor_worn_001",
+      "meters": 3.3999998581409514,
+      "low": 0.07800000160932541,
+      "high": 0.11100000143051147,
+      "plaza": true,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_013",
+      "title": "FC_FlagRed.010",
+      "dark": [
+        0.63425,
+        0.20598,
+        0.1641
+      ],
+      "light": [
+        0.63425,
+        0.20598,
+        0.1641
+      ],
+      "paint": [
+        0.63425,
+        0.20598,
+        0.1641
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.9200000166893005,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_014",
+      "title": "FC Art | Main facades \u00b7 aged lower course",
+      "dark": [
+        0.58431,
+        0.54118,
+        0.46667
+      ],
+      "light": [
+        0.78431,
+        0.73725,
+        0.63137
+      ],
+      "paint": [
+        0.38431,
+        0.42353,
+        0.39216
+      ],
+      "band": 0.2800000100135803,
+      "tile": "concrete_wall_009",
+      "meters": 2.8499999787658457,
+      "low": 0.27000001072883606,
+      "high": 0.367000013589859,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_015",
+      "title": "FC Art | Olive transport case",
+      "dark": [
+        0.3451,
+        0.37647,
+        0.29412
+      ],
+      "light": [
+        0.50588,
+        0.52549,
+        0.42353
+      ],
+      "paint": [
+        0.50588,
+        0.52549,
+        0.42353
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_016",
+      "title": "FC Art | Weathered stencil",
+      "dark": [
+        0.32157,
+        0.35294,
+        0.31373
+      ],
+      "light": [
+        0.40784,
+        0.43137,
+        0.38824
+      ],
+      "paint": [
+        0.40784,
+        0.43137,
+        0.38824
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_017",
+      "title": "FC Art | Woven field canvas",
+      "dark": [
+        0.34118,
+        0.35686,
+        0.28235
+      ],
+      "light": [
+        0.54118,
+        0.52941,
+        0.41176
+      ],
+      "paint": [
+        0.54118,
+        0.52941,
+        0.41176
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_018",
+      "title": "FC Art | Comms \u00b7 mineral render",
+      "dark": [
+        0.60392,
+        0.57255,
+        0.50196
+      ],
+      "light": [
+        0.78431,
+        0.74902,
+        0.66275
+      ],
+      "paint": [
+        0.32157,
+        0.44706,
+        0.43529
+      ],
+      "band": 0.24999999392032624,
+      "tile": "concrete_wall_009",
+      "meters": 2.8499999787658457,
+      "low": 0.27000001072883606,
+      "high": 0.367000013589859,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_019",
+      "title": "FC Art | Painted petrol-blue steel",
+      "dark": [
+        0.20784,
+        0.34902,
+        0.3451
+      ],
+      "light": [
+        0.32549,
+        0.47451,
+        0.47059
+      ],
+      "paint": [
+        0.32549,
+        0.47451,
+        0.47059
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_020",
+      "title": "FC Art | Radome \u00b7 elastomer joint",
+      "dark": [
+        0.43137,
+        0.46275,
+        0.44706
+      ],
+      "light": [
+        0.52157,
+        0.53725,
+        0.50196
+      ],
+      "paint": [
+        0.52157,
+        0.53725,
+        0.50196
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_021",
+      "title": "FC Art | Radome \u00b7 chalk",
+      "dark": [
+        0.77647,
+        0.77255,
+        0.68627
+      ],
+      "light": [
+        0.87843,
+        0.85098,
+        0.76471
+      ],
+      "paint": [
+        0.87843,
+        0.85098,
+        0.76471
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_022",
+      "title": "FC Art | Radome \u00b7 pale grey",
+      "dark": [
+        0.76863,
+        0.78039,
+        0.73333
+      ],
+      "light": [
+        0.86667,
+        0.86275,
+        0.78824
+      ],
+      "paint": [
+        0.86667,
+        0.86275,
+        0.78824
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_023",
+      "title": "FC Art | Radome \u00b7 warm grey",
+      "dark": [
+        0.73333,
+        0.73725,
+        0.68235
+      ],
+      "light": [
+        0.83137,
+        0.82353,
+        0.7451
+      ],
+      "paint": [
+        0.83137,
+        0.82353,
+        0.7451
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_024",
+      "title": "FC Art | Sealed workshop floor",
+      "dark": [
+        0.40392,
+        0.44314,
+        0.42353
+      ],
+      "light": [
+        0.61961,
+        0.62353,
+        0.56863
+      ],
+      "paint": [
+        0.61961,
+        0.62353,
+        0.56863
+      ],
+      "band": -1.0,
+      "tile": "concrete_floor_worn_001",
+      "meters": 2.9999999105930355,
+      "low": 0.07900000363588333,
+      "high": 0.1120000034570694,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_025",
+      "title": "FC Art | Equipment \u00b7 petrol blue paint",
+      "dark": [
+        0.61569,
+        0.57647,
+        0.50196
+      ],
+      "light": [
+        0.81961,
+        0.78039,
+        0.69804
+      ],
+      "paint": [
+        0.31373,
+        0.46667,
+        0.47451
+      ],
+      "band": 0.47000000762939453,
+      "tile": "concrete_wall_009",
+      "meters": 2.8499999787658457,
+      "low": 0.27000001072883606,
+      "high": 0.367000013589859,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_026",
+      "title": "FC Art | Fractured aggregate",
+      "dark": [
+        0.5098,
+        0.47059,
+        0.41569
+      ],
+      "light": [
+        0.76471,
+        0.68627,
+        0.58431
+      ],
+      "paint": [
+        0.76471,
+        0.68627,
+        0.58431
+      ],
+      "band": -1.0,
+      "tile": "preconcrete_wall_001",
+      "meters": 2.0,
+      "low": 0.25,
+      "high": 0.6700000166893005,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_027",
+      "title": "FC Art | Boarded loading apron",
+      "dark": [
+        0.46667,
+        0.48235,
+        0.44314
+      ],
+      "light": [
+        0.66667,
+        0.6549,
+        0.58824
+      ],
+      "paint": [
+        0.66667,
+        0.6549,
+        0.58824
+      ],
+      "band": -1.0,
+      "tile": "concrete_floor_worn_001",
+      "meters": 2.7999999332427996,
+      "low": 0.07900000363588333,
+      "high": 0.1120000034570694,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_028",
+      "title": "FC Art | Oiled plywood",
+      "dark": [
+        0.52157,
+        0.37255,
+        0.25882
+      ],
+      "light": [
+        0.67843,
+        0.52549,
+        0.36863
+      ],
+      "paint": [
+        0.67843,
+        0.52549,
+        0.36863
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_029",
+      "title": "FC Art | Case moulding",
+      "dark": [
+        0.26275,
+        0.29804,
+        0.27451
+      ],
+      "light": [
+        0.4,
+        0.43529,
+        0.38431
+      ],
+      "paint": [
+        0.4,
+        0.43529,
+        0.38431
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_030",
+      "title": "FC Art | Woven olive webbing",
+      "dark": [
+        0.27451,
+        0.29804,
+        0.23922
+      ],
+      "light": [
+        0.43922,
+        0.43529,
+        0.32157
+      ],
+      "paint": [
+        0.43922,
+        0.43529,
+        0.32157
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_031",
+      "title": "FC Art | Emergency vermilion",
+      "dark": [
+        0.61176,
+        0.2549,
+        0.21176
+      ],
+      "light": [
+        0.76471,
+        0.36471,
+        0.29412
+      ],
+      "paint": [
+        0.76471,
+        0.36471,
+        0.29412
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_032",
+      "title": "FC Art | Medical \u00b7 sage enamel",
+      "dark": [
+        0.66275,
+        0.63137,
+        0.54902
+      ],
+      "light": [
+        0.84706,
+        0.81569,
+        0.73725
+      ],
+      "paint": [
+        0.47451,
+        0.63137,
+        0.60392
+      ],
+      "band": 0.47999999809265137,
+      "tile": "concrete_wall_009",
+      "meters": 2.8499999787658457,
+      "low": 0.27000001072883606,
+      "high": 0.367000013589859,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_033",
+      "title": "FC Art | Stores \u00b7 oxide paint",
+      "dark": [
+        0.58039,
+        0.52549,
+        0.45098
+      ],
+      "light": [
+        0.79608,
+        0.71765,
+        0.60392
+      ],
+      "paint": [
+        0.61569,
+        0.38431,
+        0.27843
+      ],
+      "band": 0.44000000643730164,
+      "tile": "concrete_wall_009",
+      "meters": 2.8499999787658457,
+      "low": 0.27000001072883606,
+      "high": 0.367000013589859,
+      "plaza": false,
+      "rough": 0.8,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_034",
+      "title": "FC Art | Red oxide primer",
+      "dark": [
+        0.52157,
+        0.32549,
+        0.24314
+      ],
+      "light": [
+        0.6902,
+        0.47843,
+        0.33333
+      ],
+      "paint": [
+        0.6902,
+        0.47843,
+        0.33333
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.5,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_035",
+      "title": "FC_Rust.010",
+      "dark": [
+        0.50639,
+        0.35749,
+        0.2348
+      ],
+      "light": [
+        0.50639,
+        0.35749,
+        0.2348
+      ],
+      "paint": [
+        0.50639,
+        0.35749,
+        0.2348
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.8999999761581421,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_036",
+      "title": "FC_Bark.010",
+      "dark": [
+        0.42358,
+        0.38109,
+        0.3133
+      ],
+      "light": [
+        0.42358,
+        0.38109,
+        0.3133
+      ],
+      "paint": [
+        0.42358,
+        0.38109,
+        0.3133
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.9599999785423279,
+      "metal": 0.0
+    },
+    {
+      "id": "FCM_037",
+      "title": "FC_Leaves.010",
+      "dark": [
+        0.43663,
+        0.46136,
+        0.26007
+      ],
+      "light": [
+        0.43663,
+        0.46136,
+        0.26007
+      ],
+      "paint": [
+        0.43663,
+        0.46136,
+        0.26007
+      ],
+      "band": -1.0,
+      "tile": "",
+      "meters": 3.0,
+      "low": 0.0,
+      "high": 1.0,
+      "plaza": false,
+      "rough": 0.9300000071525574,
+      "metal": 0.0
+    }
+  ]
+}

@@ -9,7 +9,9 @@ namespace Advanture.Tactical.Simulation;
 public readonly struct TacticalPlayer
 {
     public TacticalPlayer(ushort slot, int x, int z, ushort yaw, short pitch, int remainderX = 0, int remainderZ = 0, CombatState? combat = null)
-    { Slot = slot; X = x; Z = z; Yaw = yaw; Pitch = pitch; RemainderX = remainderX; RemainderZ = remainderZ; Combat = combat ?? new CombatState(); }
+        : this(slot, x, z, yaw, pitch, remainderX, remainderZ, combat, default) { }
+    internal TacticalPlayer(ushort slot, int x, int z, ushort yaw, short pitch, int remainderX, int remainderZ, CombatState? combat, VerticalMotion vertical)
+    { Slot = slot; X = x; Z = z; Yaw = yaw; Pitch = pitch; RemainderX = remainderX; RemainderZ = remainderZ; Combat = combat ?? new CombatState(); Vertical = vertical; }
     public ushort Slot { get; }
     public int X { get; }
     public int Z { get; }
@@ -17,6 +19,11 @@ public readonly struct TacticalPlayer
     public short Pitch { get; }
     public int RemainderX { get; }
     public int RemainderZ { get; }
+    internal VerticalMotion Vertical { get; }
+    public int HeightAboveGround => Vertical.Height;
+    public bool IsAirborne => Vertical.Airborne;
+    internal TacticalPlayer WithCombat(CombatState combat) =>
+        new TacticalPlayer(Slot, X, Z, Yaw, Pitch, RemainderX, RemainderZ, combat, Vertical);
     /// <summary>生命、弹药、计时与射击记录，和移动状态一起回滚。</summary>
     public CombatState Combat { get; }
 }

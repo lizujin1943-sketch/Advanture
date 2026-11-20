@@ -19,6 +19,7 @@ public sealed class TacticalHost : IDisposable
     private readonly UdpNode _node;
     private readonly RoomTransport _transport;
     private readonly TacticalMap _map;
+    private readonly int _participants;
     private readonly byte[] _hash;
     private readonly Guid _id = Guid.NewGuid();
     private readonly Dictionary<ushort, ulong> _peers = new Dictionary<ushort, ulong>();
@@ -27,12 +28,16 @@ public sealed class TacticalHost : IDisposable
     private readonly Dictionary<ulong, byte> _rejected = new Dictionary<ulong, byte>();
     private bool _disposed, _transportStopped;
 
-    public TacticalHost(TacticalMap map, int port = 7777)
+    public TacticalHost(TacticalMap map, int port = 7777) : this(map, port, 2) { }
+
+    public TacticalHost(TacticalMap map, int port, int participants)
     {
         _map = map ?? throw new ArgumentNullException(nameof(map));
         if (map.Spawns.Count != 2) throw new ArgumentException("试玩房间需要两个出生点。", nameof(map));
+        if (participants < 1 || participants > 2) throw new ArgumentOutOfRangeException(nameof(participants));
+        _participants = participants;
         _hash = RoomProtocol.Hash(map);
-        _port = new SocketDatagramPort(new DatagramAddress(IPAddress.Any, port));
+        _port = new SocketDatagramPort(new DatagramAddress(participants == 1 ? IPAddress.Loopback : IPAddress.Any, port));
         try { _node = new UdpNode(_port); _node.Listen(); _transport = new RoomTransport(_node); }
         catch { _port.Dispose(); throw; }
     }
@@ -70,7 +75,7 @@ public sealed class TacticalHost : IDisposable
             {
                 ushort slot = (ushort)packet.Join.Slot;
                 if (!packet.Join.MapHash.Span.SequenceEqual(_hash)) { _rejected[message.ConnectionId] = 1; continue; }
-                if (Session != null || slot > 1 || (_peers.TryGetValue(slot, out var old) && old != message.ConnectionId) ||
+                if (Session != null || slot >= _participants || (_peers.TryGetValue(slot, out var old) && old != message.ConnectionId) ||
                     _peers.Any(p => p.Key != slot && p.Value == message.ConnectionId)) { _rejected[message.ConnectionId] = 2; continue; }
                 _peers[slot] = message.ConnectionId;
             }
@@ -86,10 +91,10 @@ public sealed class TacticalHost : IDisposable
         {
             foreach (var pair in _peers)
                 if (!_welcomed.Contains(pair.Value) && RoomProtocol.Send(_node, pair.Value, RoomProtocol.WelcomeBytes(_id, pair.Key, _hash))) _welcomed.Add(pair.Value);
-            if (_peers.Count == 2 && _ready.Count == 2)
+            if (_peers.Count == _participants && _ready.Count == _participants)
             {
-                var roster = new[] { new Participant(0, Guid.NewGuid(), isActive: false), new Participant(1, Guid.NewGuid(), isActive: false) };
-                Session = new ServerSession<TacticalState>(TacticalGame.CreateModule(), new SessionDescriptor(_id, 1, RoomProtocol.Rate, roster), _transport,
+                var roster = Enumerable.Range(0, _participants).Select(slot => new Participant((ushort)slot, Guid.NewGuid(), isActive: false)).ToArray();
+                Session = new ServerSession<TacticalState>(TacticalGame.CreateModule(_map.HasElevation), new SessionDescriptor(_id, 1, RoomProtocol.Rate, roster), _transport,
                     _peers.Select(p => new PeerBinding(p.Value, p.Key)).ToArray(), _ => RoomProtocol.Neutral, RoomProtocol.Limits, new ByteString(_map.Encode()));
             }
         }

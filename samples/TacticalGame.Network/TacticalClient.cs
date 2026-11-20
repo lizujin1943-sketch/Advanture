@@ -11,12 +11,14 @@ namespace Advanture.Tactical.Network;
 /// <summary>试玩客户端宿主：握手、固定帧采样、输入冻结、预测和连接清理。独立于引擎。</summary>
 public sealed class TacticalClient : IDisposable
 {
+    public const uint TickRate = RoomProtocol.Rate;
     private readonly SocketDatagramPort _port;
     private readonly UdpNode _node;
     private readonly RoomTransport _transport;
     private readonly ulong _peer;
     private readonly ushort _slot;
     private readonly byte[] _hash;
+    private readonly bool _elevated;
     private bool _connected, _joined, _acked, _disposed, _checkedInitial, _transportStopped;
     private FixedInputScheduler? _scheduler;
     private TimeSpan? _clockOrigin;
@@ -26,6 +28,7 @@ public sealed class TacticalClient : IDisposable
     public TacticalClient(TacticalMap map, IPAddress host, int port, ushort slot)
     {
         if (slot > 1) throw new ArgumentOutOfRangeException(nameof(slot));
+        _elevated = map.HasElevation;
         _hash = RoomProtocol.Hash(map); _slot = slot;
         _port = new SocketDatagramPort(new DatagramAddress(host.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any, 0));
         try { _node = new UdpNode(_port); _peer = _node.Connect(new DatagramAddress(host, port)); _transport = new RoomTransport(_node); }
@@ -66,7 +69,7 @@ public sealed class TacticalClient : IDisposable
             {
                 var id = new Guid(packet.Welcome.SessionId.Span);
                 if (id == Guid.Empty) { Fail("房间身份不合法。"); return; }
-                Session = new ClientSession<TacticalState>(TacticalGame.CreateModule(), id, 1, _transport, _peer, RoomProtocol.Limits,
+                Session = new ClientSession<TacticalState>(TacticalGame.CreateModule(_elevated), id, 1, _transport, _peer, RoomProtocol.Limits,
                     prediction: new PredictionOptions(maxPredictionFrames: 12), neutralInput: _ => RoomProtocol.Neutral);
             }
             else if (packet.BodyCase == RoomPacket.BodyOneofCase.Reject)
@@ -85,7 +88,7 @@ public sealed class TacticalClient : IDisposable
             }
             if (Session.Status == SessionStatus.Running && !Session.IsClosing)
             {
-                if (_scheduler == null) { _scheduler = new FixedInputScheduler(RoomProtocol.Rate); _scheduler.Start(now, Session.ConfirmedTick); }
+                if (_scheduler == null) { _scheduler = new FixedInputScheduler(TickRate); _scheduler.Start(now, Session.ConfirmedTick); }
                 ulong horizon = Math.Min(Session.ConfirmedTick + 128, _scheduler.InputTick(now, Session.ConfirmedTick));
                 if (_nextTick <= Session.ConfirmedTick) { _nextTick = Session.ConfirmedTick + 1; _pending = null; }
                 for (int budget = 0; _nextTick <= horizon && budget < 128; budget++)

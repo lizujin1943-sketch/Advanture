@@ -23,7 +23,7 @@ internal static class RoomProtocolTests
             Probe(bytes, 0);
         });
         foreach (var invalid in new (string Name, Action<RoomPacket> Change)[] {
-            ("version", p => p.ProtocolVersion = 2),
+            ("version", p => p.ProtocolVersion = RoomProtocol.Version - 1),
             ("hash", p => p.Join.MapHash = ByteString.CopyFrom(new byte[31])),
             ("slot_overflow", p => p.Join.Slot = 65536),
             ("slot_occupied_range", p => p.Join.Slot = 2),

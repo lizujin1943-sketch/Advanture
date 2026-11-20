@@ -5,7 +5,7 @@ public sealed partial class TacticalGame
 {
     private sealed partial class Model
     {
-        private const int Range = 100000, EyeHeight = 1650, BodyHeight = 1900;
+        private const int EyeHeight = 1650;
         /// <summary>把毫秒配置向上取整成逻辑帧；所有端都使用会话的同一帧率。</summary>
         private ulong Duration(uint milliseconds) => Math.Max(1UL, ((ulong)_rate * milliseconds + 999) / 1000);
 
@@ -18,7 +18,7 @@ public sealed partial class TacticalGame
                 var c=combat[i]; var input=inputs[i];
                 if (!active[i] || c.Health==0) continue;
                 if (input.Reload && c.ReloadUntilTick==0 && c.Ammo<30 && c.Reserve>0)
-                    c.ReloadUntilTick=checked(tick+Duration(2400));
+                    c.ReloadUntilTick=checked(tick+Duration(CombatState.ReloadDurationMilliseconds));
                 if (!input.Fire || c.ReloadUntilTick>0 || c.Ammo==0 || tick<c.NextFireTick) continue;
                 c.Ammo--; c.NextFireTick=checked(tick+Duration(100));
                 c.ShotSequence=checked(c.ShotSequence+1); c.LastShotTick=tick;
@@ -42,23 +42,26 @@ public sealed partial class TacticalGame
         private int Trace(int shooter, bool[] active, CombatModel[] combat, CombatModel shot)
         {
             var source=_players[shooter];
-            shot.ShotX=source.X; shot.ShotY=EyeHeight; shot.ShotZ=source.Z;
+            int eye = _map.FeetHeight(source) + EyeHeight;
+            shot.ShotX=source.X; shot.ShotY=eye; shot.ShotZ=source.Z;
             FixedAim.Direction(source.Yaw,source.Pitch,out int dx,out int dy,out int dz);
-            long nearest=Range*1000L; int hit=-1;
+            long nearest=CombatState.ShotRangeMillimeters*1000L; int hit=-1;
             // 地面先参与遮挡，墙体同距离时优先于角色，不能隔着墙边造成伤害。
-            if(dy<0) nearest=Math.Min(nearest, ((long)EyeHeight*FixedAim.Scale*1000-dy-1)/(-dy));
+            if(_map.HasElevation) nearest = _map.TraceTerrain(source.X,eye,source.Z,dx,dy,dz,nearest);
+            else if(dy<0) nearest=Math.Min(nearest, ((long)eye*FixedAim.Scale*1000-dy-1)/(-dy));
             foreach(var wall in _map.Obstacles)
-                if(Intersect(source.X,EyeHeight,source.Z,dx,dy,dz,wall.MinX,wall.MinY,wall.MinZ,wall.MaxX,wall.MaxY,wall.MaxZ,nearest,out long distance))
+                if(Intersect(source.X,eye,source.Z,dx,dy,dz,wall.MinX,wall.MinY,wall.MinZ,wall.MaxX,wall.MaxY,wall.MaxZ,nearest,out long distance))
                     nearest=distance;
             for(int i=0;i<_players.Length;i++)
             {
                 if(i==shooter || !active[i] || combat[i].Health==0) continue;
                 var p=_players[i]; int radius=TacticalMap.PlayerRadius;
-                if(Intersect(source.X,EyeHeight,source.Z,dx,dy,dz,p.X-radius,0,p.Z-radius,p.X+radius,BodyHeight,p.Z+radius,nearest,out long distance) && distance<nearest)
+                int feet = _map.FeetHeight(p);
+                if(Intersect(source.X,eye,source.Z,dx,dy,dz,p.X-radius,feet,p.Z-radius,p.X+radius,feet+VerticalMotion.BodyHeight,p.Z+radius,nearest,out long distance) && distance<nearest)
                 { nearest=distance; hit=i; }
             }
             shot.EndX=source.X+(int)((long)dx*nearest/(FixedAim.Scale*1000L));
-            shot.EndY=EyeHeight+(int)((long)dy*nearest/(FixedAim.Scale*1000L));
+            shot.EndY=eye+(int)((long)dy*nearest/(FixedAim.Scale*1000L));
             shot.EndZ=source.Z+(int)((long)dz*nearest/(FixedAim.Scale*1000L));
             return hit;
         }

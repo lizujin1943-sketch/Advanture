@@ -12,6 +12,13 @@ namespace Advanture.TacticalGame.Tests
             Assert.That(input.MoveX,Is.EqualTo(1000));Assert.That(input.MoveZ,Is.EqualTo(0));
             Assert.That(input.Yaw,Is.EqualTo(9000));Assert.That(input.Pitch,Is.EqualTo(-2000));
         }
+        [Test] public void JumpAndSprintSurviveInputFreezingTogether()
+        {
+            var input = TacticalInput.Decode(InputQuantizer.Create(Vector2.up, 90, 0, sprint: true, jump: true).Encode());
+            Assert.That(input.Jump && input.Sprint, Is.True);
+            Assert.That(input.MoveX, Is.EqualTo(1000));
+            Assert.That(InputQuantizer.Create(Vector2.zero, 0, 0).Jump, Is.False);
+        }
         [Test] public void AllAnglesAndDiagonalInputsAreCanonical()
         {
             for(int yaw=-720;yaw<720;yaw++)

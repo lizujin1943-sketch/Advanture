@@ -11,12 +11,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--app', type=Path, default=ROOT / 'artifacts/tactical-network/Yard07Network.app')
+parser.add_argument('--app', type=Path, help='要启动的 macOS 程序路径')
 parser.add_argument('--smoke', action='store_true')
 parser.add_argument('--combat', action='store_true', help='自动验证 AK-47 射击、扣血、死亡、换弹和重生')
+parser.add_argument('--jump', action='store_true', help='验证两端相机和对方角色的起跳与落地')
 parser.add_argument('--port', type=int, default=0, help='0 表示选择当前空闲的本机 UDP 端口')
 args = parser.parse_args()
-if args.combat:
+if args.app is None:
+    args.app = ROOT / ('.build/compound-game/dev/FortifiedCompound.app' if args.jump else 'artifacts/tactical-network/Yard07Network.app')
+if args.combat or args.jump:
     args.smoke = True
 with (args.app / 'Contents/Info.plist').open('rb') as file:
     executable = args.app / 'Contents/MacOS' / plistlib.load(file)['CFBundleExecutable']
@@ -57,6 +60,10 @@ try:
         for key in ('sawRemoteMovement', 'sawRemoteTurning', 'sawRenderedMovement', 'remoteInView'):
             if not item.get(key):
                 raise RuntimeError(f"玩家 {item['slot']} 未验证 {key}")
+        if args.jump:
+            for key in ('sawLocalJump', 'sawLocalLanding', 'sawRemoteJump', 'sawRemoteLanding'):
+                if not item.get(key):
+                    raise RuntimeError(f"玩家 {item['slot']} 未验证 {key}")
     if args.combat:
         for item in reports[1:]:
             for key in ('sawDamage', 'sawDeath', 'sawRespawn', 'sawReload', 'sawLocalShots', 'sawRemoteShots', 'localWeaponVisible'):
