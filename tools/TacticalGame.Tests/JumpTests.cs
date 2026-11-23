@@ -105,7 +105,7 @@ internal static class JumpTests
         var roster = Enumerable.Range(0,4).Select(i=>new Participant((ushort)i, Guid.NewGuid())).ToArray();
         var map = encounters ? CompoundEncounterTests.WithPlayerSpawns(
             new PlayerSpawn(-8250,7400,0), new PlayerSpawn(-2250,7400,0),
-            new PlayerSpawn(-8250,7150,0), new PlayerSpawn(-2250,7150,0)) :
+            new PlayerSpawn(-29500,-6250,0), new PlayerSpawn(-16250,30750,0)) :
             new TacticalMap(OpenMap().Area, roster.Select(p=>new PlayerSpawn(p.Slot*2000,0,0)).ToArray(), Array.Empty<MapRect>());
         var module = TacticalGame.CreateModule(map);
         var clients = roster.Select(p=>new ClientSession<TacticalState>(module, Id, 1, network.CreateEndpoint(2UL+p.Slot), 1,
@@ -125,7 +125,9 @@ internal static class JumpTests
         {
             for (int slot=0;slot<clients.Length;slot++)
             {
-                var input = new TacticalInput(0,encounters ? (short)0 : (short)500,jump:tick==5UL+(ulong)slot*2);
+                bool atDepot = encounters && slot>=2;
+                var input = new TacticalInput(0,encounters ? (short)0 : (short)500,jump:tick==5UL+(ulong)slot*2,
+                    fire:atDepot && tick==1,reload:atDepot && tick==16,resupply:atDepot && tick==(ulong)(100+slot));
                 Check.True(clients[slot].TrySubmit(tick,input.Encode()));
                 clients[slot].Poll(tick);
             }
@@ -140,6 +142,8 @@ internal static class JumpTests
                 Check.Equal(expected, CheckpointCodec.Hash(client.CaptureCheckpoint()));
             }
             var state=server.InspectState();
+            if (encounters && tick>=88 && tick<=105)
+                for(int slot=2;slot<4;slot++)Check.Equal(tick<(ulong)(100+slot)?359:360,state.Players[slot].Combat.Reserve);
             foreach(var c in state.Monsters.Creatures)
                 if(c.Phase==Advanture.HookIsland.Simulation.EldritchPhase.Emerging)entrances.Add((c.X,c.Z));
             allAirborne |= state.Players.All(p=>p.HeightAboveGround>450);

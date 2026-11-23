@@ -34,7 +34,7 @@ internal static class WeaponTests
             Check.Equal(74UL,A(r).ReloadUntilTick);Check.Equal(29,A(r).Ammo);
             for(int i=0;i<71;i++)SimulationTests.Step(r,Fire(9000));
             Check.Equal(1UL,A(r).ShotSequence);Check.Equal(29,A(r).Ammo);
-            SimulationTests.Step(r,default);Check.Equal(30,A(r).Ammo);Check.Equal(89,A(r).Reserve);Check.Equal(0UL,A(r).ReloadUntilTick);
+            SimulationTests.Step(r,default);Check.Equal(30,A(r).Ammo);Check.Equal(359,A(r).Reserve);Check.Equal(0UL,A(r).ReloadUntilTick);
         });
         yield return ("weapon.wall_blocks_but_low_cover_can_be_shot_over",()=>{
             var r=SimulationTests.Runner(Duel(new MapRect(-1000,2000,1000,2200)));
@@ -53,7 +53,7 @@ internal static class WeaponTests
             Check.Equal(0,B(r).Health);Check.Equal(100UL,B(r).RespawnAtTick);Check.Equal(1U,A(r).Kills);Check.Equal(1U,B(r).Deaths);
             for(int i=0;i<89;i++)SimulationTests.Step(r,default,new TacticalInput(1000,0,fire:true,reload:true,respawn:true));
             Check.Equal(0,B(r).Health);Check.Equal(0UL,B(r).ShotSequence);Check.Equal(5000,r.InspectState().Players[1].Z);
-            SimulationTests.Step(r,default);Check.Equal(100,B(r).Health);Check.Equal(30,B(r).Ammo);Check.Equal(90,B(r).Reserve);Check.Equal(1U,B(r).Deaths);
+            SimulationTests.Step(r,default);Check.Equal(100,B(r).Health);Check.Equal(30,B(r).Ammo);Check.Equal(360,B(r).Reserve);Check.Equal(1U,B(r).Deaths);
         });
         yield return ("weapon.simultaneous_fatal_shots_do_not_favour_slot_zero",()=>{
             var r=SimulationTests.Runner(Duel());for(int i=0;i<10;i++)SimulationTests.Step(r,Fire(),Fire(18000));
@@ -69,7 +69,7 @@ internal static class WeaponTests
             Check.Equal(1U,B(other).Deaths);Check.True(A(other).ShotSequence>4);
         });
         yield return ("weapon.invalid_combat_state_is_rejected",()=>{
-            Check.Throws(()=>new CombatState(health:101));Check.Throws(()=>new CombatState(ammo:31));Check.Throws(()=>new CombatState(reserve:-1));
+            Check.Throws(()=>new CombatState(health:101));Check.Throws(()=>new CombatState(ammo:31));Check.Throws(()=>new CombatState(reserve:-1));Check.Throws(()=>new CombatState(reserve:361));
             Check.Throws(()=>new CombatState(health:0));Check.Throws(()=>new CombatState(health:100,respawnAtTick:30));
         });
     }

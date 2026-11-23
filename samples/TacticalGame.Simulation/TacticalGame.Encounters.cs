@@ -16,7 +16,7 @@ public sealed partial class TacticalGame
         private void InitializeEncounters()
         {
             encounterTerrain=new CompoundEncounterTerrain(_map);
-            monsters=new EldritchSystem(encounterTerrain,CompoundEncounterTerrain.Settings,EncounterSeed);
+            monsters=new EldritchSystem(encounterTerrain,CompoundEncounterTerrain.Settings,EncounterSeed,schedule:_map.SpawnSchedule);
             explorers=new Fisher[_players[_players.Length-1].Slot+1];
             for(int i=0;i<explorers.Length;i++)explorers[i]=new Fisher{Slot=(ushort)i,WaitingToJoin=true};
         }
@@ -28,15 +28,15 @@ public sealed partial class TacticalGame
                 return;
             }
             var roster=state.Monsters;
-            if(roster.Creatures.Count!=TownEncounters.Population || roster.NextSpawn!=0 ||
+            if(roster.Creatures.Count!=_map.SpawnSchedule.Population || roster.NextSpawn!=0 ||
                 roster.Director.ElapsedTicks>EncounterClock(state.Steps,_rate) ||
-                (roster.Director.PendingCard>0 && !CompoundEncounterTerrain.Settings.Includes((int)TownEncounters.Kind(roster.Director.PendingCard-1))))
+                (roster.Director.PendingCard>0 && !CompoundEncounterTerrain.Settings.Includes((int)_map.SpawnSchedule.Kind(roster.Director.PendingCard-1))))
                 throw new InvalidDataException("怪物名册或生成时钟与地图不匹配。");
             foreach(var c in roster.Creatures)
                 if(c.Paused || (c.Generation>0 && !CompoundEncounterTerrain.Settings.Includes((int)c.Kind)) ||
                     (c.Alive && !encounterTerrain.CanStand(EldritchCatalog.Get(c.Kind).Habitat,c.X,c.Z)))
                     throw new InvalidDataException("怪物恢复位置或激活状态不合法。");
-            monsters=new EldritchSystem(encounterTerrain,CompoundEncounterTerrain.Settings,EncounterSeed,roster);
+            monsters=new EldritchSystem(encounterTerrain,CompoundEncounterTerrain.Settings,EncounterSeed,roster,_map.SpawnSchedule);
         }
         private void AdvanceEncounters(ulong tick,bool[] active,CombatModel[] combat)
         {

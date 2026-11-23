@@ -1,19 +1,19 @@
 using System;
 using System.IO;
-using Advanture.HookIsland.Simulation;
 namespace Advanture.Tactical.Simulation;
 
 /// <summary>不可变战斗快照。所有会影响后续射击、伤害或表现去重的数据都随状态保存。</summary>
 public sealed class CombatState
 {
     internal const int ByteCount = 92;
+    public const int ReserveCapacity = 360;
     public const uint ReloadDurationMilliseconds = 2400;
     public const int ShotRangeMillimeters = 100000;
-    public CombatState(int health = 100, int ammo = 30, int reserve = 90, ulong nextFireTick = 0, ulong reloadUntilTick = 0, ulong respawnAtTick = 0, ulong shotSequence = 0, ulong lastShotTick = 0, uint hits = 0, uint kills = 0, uint deaths = 0, int lastHitSlot = -1, int shotX = 0, int shotY = 0, int shotZ = 0, int endX = 0, int endY = 0, int endZ = 0, int lastHitCreature = -1)
+    public CombatState(int health = 100, int ammo = 30, int reserve = ReserveCapacity, ulong nextFireTick = 0, ulong reloadUntilTick = 0, ulong respawnAtTick = 0, ulong shotSequence = 0, ulong lastShotTick = 0, uint hits = 0, uint kills = 0, uint deaths = 0, int lastHitSlot = -1, int shotX = 0, int shotY = 0, int shotZ = 0, int endX = 0, int endY = 0, int endZ = 0, int lastHitCreature = -1)
     {
-        if (health < 0 || health > 100 || ammo < 0 || ammo > 30 || reserve < 0 || reserve > 90 ||
+        if (health < 0 || health > 100 || ammo < 0 || ammo > 30 || reserve < 0 || reserve > ReserveCapacity ||
             (health == 0) != (respawnAtTick > 0) || (health == 0 && reloadUntilTick != 0) || lastHitSlot < -1 || lastHitSlot > 3 ||
-            (lastHitCreature < -1 || lastHitCreature >= TownEncounters.Population || (lastHitCreature >= 0 && (lastHitSlot >= 0 || shotSequence == 0))) ||
+            (lastHitCreature < -1 || lastHitCreature >= CompoundDefense.Waves.Population || (lastHitCreature >= 0 && (lastHitSlot >= 0 || shotSequence == 0))) ||
             (shotSequence == 0) != (lastShotTick == 0) || hits > shotSequence)
             throw new InvalidDataException("战斗状态不合法。");
         foreach (int coordinate in new[]{shotX,shotY,shotZ,endX,endY,endZ})

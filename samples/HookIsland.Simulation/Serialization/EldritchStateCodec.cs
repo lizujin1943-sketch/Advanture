@@ -26,12 +26,13 @@ public static class EldritchStateCodec
         var roster=Read(r,config,s.Tackle?.Config.TownMode==true,s.Steps,s.Players.Count,joined);
         return new HookState(s.Steps,s.Players,s.Fish,s.Coins,s.Tiles,s.Driftwood,s.Tackle,s.Enemies,s.RoomRules,s.Treasure,s.Commissions,s.Ocean,s.Finale,s.Crabs,s.Boss,s.Grenades,roster);
     }
-    public static EldritchState Read(BinaryReader r,EldritchConfig config,bool town,ulong steps,int playerSlots,int joinedMask)
+    public static EldritchState Read(BinaryReader r,EldritchConfig config,bool town,ulong steps,int playerSlots,int joinedMask,EncounterSchedule? schedule=null)
     {
         if(r.ReadInt32()!=0x33524445)throw new InvalidDataException("Eldritch state version mismatch.");
-        int adults=town?TownEncounters.AdultCount:10;
+        schedule??=EncounterSchedule.Town;
+        int adults=town?schedule.AdultCount:10;
         int next=r.ReadInt32(),count=r.ReadInt32();
-        if(count!=(config.Enabled?(town?TownEncounters.Population:EldritchCatalog.Population):0) || next<0 || next>=adults || !config.Enabled && next!=0)
+        if(count!=(config.Enabled?(town?schedule.Population:EldritchCatalog.Population):0) || next<0 || next>=adults || !config.Enabled && next!=0)
             throw new InvalidDataException("Invalid eldritch population.");
         var director=TownDirectorStateCodec.Read(r);
         var creatures=new EldritchCreature[count];int alive=0;
@@ -42,7 +43,7 @@ public static class EldritchStateCodec
                 EffectX=r.ReadInt32(),EffectZ=r.ReadInt32(),TravelRemainder=r.ReadInt32(),GoalX=r.ReadInt32(),GoalZ=r.ReadInt32(),RouteTicks=r.ReadInt32(),
                 NoTargetTicks=r.ReadInt32(),Summons=r.ReadInt32(),RewardOwner=r.ReadInt32(),Ally=r.ReadInt32(),HitMask=r.ReadByte()};
             byte reward=r.ReadByte(),townAdult=r.ReadByte(),paused=r.ReadByte();c.Rewarded=reward==1;c.TownAdult=townAdult==1;c.Paused=paused==1;
-            if(c.Id!=i || c.Kind!=(town?TownEncounters.Kind(i):i<10?(EldritchKind)i:EldritchKind.DeepOne) || townAdult>1 || paused>1 || c.TownAdult!=(town && i<adults) || c.Paused && !town || c.Phase>EldritchPhase.Dead || reward>1)
+            if(c.Id!=i || c.Kind!=(town?schedule.Kind(i):i<10?(EldritchKind)i:EldritchKind.DeepOne) || townAdult>1 || paused>1 || c.TownAdult!=(town && i<adults) || c.Paused && !town || c.Phase>EldritchPhase.Dead || reward>1)
                 throw new InvalidDataException("Invalid eldritch identity.");
             var d=EldritchCatalog.Get(c.Kind);
             int limit=c.Phase switch {EldritchPhase.Dormant=>Math.Max(config.RespawnTicks,config.InitialDelayTicks+9*config.StaggerTicks),
@@ -72,8 +73,10 @@ public static class EldritchStateCodec
             if(!c.IsMinion && c.Damageable && !c.Paused)alive++;
             creatures[i]=c;
         }
-        if(alive>config.MaxAlive)throw new InvalidDataException("Eldritch encounter cap exceeded.");
-        TownDirectorStateCodec.Validate(director,town && config.Enabled,steps,creatures);
+        int participants=0;
+        for(int slot=0;slot<playerSlots;slot++)if((joinedMask & (1<<slot))!=0)participants++;
+        if(alive>schedule.AdultLimit(config.MaxAlive,participants))throw new InvalidDataException("Eldritch encounter cap exceeded.");
+        TownDirectorStateCodec.Validate(director,town && config.Enabled,steps,creatures,schedule);
         return new EldritchState(creatures,next,director);
     }
     internal static void ValidateMap(IslandMap map,HookState s)

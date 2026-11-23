@@ -49,6 +49,18 @@ namespace Advanture.TacticalGame.Tests
                 Assert.That(Physics.CheckCapsule(feet+Vector3.up*.50f,feet+Vector3.up*1.55f,.28f),Is.False,feet.ToString());
             }
         }
+        [Test] public void BothAmmoDepotsHaveAReachableFloorBesideTheirCases()
+        {
+            Assert.That(map.AmmoDepots.Count,Is.EqualTo(2));
+            foreach (var point in map.AmmoDepots)
+            {
+                var feet = new Vector3(point.X*.001f,map.GroundHeight(point.X,point.Z)*.001f,point.Z*.001f);
+                Assert.That(Physics.Raycast(feet+Vector3.up,Vector3.down,out var hit,1.5f),Is.True);
+                Assert.That(hit.point.y,Is.EqualTo(feet.y).Within(.035f));
+                Assert.That(Physics.CheckCapsule(feet+Vector3.up*.36f,feet+Vector3.up*1.55f,.35f),Is.False);
+            }
+        }
+
         [TestCase(-8.125f,-16.125f)]
         [TestCase(-8.125f,-13.125f)]
         [TestCase(-8.125f,-11.125f)]
@@ -72,16 +84,18 @@ namespace Advanture.TacticalGame.Tests
             yield return new EnterPlayMode();
             var room=Object.FindObjectOfType<NetworkYardController>();
             var seen=new HashSet<int>();
+            int peak=0;
             double deadline=Time.realtimeSinceStartupAsDouble+75;
             try
             {
                 room.PlaySolo();
-                while(seen.Count<3 && Time.realtimeSinceStartupAsDouble<deadline)
+                while((seen.Count<3 || peak<12) && Time.realtimeSinceStartupAsDouble<deadline)
                 {
                     yield return null;
                     Assert.That(room.Failure,Is.Null);
                     if(!room.Playing || !room.LocalPlayer.HasValue)continue;
                     var state=room.Client.Session.InspectState();
+                    peak=Mathf.Max(peak,state.Monsters.Creatures.Count(c=>c.Damageable && !c.IsMinion));
                     foreach(var c in state.Monsters.Creatures)
                     {
                         if(c.Phase!=EldritchPhase.Emerging)continue;
@@ -98,6 +112,8 @@ namespace Advanture.TacticalGame.Tests
                     }
                 }
                 Assert.That(seen.Count,Is.EqualTo(3),"Confirmed and rendered breach entrances");
+                Assert.That(peak,Is.GreaterThanOrEqualTo(12));
+                Assert.That(room.LocalPlayer.Value.Combat.Reserve,Is.EqualTo(360));
             }
             finally {room.LeaveRoom();}
             yield return null;

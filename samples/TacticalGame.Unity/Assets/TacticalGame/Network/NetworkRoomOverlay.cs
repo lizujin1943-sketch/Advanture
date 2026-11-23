@@ -85,12 +85,13 @@ namespace Advanture.TacticalGame.NetworkView
             else
             {
                 DrawReticle(new Vector2(width / 2, height / 2));
+                DrawAmmoDepots(width,height);
             }
             DrawCombatHud(width,height);
             if (!room.Playing || !room.Input.HasControl || diagnostics)
             {
                 Panel(new Rect(24,height-58,850,34));
-                GUI.Label(new Rect(38,height-55,825,30), "WASD 移动   空格 跳跃   Shift 加速   左键 连射   R 换弹   Esc 释放鼠标   F3 状态", body);
+                GUI.Label(new Rect(38,height-55,825,30), "WASD 移动   空格 跳跃   Shift 加速   左键 连射   R 换弹   " + (room.Map?.AmmoDepots.Count > 0 ? "E 补弹   " : "") + "Esc 释放鼠标   F3 状态", body);
             }
             if (diagnostics && room.Client?.Session != null)
             {
@@ -101,6 +102,39 @@ namespace Advanture.TacticalGame.NetworkView
                 GUI.Label(new Rect(42,112,620,32), "诊断日志保存失败，详情见程序日志。", body);
             GUI.matrix = old;
         }
+        private void DrawAmmoDepots(float width, float height)
+        {
+            if (!room.LocalPlayer.HasValue || room.Map.AmmoDepots.Count == 0) return;
+            var player = room.LocalPlayer.Value;
+            if (!player.Combat.IsAlive) return;
+            int nearby = room.Map.NearbyAmmoDepot(player);
+            if (nearby >= 0)
+            {
+                string message = player.Combat.Reserve == CombatState.ReserveCapacity ? "补给点  ·  备弹已满" : "[E]  补满备弹";
+                DrawDepotLabel(new Vector2(width * .5f, height * .59f), message, 160);
+                return;
+            }
+            var camera = room.ViewCamera;
+            foreach (var depot in room.Map.AmmoDepots)
+            {
+                var point = new Vector3(depot.X * .001f, room.Map.GroundHeight(depot.X,depot.Z) * .001f + 1.1f, depot.Z * .001f);
+                var screen = camera.WorldToViewportPoint(point);
+                if (screen.z <= 0 || screen.x < .08f || screen.x > .92f || screen.y < .14f || screen.y > .86f) continue;
+                float distance = Vector3.Distance(camera.transform.position, point);
+                if (distance > 24 || Physics.Linecast(camera.transform.position, point, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) continue;
+                DrawDepotLabel(new Vector2(width * screen.x, height * (1-screen.y)), "弹药补给  " + Mathf.RoundToInt(distance) + " m", 135);
+            }
+        }
+
+        private GUIStyle depotLabel;
+        private void DrawDepotLabel(Vector2 center, string message, float width)
+        {
+            if (depotLabel == null) depotLabel = new GUIStyle(body) { alignment = TextAnchor.MiddleCenter };
+            var area = new Rect(center.x - width * .5f, center.y - 15, width, 30);
+            Panel(area);
+            GUI.Label(area, message, depotLabel);
+        }
+
         private void DrawReticle(Vector2 center)
         {
             var previous = GUI.color;

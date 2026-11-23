@@ -37,7 +37,7 @@ internal static class CompoundEncounterTests
             Check.True(expected.SequenceEqual(map.MonsterEntrances.Select(p=>(p.X,p.Z))));
             var runner=Runner(map);
             var mirror=Runner(map);
-            var generations=new uint[TownEncounters.Population];
+            var generations=new uint[map.SpawnSchedule.Population];
             var origins=new Dictionary<int,(int x,int z)>();
             var observed=new HashSet<(int,int)>();
             var approached=new HashSet<(int,int)>();
@@ -47,12 +47,12 @@ internal static class CompoundEncounterTests
                 Step(runner,default);
                 var state=runner.InspectState();
                 Check.True(state.Monsters.Director.ElapsedTicks>0 && state.Monsters.Director.ElapsedTicks<=(ulong)tick);
-                Check.True(state.Monsters.Creatures.Count(c=>c.Alive && !c.IsMinion)<=4);
+                Check.True(state.Monsters.Creatures.Count(c=>c.Alive && !c.IsMinion)<=32);
                 foreach(var c in state.Monsters.Creatures)
                 {
                     if(c.Generation!=generations[c.Id])
                     {
-                        Check.True(tick>=TownDirectorRules.InitialWaitTicks);
+                        Check.True(tick>=map.SpawnSchedule.InitialWait);
                         Check.Equal(EldritchPhase.Emerging,c.Phase);
                         Check.Equal(EldritchCatalog.EmergenceTicks,c.Timer);
                         Check.True(c.Kind!=EldritchKind.DrownedBell && expected.Contains((c.X,c.Z)));
@@ -169,7 +169,7 @@ internal static class CompoundEncounterTests
                 for(int i=0;i<360;i++)Step(blocked,default);
                 var roster=blocked.InspectState().Monsters;
                 Check.True(roster.Creatures.All(c=>c.Generation==0),"Unexpected spawn near "+observer);
-                Check.Equal(TownDirectorRules.InitialCredits*HookGame.Rate+360*16/5,roster.Director.CreditUnits);
+                Check.Equal(Math.Min(map.SpawnSchedule.MaxCredits*HookGame.Rate,map.SpawnSchedule.InitialCredits*HookGame.Rate+360*map.SpawnSchedule.Income*8/5),roster.Director.CreditUnits);
             }
         });
     }

@@ -7,14 +7,14 @@ namespace Advanture.TacticalGame.NetworkView
     public sealed class NetworkInputSource : MonoBehaviour
     {
         private Vector2 movement;
-        private bool captured, sprint, fire, reload, jump, suppressFireUntilRelease;
+        private bool captured, sprint, fire, reload, jump, resupply, suppressFireUntilRelease;
 
         public float Yaw { get; private set; }
         public float Pitch { get; private set; }
         public bool HasControl => captured && Cursor.lockState == CursorLockMode.Locked && Application.isFocused;
 
         public void InitializeLook(float yaw)
-        { Yaw = yaw; Pitch = 0; movement = Vector2.zero; reload = false; jump = false; fire = false; }
+        { Yaw = yaw; Pitch = 0; movement = Vector2.zero; reload = false; jump = false; resupply = false; fire = false; }
 
         public void CaptureDevice(bool playing, bool allowCapture = true)
         {
@@ -38,6 +38,7 @@ namespace Advanture.TacticalGame.NetworkView
             fire = mouse != null && mouse.leftButton.isPressed && !suppressFireUntilRelease;
             if (keyboard != null && keyboard.rKey.wasPressedThisFrame) reload = true;
             if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame) jump = true;
+            if (keyboard != null && keyboard.eKey.wasPressedThisFrame) resupply = true;
         }
 
         public TacticalInput Sample(ulong tick)
@@ -45,10 +46,11 @@ namespace Advanture.TacticalGame.NetworkView
             if (!HasControl) return default; // 失焦/菜单也显式冻结中性输入，后台会话照常推进。
             bool requestReload = reload; reload = false;
             bool requestJump = jump; jump = false;
-            return InputQuantizer.Create(movement, Yaw, Pitch, sprint, fire: fire, reload: requestReload, jump: requestJump);
+            bool requestResupply = resupply; resupply = false;
+            return InputQuantizer.Create(movement, Yaw, Pitch, sprint, fire: fire, reload: requestReload, jump: requestJump, resupply: requestResupply);
         }
         public void Release()
-        { captured = false; movement = Vector2.zero; sprint = false; reload = false; jump = false; fire = false; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
+        { captured = false; movement = Vector2.zero; sprint = false; reload = false; jump = false; resupply = false; fire = false; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
         private void OnApplicationFocus(bool focused) { if (!focused) Release(); }
         private void OnDisable() => Release();
     }

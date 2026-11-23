@@ -15,15 +15,15 @@ internal static class TownDirectorStateCodec
         ElapsedTicks=r.ReadUInt64(),CreditUnits=r.ReadInt32(),IncomeRemainder=r.ReadInt32(),WaitTicks=r.ReadInt32(),
         PendingCard=r.ReadInt32(),BurstRemaining=r.ReadInt32(),RandomState=r.ReadUInt32()
     };
-    internal static void Validate(TownDirectorState s,bool enabled,ulong steps,EldritchCreature[] creatures)
+    internal static void Validate(TownDirectorState s,bool enabled,ulong steps,EldritchCreature[] creatures,EncounterSchedule schedule)
     {
         bool empty=s.Equals(default(TownDirectorState));
         if(!enabled || s.RandomState==0)
         {if(!empty)throw new InvalidDataException("Unexpected inactive director state.");return;}
         if(s.ElapsedTicks==0 || s.ElapsedTicks>steps || s.ElapsedTicks>TownDirectorRules.MaxElapsedTicks ||
-            s.CreditUnits<0 || s.CreditUnits>TownDirectorRules.MaxCredits*HookGame.Rate ||
-            s.IncomeRemainder<0 || s.IncomeRemainder>=5 || s.WaitTicks<0 || s.WaitTicks>150 ||
-            s.PendingCard<0 || s.PendingCard>TownEncounters.AdultCount || s.BurstRemaining<0 || s.BurstRemaining>3)
+            s.CreditUnits<0 || s.CreditUnits>schedule.MaxCredits*HookGame.Rate ||
+            s.IncomeRemainder<0 || s.IncomeRemainder>=5 || s.WaitTicks<0 || s.WaitTicks>schedule.MaxWait ||
+            s.PendingCard<0 || s.PendingCard>schedule.AdultCount || s.BurstRemaining<0 || s.BurstRemaining>schedule.MaxWaveSize)
             throw new InvalidDataException("Invalid director budget or clock.");
         if(s.PendingCard>0)
         {

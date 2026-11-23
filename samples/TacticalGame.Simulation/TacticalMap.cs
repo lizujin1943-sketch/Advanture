@@ -42,11 +42,12 @@ public sealed class TacticalMap
     private const uint HeightMagic = 0x33504D54;
     private const uint ClearanceMagic = 0x34504D54;
     private const uint EncounterMagic = 0x35504D54; // TMP5 stores encounter entrances before the height grid.
+    private const uint DefenseMagic = 0x36504D54; // TMP6 adds ammunition depots and the defense wave schedule.
     private readonly TacticalHeightField? terrain;
     public TacticalMap(MapRect area, IReadOnlyList<PlayerSpawn> spawns, IReadOnlyList<MapRect> obstacles)
-        : this(area, spawns, obstacles, null, Array.Empty<Point>()) { }
+        : this(area, spawns, obstacles, null, Array.Empty<Point>(), Array.Empty<Point>(), false) { }
 
-    private TacticalMap(MapRect area, IReadOnlyList<PlayerSpawn> spawns, IReadOnlyList<MapRect> obstacles, TacticalHeightField? terrain, Point[] entrances)
+    private TacticalMap(MapRect area, IReadOnlyList<PlayerSpawn> spawns, IReadOnlyList<MapRect> obstacles, TacticalHeightField? terrain, Point[] entrances, Point[] depots, bool defenseWaves)
     {
         area.Validate();
         if (spawns == null || spawns.Count < 1 || spawns.Count > 4 || obstacles == null || obstacles.Count > 128)
@@ -56,23 +57,40 @@ public sealed class TacticalMap
         Spawns = Array.AsReadOnly(spawns.ToArray());
         Obstacles = Array.AsReadOnly(obstacles.ToArray());
         MonsterEntrances = Array.AsReadOnly(entrances);
+        AmmoDepots = Array.AsReadOnly(depots);
+        HasDefenseWaves = defenseWaves;
         if(entrances.Length>0)Navigation=new Lazy<CompoundNavigation>(()=>new CompoundNavigation(this));
         foreach (var obstacle in Obstacles) obstacle.Validate();
         foreach (var spawn in Spawns)
             if (spawn.Yaw >= 36000 || !CanStand(spawn.X, spawn.Z))
                 throw new InvalidDataException("出生点位于障碍内或地图外。");
-        for(int i=0;i<entrances.Length;i++)
-        {
-            var entry=entrances[i];
-            if(!CanStand(entry.X,entry.Z) || entrances.Take(i).Any(p=>p.X==entry.X && p.Z==entry.Z))
-                throw new InvalidDataException("怪物入口必须独立且有可站立地面。");
-        }
+        var placed = new HashSet<(int,int)>();
+        foreach (var point in entrances.Concat(depots))
+            if (!CanStand(point.X,point.Z) || !placed.Add((point.X,point.Z)))
+                throw new InvalidDataException("怪物入口和补给点必须独立且有可站立地面。");
     }
     public MapRect Area { get; }
     public IReadOnlyList<PlayerSpawn> Spawns { get; }
     public IReadOnlyList<MapRect> Obstacles { get; }
     public IReadOnlyList<Point> MonsterEntrances { get; }
+    public IReadOnlyList<Point> AmmoDepots { get; }
+    public bool HasDefenseWaves { get; }
+    public EncounterSchedule SpawnSchedule => HasDefenseWaves ? CompoundDefense.Waves : EncounterSchedule.Town;
     internal Lazy<CompoundNavigation>? Navigation { get; }
+
+    public int NearbyAmmoDepot(TacticalPlayer player)
+    {
+        if (!player.Combat.IsAlive || player.IsAirborne) return -1;
+        const int reach = 2250;
+        for (int i=0; i<AmmoDepots.Count; i++)
+        {
+            var point = AmmoDepots[i];
+            if (IslandMap.DistanceSquared(player.X,player.Z,point.X,point.Z) <= (long)reach * reach &&
+                Math.Abs(FeetHeight(player)-GroundHeight(point.X,point.Z)) <= VerticalMotion.StepHeight &&
+                CanWalk(player.X,player.Z,point.X,point.Z)) return i;
+        }
+        return -1;
+    }
 
     public bool HasElevation => terrain != null;
     public int GroundHeight(int x, int z) => terrain != null && terrain.TryGround(x, z, out int y) ? y : 0;
@@ -110,9 +128,10 @@ public sealed class TacticalMap
 
     public byte[] Encode()
     {
-        int portBytes=MonsterEntrances.Count==0?0:1+MonsterEntrances.Count*8;
-        var bytes = new byte[31 + Spawns.Count * 10 + Obstacles.Count * 24 + portBytes + (terrain == null ? 0 : terrain.Encoded.Length)];
-        BinaryPrimitives.WriteUInt32LittleEndian(bytes, portBytes>0 ? EncounterMagic : terrain == null ? Magic : terrain.HasCeiling ? ClearanceMagic : HeightMagic);
+        int pointBytes = (MonsterEntrances.Count == 0 ? 0 : 1+MonsterEntrances.Count*8)
+            + (HasDefenseWaves ? 1+AmmoDepots.Count*8 : 0);
+        var bytes = new byte[31 + Spawns.Count * 10 + Obstacles.Count * 24 + pointBytes + (terrain == null ? 0 : terrain.Encoded.Length)];
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes, HasDefenseWaves ? DefenseMagic : MonsterEntrances.Count>0 ? EncounterMagic : terrain == null ? Magic : terrain.HasCeiling ? ClearanceMagic : HeightMagic);
         WriteRect(bytes.AsSpan(4), Area);
         bytes[28] = (byte)Spawns.Count;
         int offset = 29;
@@ -126,16 +145,18 @@ public sealed class TacticalMap
         BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), (ushort)Obstacles.Count);
         offset += 2;
         foreach (var o in Obstacles) { WriteRect(bytes.AsSpan(offset), o); offset += 24; }
-        if(portBytes>0)
+        void WritePoints(IReadOnlyList<Point> points)
         {
-            bytes[offset++]=(byte)MonsterEntrances.Count;
-            foreach(var port in MonsterEntrances)
+            bytes[offset++]=(byte)points.Count;
+            foreach(var port in points)
             {
                 BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset),port.X);
                 BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset+4),port.Z);
                 offset+=8;
             }
         }
+        if (MonsterEntrances.Count>0) WritePoints(MonsterEntrances);
+        if (HasDefenseWaves) WritePoints(AmmoDepots);
         if (terrain != null) terrain.Encoded.CopyTo(bytes.AsSpan(offset));
         return bytes;
     }
@@ -143,7 +164,7 @@ public sealed class TacticalMap
     public static TacticalMap Decode(ReadOnlySpan<byte> bytes)
     {
         uint version = bytes.Length >= 4 ? BinaryPrimitives.ReadUInt32LittleEndian(bytes) : 0;
-        if (bytes.Length < 31 || (version != Magic && version != HeightMagic && version != ClearanceMagic && version != EncounterMagic) || bytes[28] < 1 || bytes[28] > 4)
+        if (bytes.Length < 31 || (version != Magic && version != HeightMagic && version != ClearanceMagic && version != EncounterMagic && version != DefenseMagic) || bytes[28] < 1 || bytes[28] > 4)
             throw new InvalidDataException("地图头部不合法。");
         int count = bytes[28], offset = 29 + count * 10;
         if (bytes.Length < offset + 2) throw new InvalidDataException("地图被截断。");
@@ -159,16 +180,19 @@ public sealed class TacticalMap
         var rects = new MapRect[obstacles];
         for (int i = 0; i < obstacles; i++) rects[i] = ReadRect(bytes.Slice(offset + 2 + i * 24));
         var area = ReadRect(bytes.Slice(4));
-        var entrances=Array.Empty<Point>();
-        if(version==EncounterMagic)
-        {
-            if(end>=bytes.Length || bytes[end]<1 || bytes[end]>16 || bytes.Length-end-1<bytes[end]*8)
-                throw new InvalidDataException("怪物入口数据不完整。");
-            entrances=new Point[bytes[end++]];
-            for(int i=0;i<entrances.Length;i++,end+=8)
-                entrances[i]=new Point(BinaryPrimitives.ReadInt32LittleEndian(bytes.Slice(end)),BinaryPrimitives.ReadInt32LittleEndian(bytes.Slice(end+4)));
-        }
-        return new TacticalMap(area, spawns, rects, version == Magic ? null : new TacticalHeightField(bytes.Slice(end), area, version != HeightMagic),entrances);
+        var entrances = version == EncounterMagic || version == DefenseMagic ? ReadPoints(bytes,ref end) : Array.Empty<Point>();
+        var depots = version == DefenseMagic ? ReadPoints(bytes,ref end,allowEmpty:true) : Array.Empty<Point>();
+        return new TacticalMap(area, spawns, rects, version == Magic ? null : new TacticalHeightField(bytes.Slice(end), area, version != HeightMagic),entrances,depots,version==DefenseMagic);
+    }
+
+    private static Point[] ReadPoints(ReadOnlySpan<byte> bytes, ref int offset, bool allowEmpty=false)
+    {
+        if(offset>=bytes.Length || (!allowEmpty && bytes[offset]==0) || bytes[offset]>16 || bytes.Length-offset-1<bytes[offset]*8)
+            throw new InvalidDataException("地图交互点数据不完整。");
+        var result = new Point[bytes[offset++]];
+        for(int i=0;i<result.Length;i++,offset+=8)
+            result[i]=new Point(BinaryPrimitives.ReadInt32LittleEndian(bytes.Slice(offset)),BinaryPrimitives.ReadInt32LittleEndian(bytes.Slice(offset+4)));
+        return result;
     }
 
     private static void WriteRect(Span<byte> b, MapRect r)

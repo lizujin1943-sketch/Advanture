@@ -101,7 +101,7 @@ namespace Advanture.TacticalGame.NetworkView
                 float delta = Time.unscaledDeltaTime;
                 if (confirmed.Monsters.Creatures.Count > 0)
                 {
-                    if (encounters == null) encounters = new EldritchPresentation(transform,Shader.Find("Sprites/Default"),new EldritchConfig(),true);
+                    if (encounters == null) encounters = new EldritchPresentation(transform,Shader.Find("Sprites/Default"),new EldritchConfig(),true,map.SpawnSchedule);
                     encounters.Synchronize(confirmed.Monsters,confirmed.Steps,groundHeight,delta);
                 }
                 foreach (var p in confirmed.Players)

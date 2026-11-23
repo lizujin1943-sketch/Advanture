@@ -12,14 +12,14 @@ public sealed partial class TacticalGame : IStateCodec<TacticalState>, ISimulati
 {
     public static SimulationModule<TacticalState> CreateModule() => CreateModule(false);
 
-    public static SimulationModule<TacticalState> CreateModule(TacticalMap map) => CreateModule(map.HasElevation,map.MonsterEntrances.Count>0);
+    public static SimulationModule<TacticalState> CreateModule(TacticalMap map) => CreateModule(map.HasElevation,map.MonsterEntrances.Count>0,map.HasDefenseWaves);
     public static SimulationModule<TacticalState> CreateModule(bool elevatedTerrain) => CreateModule(elevatedTerrain,false);
-    private static SimulationModule<TacticalState> CreateModule(bool elevatedTerrain,bool encounters)
+    private static SimulationModule<TacticalState> CreateModule(bool elevatedTerrain,bool encounters,bool defense=false)
     {
         var game = new TacticalGame();
-        var manifest = new CompatibilityManifest("advanture-yard", rulesVersion: encounters?"5":"4", inputFormatVersion: "3",
-            stateFormatVersion: encounters?"4":"3", contentHash: encounters?"compound-town-roster-v1":"ak47-30-90-25-100ms-2400ms-3000ms-v1",
-            determinismHash: encounters?"breach-director-grid-v1":elevatedTerrain ? "integer-grid-jump-v1" : "integer-flat-jump-v1");
+        var manifest = new CompatibilityManifest("advanture-yard", rulesVersion: defense?"8":encounters?"7":"6", inputFormatVersion: "4",
+            stateFormatVersion: defense?"5":encounters?"4":"3", contentHash: defense?"compound-waves-depots-360-v1":encounters?"compound-town-roster-360-v2":"ak47-30-360-25-100ms-2400ms-3000ms-v2",
+            determinismHash: defense?"breach-waves-depot-grid-v1":encounters?"breach-director-grid-v1":elevatedTerrain ? "integer-grid-jump-v1" : "integer-flat-jump-v1");
         return new SimulationModule<TacticalState>(manifest, game, game, game);
     }
     private readonly object mapLock=new object();
@@ -37,7 +37,7 @@ public sealed partial class TacticalGame : IStateCodec<TacticalState>, ISimulati
     public IDeterministicSimulation<TacticalState> Create() => new Model(this);
     public void ValidateCanonical(ReadOnlySpan<byte> bytes) => TacticalInput.Decode(bytes);
 
-    private const uint GroundedStateMagic = 0x32434154U, JumpStateMagic = 0x33434154U, EncounterStateMagic = 0x34434154U;
+    private const uint GroundedStateMagic = 0x32434154U, JumpStateMagic = 0x33434154U, EncounterStateMagic = 0x34434154U, DefenseStateMagic = 0x35434154U;
 
     /// <summary>每名角色的垂直位置、速度和亚毫米余量与战斗状态一起进入回滚快照。</summary>
     public byte[] Encode(TacticalState state)
@@ -45,7 +45,7 @@ public sealed partial class TacticalGame : IStateCodec<TacticalState>, ISimulati
         if (state == null) throw new ArgumentNullException(nameof(state));
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         bool encounters=state.Monsters.Creatures.Count>0;
-        writer.Write(encounters?EncounterStateMagic:JumpStateMagic); writer.Write(state.Steps); writer.Write((ushort)state.Players.Count);
+        writer.Write(state.Monsters.Creatures.Count==CompoundDefense.Waves.Population?DefenseStateMagic:encounters?EncounterStateMagic:JumpStateMagic); writer.Write(state.Steps); writer.Write((ushort)state.Players.Count);
         foreach (var p in state.Players)
         {
             writer.Write(p.Slot); writer.Write(p.X); writer.Write(p.Z); writer.Write(p.Yaw); writer.Write(p.Pitch);
@@ -61,16 +61,17 @@ public sealed partial class TacticalGame : IStateCodec<TacticalState>, ISimulati
         if (bytes.Length < 14) throw new InvalidDataException("状态头部被截断。");
         using var reader = new BinaryReader(new MemoryStream(bytes.ToArray(), false));
         uint version = reader.ReadUInt32();
-        if (version != GroundedStateMagic && version != JumpStateMagic && version != EncounterStateMagic) throw new InvalidDataException("游戏状态版本不匹配。");
+        bool encounters=version==EncounterStateMagic || version==DefenseStateMagic;
+        if (version != GroundedStateMagic && version != JumpStateMagic && !encounters) throw new InvalidDataException("游戏状态版本不匹配。");
         ulong steps = reader.ReadUInt64(); int count = reader.ReadUInt16();
-        int stride = 22 + CombatState.ByteCount + (version == EncounterStateMagic ? sizeof(int) : 0) + (version != GroundedStateMagic ? VerticalMotion.ByteCount : 0);
+        int stride = 22 + CombatState.ByteCount + (encounters ? sizeof(int) : 0) + (version != GroundedStateMagic ? VerticalMotion.ByteCount : 0);
         int playerEnd=14+count*stride;
-        if (count < 1 || count > 4 || bytes.Length<playerEnd || (version!=EncounterStateMagic && bytes.Length!=playerEnd)) throw new InvalidDataException("状态长度不合法。");
+        if (count < 1 || count > 4 || bytes.Length<playerEnd || (!encounters && bytes.Length!=playerEnd)) throw new InvalidDataException("状态长度不合法。");
         var players = new TacticalPlayer[count];
         for (int i=0; i<count; i++) players[i] = new TacticalPlayer(reader.ReadUInt16(), reader.ReadInt32(), reader.ReadInt32(),
-            reader.ReadUInt16(), reader.ReadInt16(), reader.ReadInt32(), reader.ReadInt32(), CombatState.Read(reader, version == EncounterStateMagic),
+            reader.ReadUInt16(), reader.ReadInt16(), reader.ReadInt32(), reader.ReadInt32(), CombatState.Read(reader, encounters),
             version != GroundedStateMagic ? new VerticalMotion(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32()) : default);
-        if(version!=EncounterStateMagic)return new TacticalState(steps,players);
+        if(!encounters)return new TacticalState(steps,players);
         int joined=0,slots=0;
         foreach(var p in players)
         {
@@ -79,7 +80,7 @@ public sealed partial class TacticalGame : IStateCodec<TacticalState>, ISimulati
         }
         try
         {
-            var monsters=EldritchStateCodec.Read(reader,CompoundEncounterTerrain.Settings,true,EncounterClock(steps,1),slots,joined);
+            var monsters=EldritchStateCodec.Read(reader,CompoundEncounterTerrain.Settings,true,EncounterClock(steps,1),slots,joined,version==DefenseStateMagic?CompoundDefense.Waves:EncounterSchedule.Town);
             if(reader.BaseStream.Position!=reader.BaseStream.Length)throw new InvalidDataException("怪物状态含多余数据。");
             return new TacticalState(steps,players,monsters);
         }
@@ -141,7 +142,7 @@ public sealed partial class TacticalGame : IStateCodec<TacticalState>, ISimulati
                     if (tick >= c.RespawnAtTick)
                     {
                         // 重生补满装备，战绩与射击序号保留，防止画面重复播放旧枪声。
-                        c.Health=100; c.Ammo=30; c.Reserve=90; c.NextFireTick=0; c.ReloadUntilTick=0; c.RespawnAtTick=0;
+                        c.Health=100; c.Ammo=30; c.Reserve=CombatState.ReserveCapacity; c.NextFireTick=0; c.ReloadUntilTick=0; c.RespawnAtTick=0;
                         _players[i] = Spawn(p.Slot); commands[i] = default;
                     }
                     else if (p.IsAirborne) _players[i] = Move(p, default);
@@ -152,6 +153,8 @@ public sealed partial class TacticalGame : IStateCodec<TacticalState>, ISimulati
                 var input = commands[i];
                 if (input.Respawn) { _players[i] = Spawn(p.Slot); continue; } // 保留原控制台位置复位命令，不恢复生命/弹药。
                 _players[i] = Move(p, input);
+                if (input.Resupply && _map.NearbyAmmoDepot(_players[i]) >= 0)
+                    c.Reserve = CombatState.ReserveCapacity;
             }
             ResolveCombat(tick, commands, active, combat);
             if(monsters!=null)AdvanceEncounters(tick,active,combat);

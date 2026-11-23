@@ -13,22 +13,23 @@ public sealed class EldritchSystem
     private int nextSpawn;
     private readonly TownSpawnDirector? director;
     private readonly bool town;
+    private readonly EncounterSchedule schedule;
     private readonly bool districtZones;
     private readonly bool[] activeZones=new bool[6];
     public EldritchSystem(IslandMap map,EldritchState? restored=null)
-        : this(new EldritchTerrain(map),map.Fishing?.Eldritch??EldritchConfig.Disabled,map.Fishing?.Seed??0,map.IsTown,map.IsTown,restored) { }
+        : this(new EldritchTerrain(map),map.Fishing?.Eldritch??EldritchConfig.Disabled,map.Fishing?.Seed??0,map.IsTown,map.IsTown,restored,EncounterSchedule.Town) { }
 
     /// <summary>A single arena may use the town roster and budget with its own entrances and terrain.</summary>
-    public EldritchSystem(IEldritchTerrain terrain,EldritchConfig config,int seed,EldritchState? restored=null)
-        : this(terrain,config,seed,true,false,restored) { }
+    public EldritchSystem(IEldritchTerrain terrain,EldritchConfig config,int seed,EldritchState? restored=null,EncounterSchedule? schedule=null)
+        : this(terrain,config,seed,true,false,restored,schedule??EncounterSchedule.Town) { }
 
-    private EldritchSystem(IEldritchTerrain terrain,EldritchConfig config,int seed,bool town,bool districtZones,EldritchState? restored)
+    private EldritchSystem(IEldritchTerrain terrain,EldritchConfig config,int seed,bool town,bool districtZones,EldritchState? restored,EncounterSchedule schedule)
     {
-        this.town=town;this.config=config;this.terrain=terrain;this.districtZones=districtZones;
+        this.schedule=schedule;this.town=town;this.config=config;this.terrain=terrain;this.districtZones=districtZones;
         if(town && !districtZones)Array.Fill(activeZones,true);
-        creatures=restored?.Creatures.ToArray()??(config.Enabled?Enumerable.Range(0,town?TownEncounters.Population:EldritchCatalog.Population).Select(i=>Dormant(i,0,town?0:i<10?config.InitialDelayTicks+i*config.StaggerTicks:0)).ToArray():Array.Empty<EldritchCreature>());
+        creatures=restored?.Creatures.ToArray()??(config.Enabled?Enumerable.Range(0,town?schedule.Population:EldritchCatalog.Population).Select(i=>Dormant(i,0,town?0:i<10?config.InitialDelayTicks+i*config.StaggerTicks:0)).ToArray():Array.Empty<EldritchCreature>());
         nextSpawn=restored?.NextSpawn??0;
-        if(town && config.Enabled)director=new TownSpawnDirector(seed,restored?.Director??default);
+        if(town && config.Enabled)director=new TownSpawnDirector(seed,restored?.Director??default,schedule);
     }
     public int Count=>creatures.Length;
     public EldritchCreature Get(int id)=>creatures[id];
@@ -36,7 +37,7 @@ public sealed class EldritchSystem
     public static bool Eligible(Fisher p)=>!p.WaitingToJoin && !p.Unavailable && !p.Vitals.Downed && !p.Revival.Dead;
     public static int Reward(EldritchCreature c)=>c.IsMinion?4:EldritchCatalog.Get(c.Kind).Coins;
     private EldritchCreature Dormant(int id,uint generation,int timer)=>new EldritchCreature
-        {Id=id,Kind=town?TownEncounters.Kind(id):id<10?(EldritchKind)id:EldritchKind.DeepOne,TownAdult=town && id<TownEncounters.AdultCount,Generation=generation,Timer=timer,Target=-1,Ally=-1};
+        {Id=id,Kind=town?schedule.Kind(id):id<10?(EldritchKind)id:EldritchKind.DeepOne,TownAdult=town && id<schedule.AdultCount,Generation=generation,Timer=timer,Target=-1,Ally=-1};
     public void ActivateTownZone(int zone,bool active)
     {
         if(!districtZones)return;activeZones[zone]=active;
@@ -148,7 +149,7 @@ public sealed class EldritchSystem
     {
         var c=creatures[i];if(c.Generation==uint.MaxValue || !terrain.TrySpawn(c,players,creatures,out var p))return false;
         c=Dormant(i,c.Generation+1,EldritchCatalog.EmergenceTicks);c.Phase=EldritchPhase.Emerging;
-        c.TownAdult=town && i<TownEncounters.AdultCount;c.X=p.X;c.Z=p.Z;c.Health=EldritchCatalog.MaxHealth(c);c.DirectionZ=EnemyGeometry.DirectionScale;creatures[i]=c;return true;
+        c.X=p.X;c.Z=p.Z;c.Health=EldritchCatalog.MaxHealth(c);c.DirectionZ=EnemyGeometry.DirectionScale;creatures[i]=c;return true;
     }
     private void Hunt(ref EldritchCreature c,EldritchDefinition d,IReadOnlyList<Fisher> players)
     {
@@ -212,7 +213,7 @@ public sealed class EldritchSystem
         if(d.Ability==EldritchAbility.Brood)
         {
             int spawned=0;
-            for(int i=town?TownEncounters.AdultCount:10;i<Count && spawned<2 && c.Summons<EldritchCatalog.MaxBroodPerGeneration;i++)
+            for(int i=town?schedule.AdultCount:10;i<Count && spawned<2 && c.Summons<EldritchCatalog.MaxBroodPerGeneration;i++)
                 if(creatures[i].Phase==EldritchPhase.Dormant && Spawn(i,players)){spawned++;c.Summons++;}
             return;
         }

@@ -8,10 +8,11 @@ namespace Advanture.HookIsland
     public sealed class EldritchPresentation : IDisposable
     {
         private readonly View[] views;
-        public EldritchPresentation(Transform parent,Shader lineShader,EldritchConfig config,bool town=false)
+        public EldritchPresentation(Transform parent,Shader lineShader,EldritchConfig config,bool town=false,EncounterSchedule schedule=null)
         {
-            views=new View[config.Enabled?(town?TownEncounters.Population:EldritchCatalog.Population):0];
-            for(int i=0;i<views.Length;i++)views[i]=new View(parent,lineShader,town?TownEncounters.Kind(i):i<10?(EldritchKind)i:EldritchKind.DeepOne,i);
+            schedule=schedule??EncounterSchedule.Town;
+            views=new View[config.Enabled?(town?schedule.Population:EldritchCatalog.Population):0];
+            for(int i=0;i<views.Length;i++)views[i]=new View(parent,lineShader,town?schedule.Kind(i):i<10?(EldritchKind)i:EldritchKind.DeepOne,i);
         }
         public void Synchronize(HookState state)=>Synchronize(state,Application.isPlaying?Time.deltaTime:0);
         public void Synchronize(HookState state,float deltaTime)
