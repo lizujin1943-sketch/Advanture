@@ -13,14 +13,21 @@ internal static class FortifiedCompoundTests
 
     internal static IEnumerable<(string Name,Action Run)> Cases()
     {
-        yield return ("compound.both_plaza_spawns_roundtrip_and_reject_truncation", () =>
+        yield return ("compound.four_separate_plaza_spawns_roundtrip_and_reject_truncation", () =>
         {
             var bytes = File.ReadAllBytes(Asset);
             var map = TacticalMap.Decode(bytes);
             Check.True(map.HasElevation && map.Encode().SequenceEqual(bytes));
-            Check.Equal(2, map.Spawns.Count);
+            Check.Equal(4, map.Spawns.Count);
             Check.Equal(6000, map.Spawns[1].X-map.Spawns[0].X);
             foreach (var s in map.Spawns) Check.Equal(2050, map.GroundHeight(s.X,s.Z));
+            for (int i = 0; i < map.Spawns.Count; i++)
+                foreach (var other in map.Spawns.Skip(i + 1))
+                {
+                    var spawn = map.Spawns[i];
+                    long dx = spawn.X - other.X, dz = spawn.Z - other.Z;
+                    Check.True(dx * dx + dz * dz >= 5000L * 5000);
+                }
             Check.Throws(()=>TacticalMap.Decode(bytes.AsSpan(0,bytes.Length-2)));
         });
         yield return ("compound.walk_down_plaza_stairs_and_respawn_on_paving", () =>

@@ -16,7 +16,8 @@ public sealed class TacticalClient : IDisposable
     private readonly UdpNode _node;
     private readonly RoomTransport _transport;
     private readonly ulong _peer;
-    private readonly ushort _slot;
+    private readonly ushort _requestedSlot;
+    private ushort _slot;
     private readonly byte[] _hash;
     private readonly TacticalMap _map;
     private bool _connected, _joined, _acked, _disposed, _checkedInitial, _transportStopped;
@@ -25,11 +26,11 @@ public sealed class TacticalClient : IDisposable
     private ulong _nextTick = 1;
     private byte[]? _pending;
 
-    public TacticalClient(TacticalMap map, IPAddress host, int port, ushort slot)
+    public TacticalClient(TacticalMap map, IPAddress host, int port, ushort slot = RoomProtocol.AnyGuest)
     {
-        if (slot > 1) throw new ArgumentOutOfRangeException(nameof(slot));
-        _map = map;
-        _hash = RoomProtocol.Hash(map); _slot = slot;
+        _map = map ?? throw new ArgumentNullException(nameof(map));
+        if (slot != RoomProtocol.AnyGuest && slot >= map.Spawns.Count) throw new ArgumentOutOfRangeException(nameof(slot));
+        _hash = RoomProtocol.Hash(map); _requestedSlot = slot;
         _port = new SocketDatagramPort(new DatagramAddress(host.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any, 0));
         try { _node = new UdpNode(_port); _peer = _node.Connect(new DatagramAddress(host, port)); _transport = new RoomTransport(_node); }
         catch { _port.Dispose(); throw; }
@@ -57,23 +58,26 @@ public sealed class TacticalClient : IDisposable
             if (e.Kind == ConnectionEventKind.Connected) _connected = true;
             else { Fail("与房主连接已断开：" + e.Reason); return; }
         }
-        if (_connected && !_joined) _joined = RoomProtocol.Send(_node, _peer, RoomProtocol.JoinBytes(_slot, _hash));
+        if (_connected && !_joined) _joined = RoomProtocol.Send(_node, _peer, RoomProtocol.JoinBytes(_requestedSlot, _hash));
         while (_transport.Controls.Count > 0)
         {
             var m = _transport.Controls.Dequeue();
             if (m.ConnectionId != _peer) continue;
             if (!RoomProtocol.TryDecode(m.Payload, out var packet, out byte rejection))
             { Fail(rejection == 1 ? "房间协议版本不同，请使用同一份试玩。" : "收到不合法的房间消息。"); return; }
-            if (packet!.BodyCase == RoomPacket.BodyOneofCase.Welcome && packet.Welcome.Slot == _slot &&
+            if (packet!.BodyCase == RoomPacket.BodyOneofCase.Welcome && packet.Welcome.Slot < _map.Spawns.Count &&
+                (_requestedSlot == RoomProtocol.AnyGuest ? packet.Welcome.Slot > 0 : packet.Welcome.Slot == _requestedSlot) &&
                 packet.Welcome.MapHash.Span.SequenceEqual(_hash) && Session == null)
             {
                 var id = new Guid(packet.Welcome.SessionId.Span);
                 if (id == Guid.Empty) { Fail("房间身份不合法。"); return; }
+                _slot = (ushort)packet.Welcome.Slot;
                 Session = new ClientSession<TacticalState>(TacticalGame.CreateModule(_map), id, 1, _transport, _peer, RoomProtocol.Limits,
                     prediction: new PredictionOptions(maxPredictionFrames: 12), neutralInput: _ => RoomProtocol.Neutral);
             }
             else if (packet.BodyCase == RoomPacket.BodyOneofCase.Reject)
-            { Fail(packet.Reject.Reason == RejectReason.Incompatible ? "地图或协议版本不同，请使用同一份试玩。" : "房间已满、已经开局或请求不合法。"); return; }
+            { Fail(packet.Reject.Reason == RejectReason.Incompatible ? "地图或协议版本不同，请使用同一份试玩。" :
+                packet.Reject.Reason == RejectReason.Unavailable ? "房间已满或已经开局。" : "加入房间的请求不合法。"); return; }
             else { Fail("收到不合法的房间消息。"); return; }
         }
         if (Session != null)

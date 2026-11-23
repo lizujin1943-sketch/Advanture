@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 namespace Advanture.TacticalGame.NetworkView
 {
-    /// <summary>可选命令行启动入口，便于启动两个独立客户端；普通双击启动仍显示菜单。</summary>
+    /// <summary>可选的本机和局域网房间启动参数。</summary>
     [RequireComponent(typeof(NetworkYardController))]
     public sealed class YardLaunchArguments : MonoBehaviour
     {
@@ -19,6 +19,7 @@ namespace Advanture.TacticalGame.NetworkView
             int port = int.TryParse(Value("-yard-port"), out int p) ? p : 7777;
             var room = GetComponent<NetworkYardController>();
             if (role == "solo") room.PlaySolo();
+            else if (role == "host" && int.TryParse(Value("-yard-players"), out int capacity)) room.HostRoom(port, capacity);
             else if (role == "host") room.HostRoom(port);
             else if (role == "join") room.JoinRoom(Value("-yard-address") ?? "127.0.0.1", port);
         }

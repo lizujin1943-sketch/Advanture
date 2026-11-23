@@ -38,6 +38,8 @@ try:
         command = [str(executable), '-yard-role', role, '-yard-address', '127.0.0.1', '-yard-port', str(port),
                    '-yard-diagnostics', str(output / 'diagnostics'),
                    '-screen-fullscreen', '0', '-screen-width', '960', '-screen-height', '640', '-logFile', str(output / (role + '.log'))]
+        if role == 'host':
+            command += ['-yard-players', '2']
         if args.combat:
             command += ['-yard-combat']
         if args.smoke:

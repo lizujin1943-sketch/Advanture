@@ -58,7 +58,7 @@ flowchart BT
 | `framework/` | 收发输入、确认帧、预测回滚、检查点、存档和可靠 UDP | 继续复用 |
 | `adapters/Unity/` | 把框架程序集作为本地包导入 Unity | 可复用，无庭院玩法 |
 | `samples/TacticalGame.Simulation/` | 定义本例输入、地图、移动、碰撞、角色状态和编码 | 换成新游戏的规则 |
-| `samples/TacticalGame.Network/` | 双人房间、地图一致性检查、驱动会话、连接资源清理 | 参考或改成新游戏的开局流程 |
+| `samples/TacticalGame.Network/` | 按地图出生点确定容量、分配访客座位、检查地图、驱动会话和清理连接 | 庭院支持两人，要塞支持最多四人 |
 | `samples/TacticalGame.Unity/Assets/TacticalGame/Network/` | 键鼠、相机、模型、菜单、表现平滑 | 按游戏和引擎修改 |
 | `tools/TacticalGame.Tests/` | 不启动 Unity 验证规则、恢复重放和真实 UDP 会话 | 可沿用测试思路 |
 
@@ -96,7 +96,7 @@ flowchart BT
 | 2 | [TacticalState.cs](../samples/TacticalGame.Simulation/TacticalState.cs)、[TacticalMap.cs](../samples/TacticalGame.Simulation/TacticalMap.cs) | 哪些内容必须保存；地图从哪里来 |
 | 3 | [TacticalGame.cs](../samples/TacticalGame.Simulation/TacticalGame.cs) | CreateModule、Initialize、Step、Capture、Restore 怎样对接框架 |
 | 4 | [TacticalClient.cs](../samples/TacticalGame.Network/TacticalClient.cs) | Poll 中先接收、逐帧冻结、重试、再预测的顺序 |
-| 5 | [TacticalHost.cs](../samples/TacticalGame.Network/TacticalHost.cs)、[RoomProtocol.cs](../samples/TacticalGame.Network/RoomProtocol.cs) | 两人准备后才开局；房间消息和会话消息如何分开 |
+| 5 | [TacticalHost.cs](../samples/TacticalGame.Network/TacticalHost.cs)、[RoomProtocol.cs](../samples/TacticalGame.Network/RoomProtocol.cs) | 满员开局、房主提前开始、访客席位分配，以及房间和会话消息的区分 |
 | 6 | [NetworkYardController.cs](../samples/TacticalGame.Unity/Assets/TacticalGame/Network/NetworkYardController.cs) | Unity Update 如何驱动纯 C# 房间并更新画面 |
 | 7 | [NetworkInputSource.cs](../samples/TacticalGame.Unity/Assets/TacticalGame/Network/NetworkInputSource.cs)、[InputQuantizer.cs](../samples/TacticalGame.Unity/Assets/TacticalGame/Network/InputQuantizer.cs) | 设备输入如何转换为每帧冻结的整数输入 |
 | 8 | [NetworkAvatar.cs](../samples/TacticalGame.Unity/Assets/TacticalGame/Network/NetworkAvatar.cs)、[NetworkRoomOverlay.cs](../samples/TacticalGame.Unity/Assets/TacticalGame/Network/NetworkRoomOverlay.cs) | 角色表现、房间菜单与鼠标控制 |

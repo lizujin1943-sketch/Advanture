@@ -49,6 +49,38 @@ internal static class RoomProtocolTests
             Check.True(RoomProtocol.TryDecode(RoomProtocol.AckBytes(), out var ack, out _));
             Check.Equal(RoomPacket.BodyOneofCase.Ack, ack!.BodyCase);
         });
+        yield return ("protobuf.room.repeated_auto_join_keeps_the_same_seat_across_start", () =>
+        {
+            var map=SimulationTests.OpenMap();
+            using var host=new TacticalHost(map,0);
+            using var owner=new TacticalClient(map,IPAddress.Loopback,host.Port,0);
+            using var port=new SocketDatagramPort(new DatagramAddress(IPAddress.Loopback,0));
+            var guest=new UdpNode(port);
+            var peer=guest.Connect(new DatagramAddress(IPAddress.Loopback,host.Port));
+            byte[] join=RoomProtocol.JoinBytes(RoomProtocol.AnyGuest,RoomProtocol.Hash(map));
+            bool retriedAfterStart=false;
+            int welcomes=0;
+            for(int ms=0;ms<1000;ms+=2)
+            {
+                var now=TimeSpan.FromMilliseconds(ms);
+                host.Poll(now);owner.Poll(now,_=>default);guest.Poll(now);
+                while(guest.TryGetEvent(out var e))
+                    if(e!.Kind==ConnectionEventKind.Connected)Check.True(RoomProtocol.Send(guest,peer,join));
+                while(guest.TryReceive(out var message))
+                {
+                    if(message!.Channel!=2)continue;
+                    Check.True(RoomProtocol.TryDecode(message.Payload,out var packet,out _));
+                    Check.Equal(RoomPacket.BodyOneofCase.Welcome,packet!.BodyCase);
+                    Check.Equal(1U,packet.Welcome.Slot);
+                    welcomes++;
+                    Check.True(RoomProtocol.Send(guest,peer,join));
+                    Check.True(RoomProtocol.Send(guest,peer,RoomProtocol.AckBytes()));
+                }
+                if(host.Session!=null && !retriedAfterStart)retriedAfterStart=RoomProtocol.Send(guest,peer,join);
+            }
+            Check.True(retriedAfterStart && welcomes==1 && host.JoinedCount==2 && host.Failure==null);
+            guest.Shutdown();
+        });
     }
     // 使用真正的 UDP 握手和 TacticalHost，观察入房结果，而不是只测消息类自身。
     private static void Probe(byte[] request, int joined)

@@ -10,9 +10,10 @@ namespace Advanture.TacticalGame.NetworkView
     {
         private readonly SessionDiagnostics clientLog;
         private readonly SessionDiagnostics serverLog;
-        public YardDiagnostics(string root, bool host, string environment)
+        public YardDiagnostics(string root, bool host, string environment, int mapCapacity = 2)
         {
-            clientLog = new SessionDiagnostics(Path.Combine(root, host ? "client-A" : "client-B"), host ? "client-A" : "client-B", environment);
+            string role = host ? "client-A" : mapCapacity > 2 ? "guest" : "client-B";
+            clientLog = new SessionDiagnostics(Path.Combine(root, role), role, environment);
             if (host) serverLog = new SessionDiagnostics(Path.Combine(root, "server"), "server", environment);
         }
         public string ClientDirectory => clientLog.DirectoryPath;

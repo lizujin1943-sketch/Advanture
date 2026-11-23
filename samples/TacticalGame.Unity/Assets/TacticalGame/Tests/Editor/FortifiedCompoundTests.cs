@@ -29,6 +29,7 @@ namespace Advanture.TacticalGame.Tests
             Assert.That(Object.FindObjectOfType<NetworkYardController>().AllowSolo,Is.True);
             Assert.That(Object.FindObjectsOfType<NetworkSmokeDriver>(),Is.Empty);
             Assert.That(Object.FindObjectsOfType<FirstPersonMotor>(),Is.Empty);
+            Assert.That(map.Spawns.Count,Is.EqualTo(4));
             foreach(var spawn in map.Spawns)
             {
                 var feet=new Vector3(spawn.X*.001f,2.05f,spawn.Z*.001f);
@@ -78,6 +79,65 @@ namespace Advanture.TacticalGame.Tests
 
     public sealed class FortifiedCompoundRoomTests
     {
+        [UnityTest] public IEnumerator FourPlayersSeeThreeDistinctTeammatesOnThePlaza()
+        {
+            EditorSceneManager.OpenScene("Assets/TacticalGame/Scenes/FortifiedCompound.unity");
+            yield return new EnterPlayMode();
+            var owner=Object.FindObjectOfType<NetworkYardController>();
+            var rooms=new List<NetworkYardController>{owner};
+            var asset=AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/TacticalGame/Art/FortifiedCompound/FortifiedCompound.bytes");
+            try
+            {
+                owner.InputProvider=_=>default;
+                owner.HostRoom(0);
+                for(int i=1;i<4;i++)
+                {
+                    var root=new GameObject("Guest "+i);
+                    root.SetActive(false);
+                    var camera=new GameObject("Guest camera").AddComponent<Camera>();
+                    camera.transform.SetParent(root.transform);
+                    camera.enabled=false;
+                    var guest=root.AddComponent<NetworkYardController>();
+                    guest.Configure(asset,camera,"要塞基地",true);
+                    guest.InputProvider=_=>default;
+                    rooms.Add(guest);
+                    root.SetActive(true);
+                    guest.JoinRoom("127.0.0.1",owner.Host.Port);
+                }
+                double deadline=Time.realtimeSinceStartupAsDouble+30;
+                while(!rooms.All(r=>r.LocalPlayer.HasValue && r.Client.Session.ConfirmedTick>=3) && Time.realtimeSinceStartupAsDouble<deadline)
+                {
+                    foreach(var room in rooms)Assert.That(room.Failure,Is.Null);
+                    yield return null;
+                }
+                Assert.That(rooms.All(r=>r.Playing && r.LocalPlayer.HasValue),Is.True);
+                Assert.That(rooms.Select(r=>r.LocalPlayer.Value.Slot),Is.EquivalentTo(new ushort[]{0,1,2,3}));
+                foreach(var room in rooms)
+                {
+                    var avatars=room.GetComponentsInChildren<NetworkAvatar>();
+                    Assert.That(avatars.Length,Is.EqualTo(3));
+                    var players=room.Client.Session.InspectState().Players;
+                    foreach(var player in players.Where(p=>p.Slot!=room.LocalPlayer.Value.Slot))
+                    {
+                        string label=((char)('A'+player.Slot)).ToString();
+                        var avatar=avatars.Single(a=>a.GetComponentInChildren<TextMesh>().text==label);
+                        var spawn=room.Map.Spawns[player.Slot];
+                        var feet=new Vector3(spawn.X*.001f,room.Map.GroundHeight(spawn.X,spawn.Z)*.001f,spawn.Z*.001f);
+                        Assert.That(Vector3.Distance(avatar.transform.position,feet),Is.LessThan(.025f));
+                        Assert.That(avatar.Weapon,Is.Not.Null);
+                    }
+                }
+            }
+            finally
+            {
+                foreach(var room in rooms)room.LeaveRoom();
+                foreach(var guest in rooms.Skip(1))Object.Destroy(guest.gameObject);
+            }
+            yield return null;
+            Assert.That(Object.FindObjectsOfType<NetworkAvatar>(),Is.Empty);
+            yield return new ExitPlayMode();
+        }
+
         [UnityTest] public IEnumerator SoloRoomShowsConfirmedTownModelsAtEveryBreach()
         {
             EditorSceneManager.OpenScene("Assets/TacticalGame/Scenes/FortifiedCompound.unity");

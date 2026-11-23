@@ -26,15 +26,16 @@ namespace Advanture.TacticalGame.NetworkView
         private TacticalMap map;
         private NetworkInputSource input;
         private NetworkRoomOverlay overlay;
-        private NetworkAvatar remote;
+        private NetworkAvatar[] remotes = Array.Empty<NetworkAvatar>();
         private EldritchPresentation encounters;
         private Func<int,int,float> groundHeight;
         private Ak47View localWeapon;
         private bool localWasAlive=true;
         public TacticalPlayer? LocalPlayer { get; private set; }
         public Ak47View LocalWeapon => localWeapon;
-        public Ak47View RemoteWeapon => remote != null ? remote.Weapon : null;
-        private ushort localSlot;
+        // 双人验收工具使用第一个队友；实际表现按席位分别更新。
+        private NetworkAvatar FirstRemote => Array.Find(remotes, avatar => avatar != null);
+        public Ak47View RemoteWeapon => FirstRemote?.Weapon;
         private bool cameraPlaced;
         private string error;
         private YardDiagnostics diagnostics;
@@ -45,7 +46,7 @@ namespace Advanture.TacticalGame.NetworkView
         public TacticalHost Host { get; private set; }
         public TacticalClient Client { get; private set; }
         public Camera ViewCamera => viewCamera;
-        public Transform RemoteTransform => remote != null ? remote.transform : null;
+        public Transform RemoteTransform => FirstRemote?.transform;
         public NetworkInputSource Input => input;
         public bool InRoom => Client != null;
         public bool Playing => Client?.Session?.Status == SessionStatus.Running && Failure == null;
@@ -53,7 +54,9 @@ namespace Advanture.TacticalGame.NetworkView
         // 可替换输入来源供手柄、录像或开发验收使用；接口仍走同一个冻结和网络流程。
         public Func<ulong, TacticalInput> InputProvider { get; set; }
         public string StatusText => Failure ?? (!InRoom ? "创建房间，或输入好友的局域网地址" :
-            Playing && solo ? "单人探索" : Playing ? (localSlot == 0 ? "你是蓝色 A · 好友是橙色 B" : "你是橙色 B · 好友是蓝色 A") : "等待另一位玩家连接…");
+            Playing && solo ? "单人探索" :
+            Playing && LocalPlayer.HasValue ? $"联机中 · 你是 {(char)('A' + LocalPlayer.Value.Slot)}" :
+            Host != null ? $"等待开局 · {Host.JoinedCount}/{Host.Capacity} 人" : "正在连接，等待房主开局…");
 
         public void Configure(TextAsset data, Camera camera, string title = "七号转运站", bool enableSolo = false)
         { mapData = data; viewCamera = camera; mapTitle = title; allowSolo = enableSolo; }
@@ -64,26 +67,21 @@ namespace Advanture.TacticalGame.NetworkView
             try { map = TacticalMap.Decode(mapData.bytes); groundHeight = (x,z) => map.GroundHeight(x,z)*.001f; }
             catch (Exception e) { error = "地图数据无法读取：" + e.Message; }
         }
-        public void HostRoom(int port) => StartHost(port, 2);
-        public void PlaySolo() { if (allowSolo) StartHost(0, 1); }
-        private void StartHost(int port, int players)
+        public void HostRoom(int port) => HostRoom(port, map?.Spawns.Count ?? 0);
+        public void PlaySolo() { if (allowSolo) HostRoom(0, 1); }
+        public void HostRoom(int port, int players)
         {
             LeaveRoom(); if (map == null) { error = "缺少地图数据。"; return; }
             StartDiagnostics(true);
-            try { solo = players == 1; Host = new TacticalHost(map, port, players); Connect(IPAddress.Loopback, Host.Port, 0); }
+            try { solo = players == 1; Host = new TacticalHost(map, port, players); Client = new TacticalClient(map, IPAddress.Loopback, Host.Port, 0); }
             catch (Exception e) { EndRoom("ConnectionFailed", e.ToString()); error = "无法创建房间：" + e.Message; }
         }
         public void JoinRoom(string address, int port)
         {
             LeaveRoom(); if (map == null) { error = "缺少地图数据。"; return; }
             StartDiagnostics(false);
-            try { Connect(IPAddress.Parse(address), port, 1); }
+            try { Client = new TacticalClient(map, IPAddress.Parse(address), port); }
             catch (Exception e) { EndRoom("ConnectionFailed", e.ToString()); error = "无法加入房间：" + e.Message; }
-        }
-        private void Connect(IPAddress address, int port, ushort slot)
-        {
-            Client = new TacticalClient(map, address, port, slot); localSlot = slot; cameraPlaced = false;
-            input.InitializeLook(map.Spawns[slot].Yaw / 100f);
         }
         private void Update()
         {
@@ -97,6 +95,12 @@ namespace Advanture.TacticalGame.NetworkView
                 if (Failure != null) { input.Release(); return; }
                 var session = Client.Session;
                 if (session?.LocalParticipant == null) return;
+                ushort localSlot = session.LocalParticipant.Slot;
+                if (!LocalPlayer.HasValue)
+                {
+                    input.InitializeLook(map.Spawns[localSlot].Yaw / 100f);
+                    remotes = new NetworkAvatar[map.Spawns.Count];
+                }
                 TacticalState confirmed = session.InspectState(), predicted = session.InspectPredictedState();
                 float delta = Time.unscaledDeltaTime;
                 if (confirmed.Monsters.Creatures.Count > 0)
@@ -126,8 +130,12 @@ namespace Advanture.TacticalGame.NetworkView
                 foreach (var p in confirmed.Players)
                 {
                     if (p.Slot == localSlot) continue;
-                    if (remote == null) remote = NetworkAvatar.Create(p.Slot, viewCamera);
-                    remote.Present(p, viewCamera, delta, session.ConfirmedTick, map.FeetHeight(p)/1000f);
+                    if (remotes[p.Slot] == null)
+                    {
+                        remotes[p.Slot] = NetworkAvatar.Create(p.Slot, viewCamera);
+                        remotes[p.Slot].transform.SetParent(transform, true);
+                    }
+                    remotes[p.Slot].Present(p, viewCamera, delta, session.ConfirmedTick, map.FeetHeight(p)/1000f);
                 }
             }
             catch (Exception e)
@@ -144,7 +152,7 @@ namespace Advanture.TacticalGame.NetworkView
             try
             {
                 string root = DiagnosticRoot();
-                diagnostics = new YardDiagnostics(root, hosting, "Unity " + Application.unityVersion + " / game " + Application.version + " / " + Environment.OSVersion);
+                diagnostics = new YardDiagnostics(root, hosting, "Unity " + Application.unityVersion + " / game " + Application.version + " / " + Environment.OSVersion, map.Spawns.Count);
                 UnityEngine.Debug.Log("YARD_DIAGNOSTICS client=" + diagnostics.ClientDirectory + (hosting ? " server=" + diagnostics.ServerDirectory : ""));
             }
             catch (Exception e) { diagnosticSetupError = e.Message; }
@@ -183,10 +191,13 @@ namespace Advanture.TacticalGame.NetworkView
             ObserveDiagnostics(); diagnostics?.End(state, reason); CheckDiagnosticError(); diagnostics?.Dispose();
             Client?.Dispose(); Host?.Dispose(); Client = null; Host = null; error = null;
             encounters?.Dispose(); encounters = null;
-            solo = false; LocalPlayer = null; localWasAlive = true;
+            solo = false; LocalPlayer = null; localWasAlive = true; cameraPlaced = false;
             if (localWeapon != null) { localWeapon.gameObject.SetActive(false); Destroy(localWeapon.gameObject); }
             localWeapon = null;
-            if (input != null) input.Release(); if (remote != null) Destroy(remote.gameObject); remote = null;
+            if (input != null) input.Release();
+            foreach (var avatar in remotes)
+                if (avatar != null) { avatar.gameObject.SetActive(false); Destroy(avatar.gameObject); }
+            remotes = Array.Empty<NetworkAvatar>();
         }
         private void OnDestroy() => EndRoom("SceneDestroyed");
         private void OnApplicationQuit() => EndRoom("ApplicationQuit");

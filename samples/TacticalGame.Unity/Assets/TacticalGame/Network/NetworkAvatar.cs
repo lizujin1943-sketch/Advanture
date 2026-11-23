@@ -5,15 +5,19 @@ namespace Advanture.TacticalGame.NetworkView
     /// <summary>远端角色的纯显示对象，胶囊身体、头部和方向标记让移动和转向容易辨认。没有物理组件。</summary>
     public sealed class NetworkAvatar : MonoBehaviour
     {
+        private static readonly string[] Names = { "Player_A_Blue", "Player_B_Orange", "Player_C_Green", "Player_D_Purple" };
+        private static readonly Color[] Colors = {
+            new Color(.12f,.63f,.76f), new Color(.95f,.44f,.19f), new Color(.32f,.72f,.33f), new Color(.69f,.42f,.86f)
+        };
         private Transform head, leftUpper, leftLower, rightUpper, rightLower;
         private Material material, dark, sleeves;
         private bool placed, wasAlive=true;
         public Ak47View Weapon { get; private set; }
         public static NetworkAvatar Create(ushort slot, Camera observer = null)
         {
-            var root = new GameObject(slot == 0 ? "Player_A_Blue" : "Player_B_Orange");
+            var root = new GameObject(Names[slot]);
             var view = root.AddComponent<NetworkAvatar>();
-            view.material = new Material(Shader.Find("Standard")) { color = slot == 0 ? new Color(.12f,.63f,.76f) : new Color(.95f,.44f,.19f) };
+            view.material = new Material(Shader.Find("Standard")) { color = Colors[slot] };
             view.dark = new Material(Shader.Find("Standard")) { color = new Color(.12f,.18f,.23f) };
             view.Part(PrimitiveType.Capsule, "Body", root.transform, new Vector3(0,.78f,0), new Vector3(.6f,.65f,.6f), view.material);
             view.head = new GameObject("HeadPivot").transform; view.head.SetParent(root.transform, false); view.head.localPosition = new Vector3(0,1.58f,0);
@@ -26,7 +30,7 @@ namespace Advanture.TacticalGame.NetworkView
             view.rightUpper = view.Limb("RightUpperSleeve", view.sleeves);
             view.rightLower = view.Limb("RightLowerSleeve", view.sleeves);
             var label = new GameObject("Label").AddComponent<TextMesh>(); label.transform.SetParent(root.transform, false);
-            label.transform.localPosition = new Vector3(0,2.15f,0); label.text = slot == 0 ? "A" : "B"; label.fontSize = 64; label.characterSize = .08f; label.anchor = TextAnchor.MiddleCenter;
+            label.transform.localPosition = new Vector3(0,2.15f,0); label.text = ((char)('A' + slot)).ToString(); label.fontSize = 64; label.characterSize = .08f; label.anchor = TextAnchor.MiddleCenter;
             view.Weapon=Ak47View.Create(view.head,false,observer);
             return view;
         }

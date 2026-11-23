@@ -3,7 +3,7 @@ using Advanture.Tactical.Simulation;
 using UnityEngine;
 namespace Advanture.TacticalGame.NetworkView
 {
-    /// <summary>双人试玩菜单和操作提示；联网诊断仅在按 F3 时显示，默认界面保留游戏操作。</summary>
+    /// <summary>战术房间菜单、操作提示和联网诊断。</summary>
     [RequireComponent(typeof(NetworkYardController))]
     public sealed class NetworkRoomOverlay : MonoBehaviour
     {
@@ -32,7 +32,8 @@ namespace Advanture.TacticalGame.NetworkView
         // 开局后把未捕获鼠标的提示放到右上方，避免遮住另一名玩家；绘制和点击检测共用坐标。
         private Rect ControlPanel(float width, float height) => room.Playing
             ? new Rect(width - 434, 154, 410, 110) : new Rect(width / 2 - 235, height / 2 - 50, 470, 110);
-        private static Rect LeaveButtonRect(Rect panel) => new Rect(panel.center.x - 90, panel.y + 60, 180, 36);
+        private bool ShowStartButton => room.Host != null && room.Host.Capacity > 2 && room.Host.Session == null && room.Failure == null;
+        private Rect LeaveButtonRect(Rect panel) => new Rect(ShowStartButton ? panel.center.x + 12 : panel.center.x - 90, panel.y + 60, 180, 36);
         private void Awake()
         { room = GetComponent<NetworkYardController>(); font = Font.CreateDynamicFontFromOSFont(new[] { "PingFang SC", "Microsoft YaHei", "Arial" }, 20); }
         private void Update()
@@ -68,9 +69,11 @@ namespace Advanture.TacticalGame.NetworkView
                 GUI.Label(new Rect(x+24,y+65,110,28), "房主地址", body); address = GUI.TextField(new Rect(x+130,y+62,300,34), address, 45, field);
                 GUI.Label(new Rect(x+24,y+110,110,28), "端口", body); port = GUI.TextField(new Rect(x+130,y+107,300,34), port, 5, field);
                 bool valid = int.TryParse(port, out int number) && number > 0 && number <= 65535; GUI.enabled = valid;
-                if (GUI.Button(new Rect(x+24,y+162,195,46), "创建双人房间", button)) room.HostRoom(number);
+                if (GUI.Button(new Rect(x+24,y+162,195,46), "创建联机房间", button)) room.HostRoom(number);
                 if (GUI.Button(new Rect(x+235,y+162,195,46), "加入好友房间", button)) room.JoinRoom(address, number);
-                GUI.enabled = true; GUI.Label(new Rect(x+24,y+228,415,48), "本机测试使用 127.0.0.1，两人到齐后开局。\n局域网联机填写房主电脑的 IP 地址。", body);
+                GUI.enabled = true;
+                string capacity = room.Map?.Spawns.Count > 2 ? $"2–{room.Map.Spawns.Count} 人联机，满员自动开局，房主可提前开始。" : "两人到齐后自动开局。";
+                GUI.Label(new Rect(x+24,y+228,415,48), capacity + "\n局域网联机填写房主电脑的 IP 地址。", body);
                 if (room.AllowSolo && GUI.Button(new Rect(x+24,y+285,195,40), "先自己玩", button)) room.PlaySolo();
                 string destination = room.AllowSolo ? "DrownedBellTown" : "FortifiedCompound";
                 if (Application.CanStreamedLevelBeLoaded(destination) && GUI.Button(new Rect(24,128,200,38), room.AllowSolo ? "返回沉钟镇" : "进入要塞基地", button))
@@ -79,7 +82,14 @@ namespace Advanture.TacticalGame.NetworkView
             else if (!room.Input.HasControl)
             {
                 var panel = ControlPanel(width, height); Panel(panel);
-                GUI.Label(new Rect(panel.x+20,panel.y+14,panel.width-40,36), room.Playing ? "点击画面，开始操作" : "等待开局 / 可返回重新连接", title);
+                string prompt = room.Failure != null ? "连接已结束" : room.Playing ? "点击画面，开始操作" : room.Host != null ? "等待队友就绪" : "等待房主开局";
+                GUI.Label(new Rect(panel.x+20,panel.y+14,panel.width-40,36), prompt, title);
+                if (ShowStartButton)
+                {
+                    GUI.enabled = room.Host.CanStart;
+                    if (GUI.Button(new Rect(panel.center.x-192,panel.y+60,180,36), "开始游戏", button)) room.Host.TryStart();
+                    GUI.enabled = true;
+                }
                 if (GUI.Button(LeaveButtonRect(panel), "离开房间", button)) room.LeaveRoom();
             }
             else
@@ -96,7 +106,7 @@ namespace Advanture.TacticalGame.NetworkView
             if (diagnostics && room.Client?.Session != null)
             {
                 var s = room.Client.Session; Panel(new Rect(width-380,24,356,110));
-                GUI.Label(new Rect(width-364,35,325,92), "确认帧 " + s.ConfirmedTick + " / 预测帧 " + s.PredictedTick + "\n回滚 " + s.RollbackCount + " / 已冻结 " + room.Client.LastSubmittedTick + "\n30 Hz · 可靠 UDP · 双方状态逐帧核对", body);
+                GUI.Label(new Rect(width-364,35,325,92), "确认帧 " + s.ConfirmedTick + " / 预测帧 " + s.PredictedTick + "\n回滚 " + s.RollbackCount + " / 已冻结 " + room.Client.LastSubmittedTick + "\n30 Hz · 可靠 UDP · 各端状态逐帧核对", body);
             }
             if (room.DiagnosticWarning != null)
                 GUI.Label(new Rect(42,112,620,32), "诊断日志保存失败，详情见程序日志。", body);

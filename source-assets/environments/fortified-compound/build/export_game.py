@@ -210,8 +210,9 @@ for_feet[margin | (ceiling.astype(np.int32) - for_feet < 190)] = absent
 columns = np.stack((for_feet, cover, ceiling), axis=-1).astype('<i2')
 compressor = zlib.compressobj(9, zlib.DEFLATED, -15)
 packed = compressor.compress(columns.tobytes())+compressor.flush()
-# Facing the flag and radar from the raised plaza. Both slots have clear floor and headroom.
-spawns = [(-8250, 7400, 2550), (-2250, 7400, 33500)]
+# Two rows on the raised plaza face the flag and radar.
+spawns = [(-8250, 7400, 2550), (-2250, 7400, 33500),
+          (-8250, 2400, 1700), (-2250, 2400, 34300)]
 header = struct.pack('<I6iB', 0x36504d54, -40000,-57000,40000,56000,-1000,24000, len(spawns))
 for x,z,yaw in spawns:
     assert for_feet[int((z/1000-zmin)/cell),int((x/1000-xmin)/cell)] == 205

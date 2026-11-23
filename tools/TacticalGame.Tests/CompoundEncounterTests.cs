@@ -75,34 +75,109 @@ internal static class CompoundEncounterTests
             Check.True(approached.SetEquals(expected),"Breach origins reaching the plaza: "+string.Join(", ",approached)+"; "+string.Join(" / ",runner.InspectState().Monsters.Creatures.Where(c=>c.Alive).Select(c=>$"{c.Kind} ({c.X},{c.Z}) towards ({c.GoalX},{c.GoalZ}) target {c.Target}, phase {c.Phase}")));
             Check.True(attacked,"Monsters should reach and attack the plaza players.");
         });
-        yield return ("compound.two_udp_clients_receive_the_same_breach_spawns",()=>
+        yield return ("compound.four_udp_clients_share_breaches_and_reject_fifth_player",()=>
         {
             var map=TacticalMap.Decode(File.ReadAllBytes(FortifiedCompoundTests.Asset));
             using var host=new TacticalHost(map,0);
-            using var first=new TacticalClient(map,IPAddress.Loopback,host.Port,0);
-            using var second=new TacticalClient(map,IPAddress.Loopback,host.Port,1);
+            using var owner=new TacticalClient(map,IPAddress.Loopback,host.Port,0);
+            using var guestA=new TacticalClient(map,IPAddress.Loopback,host.Port);
+            using var guestB=new TacticalClient(map,IPAddress.Loopback,host.Port);
+            using var guestC=new TacticalClient(map,IPAddress.Loopback,host.Port);
+            var clients=new[]{owner,guestA,guestB,guestC};
             var ports=new HashSet<(int,int)>();
+            Check.Equal(4,host.Capacity);
             void Poll(int ms)
             {
                 var now=TimeSpan.FromMilliseconds(ms);
                 host.Poll(now);
-                first.Poll(now,_=>default);
-                second.Poll(now,_=>default);
-                Check.True(host.Failure==null && first.Failure==null && second.Failure==null);
+                foreach (var client in clients)
+                {
+                    client.Poll(now, tick => new TacticalInput(0,0,jump:tick==7,fire:tick==21));
+                    Check.True(client.Failure==null,client.Failure ?? "");
+                }
+                Check.True(host.Failure==null,host.Failure ?? "");
             }
             for(int ms=0;ms<=20000;ms+=5)
             {
                 Poll(ms);
-                if(ms%150!=0 || second.Session?.LocalParticipant==null)continue;
-                foreach(var c in second.Session.InspectState().Monsters.Creatures)
+                if(ms%150!=0 || guestC.Session?.LocalParticipant==null)continue;
+                foreach(var c in guestC.Session.InspectState().Monsters.Creatures)
                     if(c.Phase==EldritchPhase.Emerging)ports.Add((c.X,c.Z));
             }
-            for(int i=0;i<100;i++)Poll(20000);
+            using var fifth=new TacticalClient(map,IPAddress.Loopback,host.Port);
+            for(int ms=20000;ms<=21000;ms+=5)
+            {
+                Poll(ms);
+                fifth.Poll(TimeSpan.FromMilliseconds(ms),_=>default);
+            }
+            Check.True(fifth.Session==null && fifth.Failure?.Contains("房间已满")==true);
+            for(int i=0;i<100;i++)Poll(21000);
             Check.True(ports.SetEquals(map.MonsterEntrances.Select(p=>(p.X,p.Z))));
+            Check.True(clients.Select(c=>(int)c.Session!.LocalParticipant!.Slot).OrderBy(slot=>slot).SequenceEqual(new[]{0,1,2,3}));
+            Check.Equal((ushort)0,owner.Session!.LocalParticipant!.Slot);
+            Check.Equal(4,host.JoinedCount);
+            var state=host.Session!.InspectState();
+            Check.True(state.Players.Count==4 && state.Players.All(p=>p.Combat.ShotSequence==1 && p.Combat.Ammo==29));
             string hash=CheckpointCodec.Hash(host.Session!.CaptureCheckpoint());
-            Check.Equal(hash,CheckpointCodec.Hash(first.Session!.CaptureCheckpoint()));
-            Check.Equal(hash,CheckpointCodec.Hash(second.Session!.CaptureCheckpoint()));
+            foreach(var client in clients)Check.Equal(hash,CheckpointCodec.Hash(client.Session!.CaptureCheckpoint()));
         });
+        foreach (int partySize in new[]{2,3})
+            yield return ($"compound.owner_starts_with_{partySize}_after_lobby_departure", () =>
+            {
+                var map=TacticalMap.Decode(File.ReadAllBytes(FortifiedCompoundTests.Asset));
+                using var host=new TacticalHost(map,0);
+                using var departing=new TacticalClient(map,IPAddress.Loopback,host.Port);
+                var clients=new List<TacticalClient>{departing};
+                int ms=0;
+                void Advance(int duration)
+                {
+                    int end=ms+duration;
+                    while(ms<end)
+                    {
+                        ms+=5;
+                        var now=TimeSpan.FromMilliseconds(ms);
+                        host.Poll(now);
+                        foreach(var client in clients)
+                        {
+                            client.Poll(now,_=>default);
+                            Check.True(client.Failure==null,client.Failure ?? "");
+                        }
+                    }
+                }
+                Advance(200);
+                using var friend=new TacticalClient(map,IPAddress.Loopback,host.Port);
+                clients.Add(friend);
+                Advance(200);
+                Check.Equal(2,host.JoinedCount);
+                Check.True(!host.TryStart(),"Only a room with its owner may start");
+                clients.Remove(departing);
+                departing.Dispose();
+                Advance(12000);
+                Check.Equal(1,host.JoinedCount);
+                using var owner=new TacticalClient(map,IPAddress.Loopback,host.Port,0);
+                clients.Add(owner);
+                using var replacement=partySize==3 ? new TacticalClient(map,IPAddress.Loopback,host.Port) : null;
+                if(replacement!=null)clients.Add(replacement);
+                Advance(250);
+                Check.True(host.Session==null && host.CanStart && host.TryStart());
+                Check.True(!host.TryStart());
+                Advance(2500);
+                var players=host.Session!.InspectState().Players;
+                Check.True(players.Select(p=>(int)p.Slot).SequenceEqual(partySize==2 ? new[]{0,2} : new[]{0,1,2}));
+                Check.Equal((ushort)2,friend.Session!.LocalParticipant!.Slot);
+                if(replacement!=null)Check.Equal((ushort)1,replacement.Session!.LocalParticipant!.Slot);
+                using var late=new TacticalClient(map,IPAddress.Loopback,host.Port);
+                for(int i=0;i<100;i++){Advance(5);late.Poll(TimeSpan.FromMilliseconds(ms),_=>default);}
+                Check.True(late.Session==null && late.Failure?.Contains("已经开局")==true);
+                for(int i=0;i<50;i++)
+                {
+                    var now=TimeSpan.FromMilliseconds(ms);
+                    host.Poll(now);
+                    foreach(var client in clients)client.Poll(now,_=>default);
+                }
+                var hash=CheckpointCodec.Hash(host.Session.CaptureCheckpoint());
+                foreach(var client in clients)Check.Equal(hash,CheckpointCodec.Hash(client.Session!.CaptureCheckpoint()));
+            });
         yield return ("compound.confirmed_hits_kill_a_monster_once_and_recycle_its_slot",()=>
         {
             var map=TacticalMap.Decode(File.ReadAllBytes(FortifiedCompoundTests.Asset));

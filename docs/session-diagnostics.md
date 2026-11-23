@@ -12,7 +12,7 @@ python3 scripts/run-yard-pair.py
 
 启动时会打印本次目录，格式为 `artifacts/tactical-network/manual-日期-时间-随机编号/`。每次都会新建目录，之前的 `manual/` 历史日志也不会被覆盖。目录中有 `host.log`、`join.log`，以及 `diagnostics/`。
 
-`diagnostics/` 下有 `server/`、`client-A/`、`client-B/`。每个角色内部按每次进入房间建立独立子目录；即使在同一窗口离开后重新加入，也不会覆盖上一局。对照文件中的 `sessionId` 和 `epoch`，可以判断记录是否属于同一局。
+`diagnostics/` 下的 `server/` 记录服务器，`client-A/` 记录房主。庭院的访客记录在 `client-B/`，要塞的访客各自在 `guest/` 下建立独立子目录。对照 `sessionId`、`epoch` 和 `localSlot` 可以定位同一局中的各位玩家。
 
 在 Unity 编辑器或直接双击仓库内的试玩程序时，诊断默认写到仓库的 `artifacts/tactical-network/diagnostics/`。完整路径同时输出到 Unity 程序日志，标记为 `YARD_DIAGNOSTICS`。启动参数 `-yard-diagnostics <目录>` 可以指定路径。程序发布到仓库以外时，默认使用应用的可写数据目录。
 
