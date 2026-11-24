@@ -88,7 +88,7 @@ namespace Advanture.TacticalGame.Editor
             // Before room entry the lobby overlooks the same plaza used by gameplay.
             camera.transform.position=new Vector3(-15,20,-19);
             camera.transform.LookAt(new Vector3(-4,3,19));
-            var room = new GameObject("Fortified Compound Room",typeof(NetworkInputSource),typeof(NetworkYardController),typeof(NetworkRoomOverlay),typeof(YardLaunchArguments));
+            var room = new GameObject("Fortified Compound Room",typeof(NetworkInputSource),typeof(NetworkYardController),typeof(FortifiedCompoundOverlay),typeof(YardLaunchArguments));
             room.GetComponent<NetworkYardController>().Configure(asset,camera,"要塞基地",true);
 
             var sun = new GameObject("Afternoon sun").AddComponent<Light>();

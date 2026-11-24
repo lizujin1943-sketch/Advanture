@@ -42,6 +42,8 @@ namespace Advanture.HookIsland
         public bool ThirdPerson => thirdPerson && !FirstPerson;
         /// <summary>第一、第三人称都按视角移动，并使用屏幕中心取瞄准射线。</summary>
         public bool CenterAim => FirstPerson || ThirdPerson;
+        public float Yaw => yaw;
+        public float Pitch => pitch;
         public bool LookInputActive { get; private set; }
         public bool PointerCaptured => Cursor.lockState == CursorLockMode.Locked;
         public FishingCameraView(Camera camera, bool platform, float fieldOfView = 75, float sensitivity = 3,
@@ -82,14 +84,17 @@ namespace Advanture.HookIsland
             camera.orthographic=false;camera.fieldOfView=fieldOfView;camera.nearClipPlane=.04f;
             Follow(feet);
         }
-        public void Look(Vector2 delta)
+        public void SetFacing(float heading, float elevation)
+        {
+            yaw=Mathf.Repeat(heading,360);pitch=Mathf.Clamp(elevation,-89,89);
+            if(CenterAim)UpdatePerspectivePose();
+        }
+        public void Look(Vector2 delta,float pitchLimit=89)
         {
             if(!CenterAim || grenadeAiming)return;
             float scopedSensitivity=LookSensitivityScale;
-            yaw=Mathf.Repeat(yaw+delta.x*sensitivity*scopedSensitivity,360);
-            // Free look in both directions; avoid flipping through the vertical poles.
-            pitch=Mathf.Clamp(pitch-delta.y*sensitivity*verticalSensitivityMultiplier*scopedSensitivity,-89,89);
-            UpdatePerspectivePose();
+            SetFacing(yaw+delta.x*sensitivity*scopedSensitivity,
+                Mathf.Clamp(pitch-delta.y*sensitivity*verticalSensitivityMultiplier*scopedSensitivity,-pitchLimit,pitchLimit));
         }
         public void Zoom(float scroll)
         {
@@ -175,7 +180,7 @@ namespace Advanture.HookIsland
         {
             if(!FirstPerson){UpdateThirdPersonPose();return;}
             // 跟随实际显示的本地脚底位置；转头只改变朝向，不绕角色公转。
-            var eye=renderedFeet+Vector3.up*Mathf.Clamp(firearmSettings.eyeHeight,.8f,1.3f);
+            var eye=renderedFeet+Vector3.up*Mathf.Clamp(firearmSettings.eyeHeight,.8f,2);
             eye.y=Mathf.Max(.35f,eye.y);
             camera.fieldOfView=Mathf.Lerp(fieldOfView,Mathf.Clamp(firearmSettings.fieldOfView,50,90),Mathf.SmoothStep(0,1,firearmBlend));
             camera.fieldOfView=Mathf.Lerp(camera.fieldOfView,ScopedFieldOfView(Mathf.Clamp(firearmSettings.fieldOfView,50,90),ScopeMagnification),Mathf.SmoothStep(0,1,scopeBlend));

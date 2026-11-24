@@ -8,7 +8,7 @@ namespace Advanture.HookIsland
     public sealed class FirearmCameraSettings
     {
         [Tooltip("相机相对角色脚底的高度；采用稳定高度，避免跟随头部动画上下晃动。")]
-        [Range(.8f, 1.3f)] public float eyeHeight = 1.03f;
+        [Range(.8f, 2f)] public float eyeHeight = 1.03f;
         [Tooltip("进入持枪视角时略微向下看，便于瞄准水面；切回后恢复原来的俯仰角。")]
         [Range(0, 35)] public float initialPitch = 12;
         [Tooltip("第一人称的垂直视野角。")]

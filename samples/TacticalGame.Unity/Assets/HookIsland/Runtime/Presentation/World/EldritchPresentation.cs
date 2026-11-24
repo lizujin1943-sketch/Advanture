@@ -111,7 +111,12 @@ namespace Advanture.HookIsland
                 for(int i=0;i<=16;i++){float a=i*Mathf.PI/16;line.SetPosition(i,to+side*Mathf.Cos(a)*radius+forward*Mathf.Sin(a)*radius);line.SetPosition(i+17,from-side*Mathf.Cos(a)*radius-forward*Mathf.Sin(a)*radius);}
             }
             public void Clear(){root.gameObject.SetActive(false);observed=false;wasAlive=false;deathAge=DeathDuration;model?.ResetObservation();}
-            public void Dispose(){model?.Dispose();EldritchModel.Release(root.gameObject);EldritchModel.Release(line);}
+            public void Dispose()
+            {
+                // 离开房间时大厅已经可见，不能等帧末 Destroy 才隐藏上一局的怪物。
+                root.gameObject.SetActive(false);
+                model?.Dispose();EldritchModel.Release(root.gameObject);EldritchModel.Release(line);
+            }
         }
     }
 }

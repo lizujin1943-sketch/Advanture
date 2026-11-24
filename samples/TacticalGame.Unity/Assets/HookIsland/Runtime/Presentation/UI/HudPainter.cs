@@ -194,6 +194,20 @@ namespace Advanture.HookIsland
         }
         public void Key(Rect rect,string text)
         {Surface(rect,new Color(.19f,.29f,.31f));Text(rect,text,10,White,TextAnchor.MiddleCenter,true);}
+        public void HelpRow(Rect panel,int row,string key,string description)
+        {
+            float y=panel.y+65+row*32;
+            var keyRect=new Rect(panel.x+26,y+3,70,24);
+            Surface(keyRect,Track);Text(keyRect,key,12,White,TextAnchor.MiddleCenter);
+            Text(new Rect(panel.x+116,y,280,30),description,14,Muted);
+        }
+        public void SquadMember(Vector2 position,ushort slot,HealthBarFeedback.Frame health)
+        {
+            float x=position.x,y=position.y;
+            FloatingText(new Rect(x,y,68,25),"P"+(slot+1),16,Color.white);
+            Fill(new Rect(x,y+29,64,2),FishingPresentation.PlayerColors[slot]);
+            HealthBar(new Rect(x,y+34,64,4),health);
+        }
         public bool IconButton(Rect rect,HudIcon icon,string name,string key=null,bool selected=false)
         {
             Hint(rect,name);bool hover=tooltipAnchor==rect && tooltip==name;

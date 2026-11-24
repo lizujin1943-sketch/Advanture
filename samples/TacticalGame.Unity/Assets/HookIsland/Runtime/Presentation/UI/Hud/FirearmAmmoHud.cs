@@ -22,9 +22,14 @@ namespace Advanture.HookIsland
             var loaded=room.State.Tackle.Inventory.ActiveItem(player.Slot);
             if(!loaded.HasValue)return;
             int ammo=loaded.Value.LoadedAmmo;
+            int? reserve=FirearmRules.ReserveRounds(room.State,player,loaded.Value);
+            DrawReadout(ui,rect,ammo,reserve,player.Firearm.ReloadTicks/(float)HookGame.Rate,"备弹耗尽 · 到军火铺补给");
+        }
+
+        public static void DrawReadout(HudPainter ui,Rect rect,int ammo,int? reserve,float reloadSeconds,string emptyMessage)
+        {
             // 把常驻读数贴近底部，临时换弹文字放在上方，避免为了预留提示而把整组数字抬高。
             float y=rect.y+26;
-            int? reserve=FirearmRules.ReserveRounds(room.State,player,loaded.Value);
             string supply=reserve?.ToString()??"∞";
             // Anchor from the right so a three-digit boss reserve fits alongside the magazine.
             float width=Mathf.Max(44,supply.Length*23);
@@ -33,11 +38,11 @@ namespace Advanture.HookIsland
             ui.FloatingText(new Rect(end-width-23,y,22,54),"/",36,HudPainter.DisplayColor(new Color(.13f,.68f,.94f)));
             ui.FloatingText(new Rect(end-width,y,width,54),supply,reserve.HasValue?36:44,reserve==0?HudPainter.Gold:Color.white,TextAnchor.MiddleRight);
             // 常驻 HUD 不显示 R 按键教学；真正换弹期间仍提供确认态的进度反馈。
-            if(player.Firearm.Reloading)
+            if(reloadSeconds>0)
                 ui.FloatingText(new Rect(rect.x,rect.y,rect.width,26),
-                    $"换弹中 · {player.Firearm.ReloadTicks/(float)HookGame.Rate:0.0}s",16,HudPainter.Gold,TextAnchor.MiddleRight);
+                    $"换弹中 · {reloadSeconds:0.0}s",16,HudPainter.Gold,TextAnchor.MiddleRight);
             else if(ammo==0 && reserve==0)
-                ui.FloatingText(new Rect(rect.x-90,rect.y,rect.width+90,26),"备弹耗尽 · 到军火铺补给",16,HudPainter.Gold,TextAnchor.MiddleRight);
+                ui.FloatingText(new Rect(rect.x-90,rect.y,rect.width+90,26),emptyMessage,16,HudPainter.Gold,TextAnchor.MiddleRight);
         }
     }
 }

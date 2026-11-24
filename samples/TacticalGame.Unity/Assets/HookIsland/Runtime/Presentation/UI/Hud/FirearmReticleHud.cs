@@ -41,17 +41,21 @@ namespace Advanture.HookIsland
             int spread=motion!=null && player.Slot<motion.Players.Count?
                 motion.Players[player.Slot].Firearm.Spread(equipped.Type):player.Firearm.Spread(equipped.Type);
             var center=Position(room.CenterAim,viewport,Input.mousePosition,Screen.height,scale);
-            float gap=Gap(weapon.Spread,spread),length=6,thickness=2;
+            DrawCross(ui,center,Gap(weapon.Spread,spread));
+        }
+        public static void DrawCross(HudPainter ui,Vector2 center,float gap)
+        {
+            const float length=6,thickness=2;
+            void Stroke(Rect rect)
+            {
+                ui.Surface(new Rect(rect.x-1,rect.y-1,rect.width+2,rect.height+2),Outline);
+                ui.Surface(rect,Color.white);
+            }
             Stroke(new Rect(center.x-gap-length,center.y-thickness/2,length,thickness));
             Stroke(new Rect(center.x+gap,center.y-thickness/2,length,thickness));
             Stroke(new Rect(center.x-thickness/2,center.y-gap-length,thickness,length));
             Stroke(new Rect(center.x-thickness/2,center.y+gap,thickness,length));
             Stroke(new Rect(center.x-1,center.y-1,2,2));
-        }
-        private void Stroke(Rect rect)
-        {
-            ui.Surface(new Rect(rect.x-1,rect.y-1,rect.width+2,rect.height+2),Outline);
-            ui.Surface(rect,Color.white);
         }
     }
 }

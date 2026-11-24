@@ -79,12 +79,10 @@ namespace Advanture.HookIsland
             {
                 if(player.WaitingToJoin){squadHealth.Observe(player.Slot,0,0,true);continue;}
                 if(player.Slot==room.LocalSlot)continue;
-                float x=panel.x+index++*80;var tint=FishingPresentation.PlayerColors[player.Slot];
-                ui.FloatingText(new Rect(x,panel.y,68,25),"P"+(player.Slot+1),16,Color.white);
-                HudPainter.Fill(new Rect(x,panel.y+29,64,2),tint);
+                float x=panel.x+index++*80;
                 int maximum=room.State.Tackle==null?100:FishingRules.Attributes(room.State,player).HealthMax;
                 var health=squadHealth.Observe(player.Slot,room.State.Tackle==null?100:player.Vitals.Health,maximum);
-                ui.HealthBar(new Rect(x,panel.y+34,64,4),health);
+                ui.SquadMember(new Vector2(x,panel.y),player.Slot,health);
                 if(player.Revival.Dead || player.Vitals.Downed || player.Swimming.InWater)
                     ui.Icon(new Rect(x+48,panel.y+3,16,16),player.Revival.Dead?HudIcon.Skull:player.Vitals.Downed?HudIcon.Rescue:HudIcon.SwimRing,player.Vitals.Downed?HudPainter.Health:HudPainter.White);
                 if(player.Unavailable)ui.FloatingText(new Rect(x,panel.y+38,68,14),"断线",10,HudPainter.Gold,italic:false);
@@ -165,8 +163,7 @@ namespace Advanture.HookIsland
             string[] keys={"WASD","鼠标","左键","右键","C / V","R","E","Tab / I","B / 1–3","滚轮"};
             string[] hints={"移动 · 持枪时按视角方向","鼠标瞄准 / 转向","开火 / 出钩 · AK47 按住连射","狙击枪按住开镜 / 收钩 / 取消","C 切换视角 · V 回血","R 换弹 · 按住优先救起队友","开箱 / 商店",overlay.ShowObjectives?"角色与背包 · J 任务":"角色与背包","B 扩建 · 1 主武器 / 2 手枪 / 3 近战","俯视角缩放 / 第三人称拉近拉远"};
             if(room.Map.IsTown){hints[2]="开火 · AK47 按住连射";hints[3]="狙击枪按住开镜 / 取消";hints[6]="门口服务 / 目标 / 祭火就位";hints[8]="1 主武器 / 2 手枪 / 3 近战";}
-            for(int i=0;i<keys.Length;i++)
-            {float y=rect.y+65+i*32;ui.Surface(new Rect(rect.x+26,y+3,70,24),HudPainter.Track);ui.Text(new Rect(rect.x+26,y+3,70,24),keys[i],12,HudPainter.White,TextAnchor.MiddleCenter);ui.Text(new Rect(rect.x+116,y,280,30),hints[i],14,HudPainter.Muted);}
+            for(int i=0;i<keys.Length;i++)ui.HelpRow(rect,i,keys[i],hints[i]);
         }
     }
 }

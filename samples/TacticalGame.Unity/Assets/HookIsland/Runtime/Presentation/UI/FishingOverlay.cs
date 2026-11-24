@@ -13,8 +13,7 @@ namespace Advanture.HookIsland
         private FishingEquipmentOverlay equipmentView;
         private RevivalOverlay revivalView;
         private GUIStyle title,body,small,button,field,big;
-        private string address="127.0.0.1",port="7778";
-        private int capacity=2;
+        private readonly CoopLobbyForm lobby=new CoopLobbyForm(7778,2);
         private HudPainter hudPainter;
         private GameplayHud hud;
         private AcquisitionHud acquisitions;
@@ -155,30 +154,14 @@ namespace Advanture.HookIsland
             bool saved=room.HasManualSave || room.HasAutoSave;
             bool compound=room.Map?.IsTown==true && Application.CanStreamedLevelBeLoaded("FortifiedCompound");
             float height=(saved?432:362)+(compound?52:0),x=w/2-264,y=Mathf.Max(70,h/2-height/2);
-            Panel(new Rect(x,y,528,height));
-            GUI.Label(new Rect(x+28,y+18,472,38),room.Map?.IsTown==true?"沉钟镇 · 深渊之下的钟声":"把鱼钩上岸，和好友分享收获",title);
-            GUI.Label(new Rect(x+28,y+61,472,27),room.Failure??(room.Map?.IsTown==true?"1–4 人合作探索与枪战 · 本机 / 局域网联机":"1–4 人合作捕鱼 · 本机 / 局域网联机"),small);
-            GUI.Label(new Rect(x+28,y+106,104,30),"房主地址",body);
-            address=GUI.TextField(new Rect(x+136,y+102,230,35),address,45,field);
-            port=GUI.TextField(new Rect(x+380,y+102,120,35),port,5,field);
-            GUI.Label(new Rect(x+28,y+156,104,30),"房间人数",body);
-            for(int i=2;i<=4;i++)
-            {
-                var old=GUI.backgroundColor;GUI.backgroundColor=capacity==i?new Color(.2f,.75f,.7f):Color.white;
-                if(GUI.Button(new Rect(x+136+(i-2)*123,y+151,112,36),i+" 人",button))capacity=i;GUI.backgroundColor=old;
-            }
-            bool valid=int.TryParse(port,out int number) && number>0 && number<=65535;
-            GUI.enabled=valid;
-            if(GUI.Button(new Rect(x+28,y+207,224,46),"创建联机房间",button))room.HostRoom(number,capacity);
-            if(GUI.Button(new Rect(x+276,y+207,224,46),"加入好友",button))room.JoinRoom(address,number);
-            GUI.enabled=true;
-            if(GUI.Button(new Rect(x+28,y+267,224,42),"先自己玩",button))room.HostRoom(0,1);
-            GUI.Label(new Rect(x+276,y+268,224,66),"同机填 127.0.0.1\n不同电脑填房主局域网 IP",small);
-            GUI.Label(new Rect(x+28,y+322,472,26),"人数到齐自动开局，也可提前开始。好友可中途加入空位。",small);
+            lobby.Draw(new Rect(x,y,528,height),room.Map?.IsTown==true?"沉钟镇 · 深渊之下的钟声":"把鱼钩上岸，和好友分享收获",
+                room.Failure??(room.Map?.IsTown==true?"1–4 人合作探索与枪战 · 本机 / 局域网联机":"1–4 人合作捕鱼 · 本机 / 局域网联机"),
+                "人数到齐自动开局，也可提前开始。好友可中途加入空位。",title,body,small,button,field,room.HostRoom,room.JoinRoom,()=>room.HostRoom(0,1));
             if(compound && GUI.Button(new Rect(x+28,y+(saved?426:356),472,40),"进入要塞基地",button))
                 UnityEngine.SceneManagement.SceneManager.LoadScene("FortifiedCompound");
             if(saved)
             {
+                bool valid=lobby.TryGetPort(out int number);
                 bool enabled=GUI.enabled;
                 GUI.enabled=enabled && valid && room.HasManualSave;
                 if(GUI.Button(new Rect(x+28,y+369,224,42),"继续 · 手动存档",button))room.ContinueGame(number);

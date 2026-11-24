@@ -26,17 +26,21 @@ namespace Advanture.TacticalGame.NetworkView
         private TacticalMap map;
         private NetworkInputSource input;
         private NetworkRoomOverlay overlay;
+        private FortifiedCompoundOverlay compoundOverlay;
         private NetworkAvatar[] remotes = Array.Empty<NetworkAvatar>();
         private EldritchPresentation encounters;
         private Func<int,int,float> groundHeight;
         private Ak47View localWeapon;
         private bool localWasAlive=true;
         public TacticalPlayer? LocalPlayer { get; private set; }
+        public TacticalState ConfirmedState { get; private set; }
         public Ak47View LocalWeapon => localWeapon;
         // 双人验收工具使用第一个队友；实际表现按席位分别更新。
         private NetworkAvatar FirstRemote => Array.Find(remotes, avatar => avatar != null);
         public Ak47View RemoteWeapon => FirstRemote?.Weapon;
         private bool cameraPlaced;
+        private Vector3 renderedEye;
+        private const float StandingEyeHeight=1.65f;
         private string error;
         private YardDiagnostics diagnostics;
         private TimeSpan diagnosticStarted;
@@ -63,9 +67,11 @@ namespace Advanture.TacticalGame.NetworkView
         private void Awake()
         {
             Application.runInBackground = true; Application.targetFrameRate = 60; QualitySettings.vSyncCount = 0;
-            input = GetComponent<NetworkInputSource>(); overlay = GetComponent<NetworkRoomOverlay>(); clock.Start();
+            input = GetComponent<NetworkInputSource>(); overlay = GetComponent<NetworkRoomOverlay>();
+            compoundOverlay=GetComponent<FortifiedCompoundOverlay>();clock.Start();
             try { map = TacticalMap.Decode(mapData.bytes); groundHeight = (x,z) => map.GroundHeight(x,z)*.001f; }
             catch (Exception e) { error = "地图数据无法读取：" + e.Message; }
+            if(map?.HasDefenseWaves==true)input.UseTownCamera(viewCamera,StandingEyeHeight);
         }
         public void HostRoom(int port) => HostRoom(port, map?.Spawns.Count ?? 0);
         public void PlaySolo() { if (allowSolo) HostRoom(0, 1); }
@@ -85,7 +91,10 @@ namespace Advanture.TacticalGame.NetworkView
         }
         private void Update()
         {
-            input.CaptureDevice(Playing, overlay == null || !overlay.PointerOverLeaveButton);
+            compoundOverlay?.CaptureShortcuts();
+            if(map?.HasDefenseWaves==true)
+                input.CaptureDevice(Playing && LocalPlayer?.Combat.IsAlive==true && InputProvider==null,compoundOverlay==null || !compoundOverlay.BlocksPlay);
+            else input.CaptureDevice(Playing, overlay == null || !overlay.PointerOverLeaveButton);
             if (Client == null || error != null) return;
             try
             {
@@ -102,6 +111,7 @@ namespace Advanture.TacticalGame.NetworkView
                     remotes = new NetworkAvatar[map.Spawns.Count];
                 }
                 TacticalState confirmed = session.InspectState(), predicted = session.InspectPredictedState();
+                ConfirmedState=confirmed;
                 float delta = Time.unscaledDeltaTime;
                 if (confirmed.Monsters.Creatures.Count > 0)
                 {
@@ -119,20 +129,27 @@ namespace Advanture.TacticalGame.NetworkView
                 foreach (var p in predicted.Players)
                 {
                     if (p.Slot != localSlot) continue;
-                    Vector3 target = new Vector3(p.X / 1000f, map.FeetHeight(p)/1000f + (p.Combat.IsAlive?1.65f:.65f), p.Z / 1000f);
-                    viewCamera.transform.position = cameraPlaced ? Vector3.Lerp(viewCamera.transform.position, target, 1 - Mathf.Exp(-25 * delta)) : target;
-                    viewCamera.transform.rotation = input.HasControl ? Quaternion.Euler(input.Pitch, input.Yaw, 0) : Quaternion.Euler(p.Pitch / 100f, p.Yaw / 100f, 0);
+                    Vector3 target = new Vector3(p.X / 1000f, map.FeetHeight(p)/1000f + (p.Combat.IsAlive?StandingEyeHeight:.65f), p.Z / 1000f);
+                    renderedEye = cameraPlaced ? Vector3.Lerp(renderedEye, target, 1 - Mathf.Exp(-25 * delta)) : target;
+                    if(map.HasDefenseWaves)input.FollowTownCamera(renderedEye-Vector3.up*StandingEyeHeight,p,InputProvider!=null,delta);
+                    else viewCamera.transform.SetPositionAndRotation(renderedEye,input.HasControl ?
+                        Quaternion.Euler(input.Pitch, input.Yaw, 0) : Quaternion.Euler(p.Pitch / 100f, p.Yaw / 100f, 0));
                     cameraPlaced = true;
                     // Locomotion follows the displayed camera. Shots, impacts and ammo still come from confirmed state.
                     localWeapon?.SampleMovement(viewCamera.transform, p.IsAirborne, delta);
                 }
-                if (LocalPlayer.HasValue) localWeapon.Present(LocalPlayer.Value.Combat, session.ConfirmedTick, delta);
+                if (LocalPlayer.HasValue)
+                {
+                    int shots=localWeapon.PresentedShots;
+                    localWeapon.Present(LocalPlayer.Value.Combat,session.ConfirmedTick,delta);
+                    if(localWeapon.PresentedShots!=shots)input.ConfirmShot();
+                }
                 foreach (var p in confirmed.Players)
                 {
                     if (p.Slot == localSlot) continue;
                     if (remotes[p.Slot] == null)
                     {
-                        remotes[p.Slot] = NetworkAvatar.Create(p.Slot, viewCamera);
+                        remotes[p.Slot] = NetworkAvatar.Create(p.Slot, viewCamera,map.HasDefenseWaves);
                         remotes[p.Slot].transform.SetParent(transform, true);
                     }
                     remotes[p.Slot].Present(p, viewCamera, delta, session.ConfirmedTick, map.FeetHeight(p)/1000f);
@@ -191,10 +208,11 @@ namespace Advanture.TacticalGame.NetworkView
             ObserveDiagnostics(); diagnostics?.End(state, reason); CheckDiagnosticError(); diagnostics?.Dispose();
             Client?.Dispose(); Host?.Dispose(); Client = null; Host = null; error = null;
             encounters?.Dispose(); encounters = null;
-            solo = false; LocalPlayer = null; localWasAlive = true; cameraPlaced = false;
+            solo = false; LocalPlayer = null; ConfirmedState=null; localWasAlive = true; cameraPlaced = false;
             if (localWeapon != null) { localWeapon.gameObject.SetActive(false); Destroy(localWeapon.gameObject); }
             localWeapon = null;
-            if (input != null) input.Release();
+            if (input != null) input.ResetSession();
+            compoundOverlay?.ResetSession();
             foreach (var avatar in remotes)
                 if (avatar != null) { avatar.gameObject.SetActive(false); Destroy(avatar.gameObject); }
             remotes = Array.Empty<NetworkAvatar>();

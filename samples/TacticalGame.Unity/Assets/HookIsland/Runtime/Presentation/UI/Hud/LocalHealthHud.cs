@@ -22,12 +22,20 @@ namespace Advanture.HookIsland
         /// <summary>rect 为经过 HudLayout 缩放前的逻辑像素；now 只用于低生命的轻微呼吸提示。</summary>
         public void Draw(Rect rect, Fisher player, int maximum, HealthBarFeedback.Frame frame, float now)
         {
-            int slot = Mathf.Clamp(player.Slot,0,3);
-            int current = Mathf.Max(0,player.Vitals.Health);
+            string name = player.Revival.Dead ? "已死亡" : player.Vitals.Downed ? "倒地 · 等待救援" :
+                player.Unavailable ? "连接中断" : "渔夫 · P"+(player.Slot+1);
+            HudIcon? status = player.Revival.Dead ? HudIcon.Skull : player.Vitals.Downed ? HudIcon.Rescue :
+                player.Unavailable ? HudIcon.Alert : (HudIcon?)null;
+            Draw(rect,player.Vitals.Health,maximum,name,status,frame,now);
+        }
+
+        public void Draw(Rect rect,int current,int maximum,string name,HudIcon? status,HealthBarFeedback.Frame frame,float now)
+        {
+            current=Mathf.Max(0,current);
             float fraction = HudPainter.Fraction(current,maximum);
             bool critical = maximum>0 && fraction<=.3f;
             Color health = critical ? Damage : Paper;
-            if(critical && !player.Vitals.Downed && !player.Revival.Dead)health.a=.88f+.12f*Mathf.Sin(now*5);
+            if(critical && status!=HudIcon.Rescue && status!=HudIcon.Skull)health.a=.88f+.12f*Mathf.Sin(now*5);
             float x = rect.x+4, width = rect.width-4;
             // 当前值用大字，最大值用小字；三位、四位 HP 都不会挤在同一个字符格内。
             string value = current.ToString();
@@ -40,13 +48,10 @@ namespace Advanture.HookIsland
             var bar = new Rect(rect.x,rect.y+50,rect.width,22);
             DrawSegments(bar,frame,health);
             var nameplate = new Rect(x,rect.y+76,width,24);
-            bool warning = player.Revival.Dead || player.Vitals.Downed || player.Unavailable;
             ui.FloatingText(new Rect(nameplate.x,nameplate.y,nameplate.width-26,nameplate.height),
-                player.Revival.Dead ? "已死亡" : player.Vitals.Downed ? "倒地 · 等待救援" :
-                player.Unavailable ? "连接中断" : "渔夫 · P"+(slot+1),16,warning?Damage:Paper);
-            if (warning)
-                ui.Icon(new Rect(nameplate.xMax-23,nameplate.y+4,15,15),
-                    player.Revival.Dead ? HudIcon.Skull : player.Vitals.Downed ? HudIcon.Rescue : HudIcon.Alert,Damage);
+                name,16,status.HasValue?Damage:Paper);
+            if (status.HasValue)
+                ui.Icon(new Rect(nameplate.xMax-23,nameplate.y+4,15,15),status.Value,Damage);
             else if (critical)
                 ui.Icon(new Rect(nameplate.xMax-23,nameplate.y+4,15,15),HudIcon.Heart,Damage);
             ui.Hint(rect,$"生命 · {current} / {maximum}");

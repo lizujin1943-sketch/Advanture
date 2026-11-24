@@ -3,7 +3,8 @@
   "references": [
     "Advanture.TacticalGame",
     "Advanture.TacticalGame.NetworkView",
-    "Advanture.HookIsland"
+    "Advanture.HookIsland",
+    "Unity.InputSystem"
   ],
   "includePlatforms": [
     "Editor"

@@ -13,11 +13,11 @@ namespace Advanture.TacticalGame.NetworkView
         private Material material, dark, sleeves;
         private bool placed, wasAlive=true;
         public Ak47View Weapon { get; private set; }
-        public static NetworkAvatar Create(ushort slot, Camera observer = null)
+        public static NetworkAvatar Create(ushort slot, Camera observer = null,bool townMarkers=false)
         {
             var root = new GameObject(Names[slot]);
             var view = root.AddComponent<NetworkAvatar>();
-            view.material = new Material(Shader.Find("Standard")) { color = Colors[slot] };
+            view.material = new Material(Shader.Find("Standard")) { color = townMarkers?Advanture.HookIsland.FishingPresentation.PlayerColors[slot]:Colors[slot] };
             view.dark = new Material(Shader.Find("Standard")) { color = new Color(.12f,.18f,.23f) };
             view.Part(PrimitiveType.Capsule, "Body", root.transform, new Vector3(0,.78f,0), new Vector3(.6f,.65f,.6f), view.material);
             view.head = new GameObject("HeadPivot").transform; view.head.SetParent(root.transform, false); view.head.localPosition = new Vector3(0,1.58f,0);
@@ -30,7 +30,7 @@ namespace Advanture.TacticalGame.NetworkView
             view.rightUpper = view.Limb("RightUpperSleeve", view.sleeves);
             view.rightLower = view.Limb("RightLowerSleeve", view.sleeves);
             var label = new GameObject("Label").AddComponent<TextMesh>(); label.transform.SetParent(root.transform, false);
-            label.transform.localPosition = new Vector3(0,2.15f,0); label.text = ((char)('A' + slot)).ToString(); label.fontSize = 64; label.characterSize = .08f; label.anchor = TextAnchor.MiddleCenter;
+            label.transform.localPosition = new Vector3(0,2.15f,0); label.text = townMarkers?"P"+(slot+1):((char)('A' + slot)).ToString(); label.fontSize = 64; label.characterSize = .08f; label.anchor = TextAnchor.MiddleCenter;
             view.Weapon=Ak47View.Create(view.head,false,observer);
             return view;
         }
